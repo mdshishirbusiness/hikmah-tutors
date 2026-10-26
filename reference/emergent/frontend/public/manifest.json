@@ -1,0 +1,12 @@
+{
+  "short_name": "Hikmah Tutors",
+  "name": "Hikmah Tutors Rajshahi",
+  "icons": [
+    { "src": "brand/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "brand/logo-square.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#09332A",
+  "background_color": "#FEFDF8"
+}

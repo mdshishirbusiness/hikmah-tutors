@@ -1,0 +1,29 @@
+/**
+ * Hikmah Tutors — Cloudflare Worker (React Router v8).
+ * This project uses its OWN Cloudflare account, separate from Towfique HSC. Once that account exists, put its
+ * account_id below so wrangler can never deploy or touch databases on the wrong account.
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "hikmah-tutors",
+	// "account_id": "<Hikmah Cloudflare account id>",
+	"compatibility_date": "2026-10-06",
+	"main": "./workers/app.ts",
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	/**
+	 * D1 database. Local development works without a Cloudflare account (`npm run db:migrate:local`).
+	 * For production: create it on the Hikmah account (`npx wrangler d1 create hikmah`) and paste the real id here.
+	 */
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "hikmah",
+			"database_id": "00000000-0000-0000-0000-000000000000",
+			"migrations_dir": "migrations"
+		}
+	]
+}

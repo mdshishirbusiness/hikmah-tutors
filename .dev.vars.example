@@ -1,0 +1,3 @@
+# Copy this file to .dev.vars (gitignored) for local development.
+# Opens the admin pages on your own computer until Google login is added. Never set this on Cloudflare.
+DEV_ADMIN=1

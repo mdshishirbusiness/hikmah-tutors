@@ -1,0 +1,1214 @@
+{
+ "class_levels": [
+  {
+   "key": "play",
+   "label": "প্লে",
+   "label_en": "Play",
+   "group": "early",
+   "alt": [
+    "play",
+    "প্লে গ্রুপ"
+   ]
+  },
+  {
+   "key": "nursery",
+   "label": "নার্সারি",
+   "label_en": "Nursery",
+   "group": "early",
+   "alt": [
+    "nursery"
+   ]
+  },
+  {
+   "key": "kg",
+   "label": "কেজি",
+   "label_en": "KG",
+   "group": "early",
+   "alt": [
+    "kg",
+    "kindergarten"
+   ]
+  },
+  {
+   "key": "c1",
+   "label": "ক্লাস ১",
+   "label_en": "Class 1",
+   "group": "school",
+   "alt": [
+    "class 1",
+    "class1"
+   ]
+  },
+  {
+   "key": "c2",
+   "label": "ক্লাস ২",
+   "label_en": "Class 2",
+   "group": "school",
+   "alt": [
+    "class 2",
+    "class2"
+   ]
+  },
+  {
+   "key": "c3",
+   "label": "ক্লাস ৩",
+   "label_en": "Class 3",
+   "group": "school",
+   "alt": [
+    "class 3",
+    "class3"
+   ]
+  },
+  {
+   "key": "c4",
+   "label": "ক্লাস ৪",
+   "label_en": "Class 4",
+   "group": "school",
+   "alt": [
+    "class 4",
+    "class4"
+   ]
+  },
+  {
+   "key": "c5",
+   "label": "ক্লাস ৫",
+   "label_en": "Class 5",
+   "group": "school",
+   "alt": [
+    "class 5",
+    "class5"
+   ]
+  },
+  {
+   "key": "c6",
+   "label": "ক্লাস ৬",
+   "label_en": "Class 6",
+   "group": "school",
+   "alt": [
+    "class 6",
+    "class6"
+   ]
+  },
+  {
+   "key": "c7",
+   "label": "ক্লাস ৭",
+   "label_en": "Class 7",
+   "group": "school",
+   "alt": [
+    "class 7",
+    "class7"
+   ]
+  },
+  {
+   "key": "c8",
+   "label": "ক্লাস ৮",
+   "label_en": "Class 8",
+   "group": "school",
+   "alt": [
+    "class 8",
+    "class8",
+    "jsc"
+   ]
+  },
+  {
+   "key": "c9",
+   "label": "ক্লাস ৯",
+   "label_en": "Class 9",
+   "group": "school",
+   "alt": [
+    "class 9",
+    "class9"
+   ]
+  },
+  {
+   "key": "c10",
+   "label": "ক্লাস ১০",
+   "label_en": "Class 10",
+   "group": "school",
+   "alt": [
+    "class 10",
+    "class10"
+   ]
+  },
+  {
+   "key": "ssc-2026",
+   "label": "SSC ২০২৬",
+   "label_en": "SSC 2026",
+   "group": "ssc",
+   "alt": [
+    "ssc",
+    "এসএসসি",
+    "ssc 2026"
+   ]
+  },
+  {
+   "key": "ssc-2027",
+   "label": "SSC ২০২৭",
+   "label_en": "SSC 2027",
+   "group": "ssc",
+   "alt": [
+    "ssc",
+    "এসএসসি",
+    "ssc 2027"
+   ]
+  },
+  {
+   "key": "ssc-2028",
+   "label": "SSC ২০২৮",
+   "label_en": "SSC 2028",
+   "group": "ssc",
+   "alt": [
+    "ssc",
+    "এসএসসি",
+    "ssc 2028"
+   ]
+  },
+  {
+   "key": "hsc-1st",
+   "label": "HSC ১ম বর্ষ",
+   "label_en": "HSC 1st Year",
+   "group": "hsc",
+   "alt": [
+    "hsc",
+    "inter",
+    "class 11",
+    "একাদশ",
+    "এইচএসসি"
+   ]
+  },
+  {
+   "key": "hsc-2nd",
+   "label": "HSC ২য় বর্ষ",
+   "label_en": "HSC 2nd Year",
+   "group": "hsc",
+   "alt": [
+    "hsc",
+    "inter",
+    "class 12",
+    "দ্বাদশ",
+    "এইচএসসি"
+   ]
+  },
+  {
+   "key": "hsc-2026",
+   "label": "HSC ২০২৬",
+   "label_en": "HSC 2026",
+   "group": "hsc",
+   "alt": [
+    "hsc",
+    "এইচএসসি",
+    "hsc 2026"
+   ]
+  },
+  {
+   "key": "hsc-2027",
+   "label": "HSC ২০২৭",
+   "label_en": "HSC 2027",
+   "group": "hsc",
+   "alt": [
+    "hsc",
+    "এইচএসসি",
+    "hsc 2027"
+   ]
+  },
+  {
+   "key": "hsc-2028",
+   "label": "HSC ২০২৮",
+   "label_en": "HSC 2028",
+   "group": "hsc",
+   "alt": [
+    "hsc",
+    "এইচএসসি",
+    "hsc 2028"
+   ]
+  },
+  {
+   "key": "admission",
+   "label": "ভর্তি প্রস্তুতি",
+   "label_en": "Admission prep",
+   "alt": [
+    "admission",
+    "ভর্তি",
+    "medical",
+    "engineering",
+    "varsity"
+   ],
+   "group": "other"
+  },
+  {
+   "key": "olevel",
+   "label": "O Level",
+   "label_en": "O Level",
+   "alt": [
+    "o level",
+    "olevel",
+    "ও লেভেল"
+   ],
+   "group": "other"
+  },
+  {
+   "key": "alevel",
+   "label": "A Level",
+   "label_en": "A Level",
+   "alt": [
+    "a level",
+    "alevel",
+    "এ লেভেল"
+   ],
+   "group": "other"
+  },
+  {
+   "key": "other",
+   "label": "অন্যান্য",
+   "label_en": "Other",
+   "alt": [],
+   "group": "other"
+  }
+ ],
+ "legacy_class_levels": [
+  {
+   "key": "c1-5",
+   "label": "১ম–৫ম",
+   "label_en": "Class 1–5",
+   "alt": [
+    "class 1",
+    "class 5",
+    "primary",
+    "প্রাইমারি"
+   ],
+   "group": "legacy",
+   "legacy": true
+  },
+  {
+   "key": "c6-8",
+   "label": "৬ষ্ঠ–৮ম",
+   "label_en": "Class 6–8",
+   "alt": [
+    "class 6",
+    "class 7",
+    "class 8",
+    "jsc"
+   ],
+   "group": "legacy",
+   "legacy": true
+  },
+  {
+   "key": "ssc",
+   "label": "৯ম–১০ম (SSC)",
+   "label_en": "Class 9–10 (SSC)",
+   "alt": [
+    "ssc",
+    "class 9",
+    "class 10",
+    "এসএসসি",
+    "নবম",
+    "দশম"
+   ],
+   "group": "legacy",
+   "legacy": true
+  },
+  {
+   "key": "hsc",
+   "label": "একাদশ–দ্বাদশ (HSC)",
+   "label_en": "Class 11–12 (HSC)",
+   "alt": [
+    "hsc",
+    "class 11",
+    "class 12",
+    "এইচএসসি",
+    "ইন্টার",
+    "inter",
+    "college"
+   ],
+   "group": "legacy",
+   "legacy": true
+  }
+ ],
+ "mediums": [
+  {
+   "key": "bangla",
+   "label": "বাংলা মাধ্যম",
+   "label_en": "Bangla medium",
+   "alt": [
+    "bangla medium",
+    "bengali medium"
+   ]
+  },
+  {
+   "key": "ev",
+   "label": "ইংলিশ ভার্সন",
+   "label_en": "English version",
+   "alt": [
+    "english version",
+    "ev"
+   ]
+  },
+  {
+   "key": "em",
+   "label": "ইংলিশ মিডিয়াম",
+   "label_en": "English medium",
+   "alt": [
+    "english medium",
+    "em"
+   ]
+  },
+  {
+   "key": "madrasa",
+   "label": "মাদ্রাসা",
+   "label_en": "Madrasa",
+   "alt": [
+    "madrasa",
+    "madrasah",
+    "মাদরাসা"
+   ]
+  }
+ ],
+ "subjects": [
+  {
+   "key": "all",
+   "label": "সব বিষয়",
+   "label_en": "All subjects",
+   "alt": [
+    "all subjects",
+    "all"
+   ]
+  },
+  {
+   "key": "math",
+   "label": "গণিত",
+   "label_en": "Math",
+   "alt": [
+    "math",
+    "mathematics",
+    "অংক",
+    "অঙ্ক"
+   ]
+  },
+  {
+   "key": "science",
+   "label": "বিজ্ঞান",
+   "label_en": "Science",
+   "alt": [
+    "science"
+   ]
+  },
+  {
+   "key": "english",
+   "label": "ইংরেজি",
+   "label_en": "English",
+   "alt": [
+    "english",
+    "ইংলিশ"
+   ]
+  },
+  {
+   "key": "bangla",
+   "label": "বাংলা",
+   "label_en": "Bangla",
+   "alt": [
+    "bangla",
+    "bengali"
+   ]
+  },
+  {
+   "key": "physics",
+   "label": "পদার্থ",
+   "label_en": "Physics",
+   "alt": [
+    "physics",
+    "পদার্থবিজ্ঞান",
+    "ফিজিক্স"
+   ]
+  },
+  {
+   "key": "chemistry",
+   "label": "রসায়ন",
+   "label_en": "Chemistry",
+   "alt": [
+    "chemistry",
+    "কেমিস্ট্রি"
+   ]
+  },
+  {
+   "key": "biology",
+   "label": "জীববিজ্ঞান",
+   "label_en": "Biology",
+   "alt": [
+    "biology",
+    "বায়োলজি"
+   ]
+  },
+  {
+   "key": "hmath",
+   "label": "উচ্চতর গণিত",
+   "label_en": "Higher Math",
+   "alt": [
+    "higher math",
+    "hmath"
+   ]
+  },
+  {
+   "key": "ict",
+   "label": "আইসিটি",
+   "label_en": "ICT",
+   "alt": [
+    "ict",
+    "computer"
+   ]
+  },
+  {
+   "key": "accounting",
+   "label": "হিসাববিজ্ঞান",
+   "label_en": "Accounting",
+   "alt": [
+    "accounting"
+   ]
+  },
+  {
+   "key": "quran",
+   "label": "কুরআন / আরবি",
+   "label_en": "Quran / Arabic",
+   "alt": [
+    "quran",
+    "arabic",
+    "কোরআন",
+    "আরবী"
+   ]
+  }
+ ],
+ "tutor_genders": [
+  {
+   "key": "any",
+   "label": "যেকোনো",
+   "label_en": "Any",
+   "alt": []
+  },
+  {
+   "key": "male",
+   "label": "পুরুষ",
+   "label_en": "Male",
+   "alt": [
+    "male",
+    "পুরুষ টিউটর",
+    "male tutor"
+   ]
+  },
+  {
+   "key": "female",
+   "label": "মহিলা",
+   "label_en": "Female",
+   "alt": [
+    "female",
+    "মহিলা টিউটর",
+    "female tutor"
+   ]
+  }
+ ],
+ "student_genders": [
+  {
+   "key": "boy",
+   "label": "ছেলে",
+   "label_en": "Boy",
+   "alt": []
+  },
+  {
+   "key": "girl",
+   "label": "মেয়ে",
+   "label_en": "Girl",
+   "alt": []
+  }
+ ],
+ "modes": [
+  {
+   "key": "home",
+   "label": "বাসায় গিয়ে",
+   "label_en": "At home",
+   "alt": [
+    "home"
+   ]
+  },
+  {
+   "key": "online",
+   "label": "অনলাইন",
+   "label_en": "Online",
+   "alt": [
+    "online"
+   ]
+  }
+ ],
+ "lead_sources": [
+  {
+   "key": "call",
+   "label": "ফোন কল",
+   "label_en": "Phone call",
+   "alt": []
+  },
+  {
+   "key": "whatsapp",
+   "label": "WhatsApp",
+   "label_en": "WhatsApp",
+   "alt": []
+  },
+  {
+   "key": "facebook",
+   "label": "Facebook",
+   "label_en": "Facebook",
+   "alt": []
+  },
+  {
+   "key": "referral",
+   "label": "পরিচিত / রেফারেন্স",
+   "label_en": "Referral",
+   "alt": []
+  },
+  {
+   "key": "old",
+   "label": "পুরোনো গার্ডিয়ান",
+   "label_en": "Returning guardian",
+   "alt": []
+  },
+  {
+   "key": "website",
+   "label": "ওয়েবসাইট",
+   "label_en": "Website",
+   "alt": []
+  },
+  {
+   "key": "other",
+   "label": "অন্যান্য",
+   "label_en": "Other",
+   "alt": []
+  }
+ ],
+ "tuition_types": [
+  {
+   "key": "academic",
+   "label": "একাডেমিক",
+   "label_en": "Academic",
+   "alt": []
+  },
+  {
+   "key": "admission",
+   "label": "ভর্তি",
+   "label_en": "Admission",
+   "alt": []
+  },
+  {
+   "key": "language",
+   "label": "ভাষা",
+   "label_en": "Language",
+   "alt": []
+  },
+  {
+   "key": "quran",
+   "label": "কুরআন",
+   "label_en": "Quran",
+   "alt": []
+  },
+  {
+   "key": "skill",
+   "label": "দক্ষতা",
+   "label_en": "Skill",
+   "alt": []
+  },
+  {
+   "key": "short_course",
+   "label": "শর্ট কোর্স",
+   "label_en": "Short course",
+   "alt": []
+  }
+ ],
+ "tuition_statuses": [
+  {
+   "key": "draft",
+   "label": "খসড়া",
+   "label_en": "Draft"
+  },
+  {
+   "key": "available",
+   "label": "খালি আছে",
+   "label_en": "Available"
+  },
+  {
+   "key": "processing",
+   "label": "প্রক্রিয়াধীন",
+   "label_en": "Processing"
+  },
+  {
+   "key": "follow_up",
+   "label": "ফলো-আপ প্রয়োজন",
+   "label_en": "Follow-up needed"
+  },
+  {
+   "key": "booked",
+   "label": "বুকড",
+   "label_en": "Booked"
+  },
+  {
+   "key": "cancelled",
+   "label": "বাতিল",
+   "label_en": "Cancelled"
+  },
+  {
+   "key": "closed",
+   "label": "সমাপ্ত",
+   "label_en": "Closed"
+  }
+ ],
+ "application_statuses": [
+  {
+   "key": "submitted",
+   "label": "আবেদন জমা হয়েছে",
+   "label_en": "Application submitted"
+  },
+  {
+   "key": "under_review",
+   "label": "পর্যালোচনায় আছে",
+   "label_en": "Under review"
+  },
+  {
+   "key": "shortlisted",
+   "label": "শর্টলিস্টেড",
+   "label_en": "Shortlisted"
+  },
+  {
+   "key": "trial_arranged",
+   "label": "ট্রায়াল ক্লাস ঠিক হয়েছে",
+   "label_en": "Trial class arranged"
+  },
+  {
+   "key": "confirmed",
+   "label": "কনফার্মড",
+   "label_en": "Confirmed"
+  },
+  {
+   "key": "not_selected",
+   "label": "এবার নির্বাচিত হননি",
+   "label_en": "Not selected this time"
+  },
+  {
+   "key": "withdrawn",
+   "label": "আবেদন তুলে নেওয়া হয়েছে",
+   "label_en": "Application withdrawn"
+  },
+  {
+   "key": "opportunity_closed",
+   "label": "টিউশনটি বন্ধ হয়ে গেছে",
+   "label_en": "Tuition closed"
+  }
+ ],
+ "not_selected_reasons": [
+  {
+   "key": "filled",
+   "label": "টিউশন পূরণ হয়েছে",
+   "label_en": "Position filled"
+  },
+  {
+   "key": "guardian_pref",
+   "label": "অভিভাবকের পছন্দ",
+   "label_en": "Guardian preference"
+  },
+  {
+   "key": "not_matched",
+   "label": "প্রোফাইল মেলেনি",
+   "label_en": "Profile did not match"
+  },
+  {
+   "key": "no_response",
+   "label": "সাড়া পাওয়া যায়নি",
+   "label_en": "No response"
+  },
+  {
+   "key": "other",
+   "label": "অন্যান্য",
+   "label_en": "Other"
+  }
+ ],
+ "days_per_week": [
+  2,
+  3,
+  4,
+  5,
+  6
+ ],
+ "salary_presets": [
+  3000,
+  4000,
+  5000,
+  6000,
+  8000,
+  10000
+ ],
+ "salary_filter_steps": [
+  2000,
+  3000,
+  4000,
+  5000,
+  6000,
+  8000,
+  10000
+ ],
+ "areas": [
+  {
+   "key": "uposhohor",
+   "label": "উপশহর",
+   "label_en": "Uposhohor",
+   "alt": [
+    "Uposhohor",
+    "Upashahar"
+   ]
+  },
+  {
+   "key": "terokhadiya",
+   "label": "তেরখাদিয়া",
+   "label_en": "Terokhadiya",
+   "alt": [
+    "Terokhadiya"
+   ]
+  },
+  {
+   "key": "court-station",
+   "label": "কোর্ট স্টেশন",
+   "label_en": "Court Station",
+   "alt": [
+    "Court Station"
+   ]
+  },
+  {
+   "key": "vodra",
+   "label": "ভদ্রা",
+   "label_en": "Vodra",
+   "alt": [
+    "Vodra",
+    "Bhadra"
+   ]
+  },
+  {
+   "key": "padma-abashik",
+   "label": "পদ্মা আবাসিক",
+   "label_en": "Padma Residential",
+   "alt": [
+    "Padma Residential",
+    "Podda Abashik"
+   ]
+  },
+  {
+   "key": "sopura",
+   "label": "সপুরা",
+   "label_en": "Sopura",
+   "alt": [
+    "Sopura"
+   ]
+  },
+  {
+   "key": "hetem-kha",
+   "label": "হেতেম খাঁ",
+   "label_en": "Hetem Kha",
+   "alt": [
+    "Hetem Kha"
+   ]
+  },
+  {
+   "key": "laxmipur",
+   "label": "লক্ষ্মীপুর",
+   "label_en": "Laxmipur",
+   "alt": [
+    "Laxmipur"
+   ]
+  },
+  {
+   "key": "binodpur",
+   "label": "বিনোদপুর",
+   "label_en": "Binodpur",
+   "alt": [
+    "Binodpur"
+   ]
+  },
+  {
+   "key": "kazla",
+   "label": "কাজলা",
+   "label_en": "Kazla",
+   "alt": [
+    "Kazla",
+    "Kajla"
+   ]
+  },
+  {
+   "key": "sagarpara",
+   "label": "সাগরপাড়া",
+   "label_en": "Sagarpara",
+   "alt": [
+    "Sagarpara",
+    "Sagorpara"
+   ]
+  },
+  {
+   "key": "nowdapara",
+   "label": "নওদাপাড়া",
+   "label_en": "Nowdapara",
+   "alt": [
+    "Nowdapara",
+    "Nawdapara"
+   ]
+  },
+  {
+   "key": "shah-makhdum",
+   "label": "শাহ মখদুম",
+   "label_en": "Shah Makhdum",
+   "alt": [
+    "Shah Makhdum",
+    "Mokhdum"
+   ]
+  },
+  {
+   "key": "saheb-bazar",
+   "label": "সাহেব বাজার",
+   "label_en": "Saheb Bazar",
+   "alt": [
+    "Saheb Bazar",
+    "Shaheb Bazar"
+   ]
+  },
+  {
+   "key": "talaimari",
+   "label": "তালাইমারী",
+   "label_en": "Talaimari",
+   "alt": [
+    "Talaimari",
+    "Talaimary"
+   ]
+  },
+  {
+   "key": "bornali",
+   "label": "বর্ণালী মোড়",
+   "label_en": "Bornali Mor",
+   "alt": [
+    "Bornali Mor"
+   ]
+  },
+  {
+   "key": "shalbagan",
+   "label": "শালবাগান",
+   "label_en": "Shalbagan",
+   "alt": [
+    "Shalbagan"
+   ]
+  },
+  {
+   "key": "kazihata",
+   "label": "কাজীহাটা",
+   "label_en": "Kazihata",
+   "alt": [
+    "Kazihata"
+   ]
+  },
+  {
+   "key": "choto-bongram",
+   "label": "ছোট বনগ্রাম",
+   "label_en": "Choto Bongram",
+   "alt": [
+    "Choto Bongram"
+   ]
+  },
+  {
+   "key": "baharampur",
+   "label": "বহরমপুর",
+   "label_en": "Baharampur",
+   "alt": [
+    "Baharampur",
+    "Bohorompur"
+   ]
+  },
+  {
+   "key": "rajpara",
+   "label": "রাজপাড়া",
+   "label_en": "Rajpara",
+   "alt": [
+    "Raj Para",
+    "Rajpara"
+   ]
+  },
+  {
+   "key": "jadughar",
+   "label": "জাদুঘর",
+   "label_en": "Jadughar",
+   "alt": [
+    "Jadughar",
+    "Museum"
+   ]
+  },
+  {
+   "key": "tikapara",
+   "label": "টিকাপাড়া",
+   "label_en": "Tikapara",
+   "alt": [
+    "Tikapara"
+   ]
+  },
+  {
+   "key": "rani-bazar",
+   "label": "রাণীবাজার",
+   "label_en": "Rani Bazar",
+   "alt": [
+    "Rani Bazar"
+   ]
+  },
+  {
+   "key": "sadhur-mor",
+   "label": "সাধুর মোড়",
+   "label_en": "Sadhur Mor",
+   "alt": [
+    "Sadhur Mor"
+   ]
+  },
+  {
+   "key": "dabtola",
+   "label": "ডাবতলা",
+   "label_en": "Dabtola",
+   "alt": [
+    "Dabtola"
+   ]
+  },
+  {
+   "key": "seroil",
+   "label": "শিরোইল",
+   "label_en": "Seroil",
+   "alt": [
+    "Seroil",
+    "Shiroil"
+   ]
+  },
+  {
+   "key": "veripara",
+   "label": "ভেড়িপাড়া",
+   "label_en": "Veripara",
+   "alt": [
+    "Veripara",
+    "Police Line"
+   ]
+  },
+  {
+   "key": "kumarpara",
+   "label": "কুমারপাড়া",
+   "label_en": "Kumarpara",
+   "alt": [
+    "Kumarpara"
+   ]
+  },
+  {
+   "key": "dorikhorbona",
+   "label": "দড়িখরবনা (নগর ভবন)",
+   "label_en": "Dorikhorbona (Nagar Bhaban)",
+   "alt": [
+    "Dorikhorbona",
+    "Nagar Bhaban",
+    "Nagarvaban"
+   ]
+  },
+  {
+   "key": "amchattar",
+   "label": "আমচত্বর",
+   "label_en": "Aam Chattar",
+   "alt": [
+    "Aam Chattar",
+    "Amchottor"
+   ]
+  },
+  {
+   "key": "dashpukur",
+   "label": "দাশপুকুর",
+   "label_en": "Dashpukur",
+   "alt": [
+    "Dashpukur"
+   ]
+  },
+  {
+   "key": "alupotti",
+   "label": "আলুপট্টি",
+   "label_en": "Alupotti",
+   "alt": [
+    "Alupotti"
+   ]
+  },
+  {
+   "key": "kadirganj",
+   "label": "কাদিরগঞ্জ",
+   "label_en": "Kadirganj",
+   "alt": [
+    "Kadirganj"
+   ]
+  },
+  {
+   "key": "chondrima",
+   "label": "চন্দ্রিমা",
+   "label_en": "Chondrima",
+   "alt": [
+    "Chondrima",
+    "Chandrima"
+   ]
+  },
+  {
+   "key": "pathanpara",
+   "label": "পাঠানপাড়া",
+   "label_en": "Pathanpara",
+   "alt": [
+    "Pathanpara"
+   ]
+  },
+  {
+   "key": "raipara",
+   "label": "রায়পাড়া",
+   "label_en": "Raipara",
+   "alt": [
+    "Raipara"
+   ]
+  },
+  {
+   "key": "dinggadoba",
+   "label": "ডিংগাডোবা",
+   "label_en": "Dinggadoba",
+   "alt": [
+    "Dinggadoba",
+    "Dinga Doba"
+   ]
+  },
+  {
+   "key": "ghoshpara",
+   "label": "ঘোষপাড়া",
+   "label_en": "Ghoshpara",
+   "alt": [
+    "Ghoshpara"
+   ]
+  },
+  {
+   "key": "vatapara",
+   "label": "ভাটাপাড়া",
+   "label_en": "Vatapara",
+   "alt": [
+    "Vata Para",
+    "Bhatapara"
+   ]
+  },
+  {
+   "key": "new-market",
+   "label": "নিউ মার্কেট",
+   "label_en": "New Market",
+   "alt": [
+    "New Market"
+   ]
+  },
+  {
+   "key": "basar-road",
+   "label": "বাশার রোড",
+   "label_en": "Basar Road",
+   "alt": [
+    "Basar Road"
+   ]
+  },
+  {
+   "key": "cantonment",
+   "label": "ক্যান্টনমেন্ট",
+   "label_en": "Cantonment",
+   "alt": [
+    "Cantonment"
+   ]
+  },
+  {
+   "key": "mohisbathan",
+   "label": "মহিষবাথান",
+   "label_en": "Mohisbathan",
+   "alt": [
+    "Mohisbathan"
+   ]
+  },
+  {
+   "key": "banalata",
+   "label": "বনলতা আবাসিক",
+   "label_en": "Banalata Residential",
+   "alt": [
+    "Banalata",
+    "Bonolota"
+   ]
+  },
+  {
+   "key": "horogram",
+   "label": "হড়গ্রাম",
+   "label_en": "Horogram",
+   "alt": [
+    "Horogram"
+   ]
+  },
+  {
+   "key": "hadir-mor",
+   "label": "হাদির মোড়",
+   "label_en": "Hadir Mor",
+   "alt": [
+    "Hadir Mor"
+   ]
+  },
+  {
+   "key": "fire-service",
+   "label": "ফায়ার সার্ভিস মোড়",
+   "label_en": "Fire Service More",
+   "alt": [
+    "Fire Service More"
+   ]
+  },
+  {
+   "key": "city-college",
+   "label": "সিটি কলেজ",
+   "label_en": "City College",
+   "alt": [
+    "City College"
+   ]
+  },
+  {
+   "key": "bgb-camp",
+   "label": "বিজিবি ক্যাম্প",
+   "label_en": "BGB Camp",
+   "alt": [
+    "BGB Camp School"
+   ]
+  },
+  {
+   "key": "malopara",
+   "label": "মালোপাড়া",
+   "label_en": "Malopara",
+   "alt": [
+    "Malopara"
+   ]
+  },
+  {
+   "key": "meherchondi",
+   "label": "মেহেরচণ্ডী",
+   "label_en": "Meherchondi",
+   "alt": [
+    "Meherchondi"
+   ]
+  },
+  {
+   "key": "baneshwar",
+   "label": "বানেশ্বর",
+   "label_en": "Baneshwar",
+   "alt": [
+    "Baneshwar"
+   ]
+  },
+  {
+   "key": "durgapur",
+   "label": "দুর্গাপুর",
+   "label_en": "Durgapur",
+   "alt": [
+    "Durgapur"
+   ]
+  },
+  {
+   "key": "online",
+   "label": "অনলাইন",
+   "label_en": "Online",
+   "alt": [
+    "Online"
+   ]
+  }
+ ]
+}

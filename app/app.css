@@ -1,0 +1,94 @@
+@import "tailwindcss" source(".");
+
+/* Hind Siliguri (self-hosted, same files as Towfique HSC). Bangla digits come from Noto Sans Bengali,
+   because Hind Siliguri's ১ is unclear at regular weight; that face is declared last so it wins for U+09E6-09EF. */
+@font-face {
+  font-family: "Hind Siliguri";
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/hind-siliguri-bengali-400.woff2") format("woff2");
+  unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA, U+1CED,
+    U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+}
+@font-face {
+  font-family: "Hind Siliguri";
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/hind-siliguri-bengali-600.woff2") format("woff2");
+  unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA, U+1CED,
+    U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+}
+@font-face {
+  font-family: "Hind Siliguri";
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/hind-siliguri-latin-400.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Hind Siliguri";
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/hind-siliguri-latin-600.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Hind Siliguri";
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/noto-bengali-digits-400.woff2") format("woff2");
+  unicode-range: U+09E6-09EF;
+}
+@font-face {
+  font-family: "Hind Siliguri";
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/noto-bengali-digits-600.woff2") format("woff2");
+  unicode-range: U+09E6-09EF;
+}
+
+@theme {
+  --font-sans: "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand colours sampled from the logo (design/brand/logo-square.png). Contrast checked (WCAG):
+     emerald on white 4.8 (text, links, buttons OK) · white on forest 13.8 · mango on forest 9.6 · forest on mango 9.6
+     · mango on white 1.4 → mango is a FILL behind dark text or a highlight on forest, never text or lines on light. */
+  --color-brand-50: #ebf6f3;
+  --color-brand-100: #cfede6;
+  --color-brand-200: #a3dccf;
+  --color-brand-500: #169a82;
+  --color-brand-600: #11816d; /* emerald: the swoosh */
+  --color-brand-700: #0e6b5a;
+  --color-brand-900: #09332a; /* forest: the wordmark */
+
+  --color-forest: #09332a;
+  --color-forest-mid: #0f4438; /* the figure's body */
+  --color-mango: #fed262; /* the RAJSHAHI pill */
+  --color-mango-deep: #f9c143; /* the star and cap */
+  --color-cream: #fefdf8; /* the logo background */
+}
+
+html {
+  color-scheme: light;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply bg-cream text-slate-800 antialiased;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

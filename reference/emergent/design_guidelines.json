@@ -1,0 +1,195 @@
+{
+  "brand_identity": {
+    "name": "Hikmah Tutors Rajshahi (হিকমাহ টিউটরস রাজশাহী)",
+    "tagline": "রাজশাহীর বিশ্বস্ত ও নির্ভরযোগ্য টিউটর প্ল্যাটফর্ম",
+    "cultural_context": "Bangla-first, mobile-first Rajshahi educational tutoring network",
+    "theme": "Light theme (Cream base with Forest Green depth and Mango accents)",
+    "gender_color_coding": {
+      "male": {
+        "color": "#1D4ED8",
+        "bg_strip": "bg-blue-50/90 border-blue-200 text-blue-900",
+        "dot": "bg-blue-600",
+        "label_bn": "ছাত্র টিউটর আবশ্যক (পুরুষ)"
+      },
+      "female": {
+        "color": "#E11D48",
+        "bg_strip": "bg-rose-50/90 border-rose-200 text-rose-900",
+        "dot": "bg-rose-600",
+        "label_bn": "ছাত্রী টিউটর আবশ্যক (মহিলা)"
+      },
+      "any": {
+        "color": "#059669",
+        "bg_strip": "bg-emerald-50/90 border-emerald-200 text-emerald-900",
+        "dot": "bg-emerald-600",
+        "label_bn": "যেকোনো টিউটর (পুরুষ / মহিলা)"
+      }
+    }
+  },
+  "typography": {
+    "fonts": {
+      "heading": "Noto Sans Bengali, Hind Siliguri, sans-serif",
+      "body": "Noto Sans Bengali, Hind Siliguri, system-ui, sans-serif",
+      "mono": "JetBrains Mono, Source Code Pro, monospace"
+    },
+    "scale": {
+      "h1_hero": "text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-snug",
+      "h2_section": "text-2xl sm:text-3xl font-bold leading-snug text-forest",
+      "h3_card": "text-xl sm:text-2xl font-bold leading-snug text-forest",
+      "body_regular": "text-base font-normal leading-bn text-slate-800",
+      "body_small": "text-sm font-medium leading-normal text-slate-600",
+      "label_badge": "text-xs font-bold tracking-wider uppercase"
+    },
+    "rules": [
+      "Bengali text requires higher line-height (leading-bn: 1.7) to prevent script overlapping",
+      "Never use Inter or generic sans for Bengali primary headers",
+      "Ensure proper fallback stack: Noto Sans Bengali -> Hind Siliguri -> system-ui"
+    ]
+  },
+  "colors": {
+    "primary": {
+      "forest": "#09332A",
+      "forest_mid": "#0F4438",
+      "forest_light": "#155748"
+    },
+    "accent": {
+      "mango": "#FED262",
+      "mango_deep": "#F9C143",
+      "mango_hover": "#E5AF30"
+    },
+    "brand_teal": {
+      "50": "#EBF6F3",
+      "100": "#CFEDE6",
+      "200": "#A3DCCF",
+      "500": "#169A82",
+      "600": "#11816D",
+      "700": "#0E6B5A"
+    },
+    "neutral": {
+      "cream": "#FEFDF8",
+      "surface_white": "#FFFFFF",
+      "slate_800": "#1E293B",
+      "slate_600": "#475569",
+      "slate_500": "#64748B",
+      "slate_100": "#F1F5F9"
+    },
+    "status": {
+      "new_badge": "bg-emerald-600 text-white",
+      "processing_badge": "bg-amber-500 text-slate-950 font-bold",
+      "closed_badge": "bg-slate-500 text-white"
+    }
+  },
+  "visual_enhancers": {
+    "cards": {
+      "shadow": "shadow-[0_2px_8px_-2px_rgba(9,51,42,0.08),0_8px_24px_-4px_rgba(9,51,42,0.06)]",
+      "border": "border-2 border-brand-100/80 hover:border-brand-500/50 transition-all duration-200",
+      "radius": "rounded-2xl"
+    },
+    "glassmorphism": {
+      "header": "bg-cream/95 backdrop-blur-md border-b border-brand-100/80 shadow-xs",
+      "overlay": "bg-slate-900/60 backdrop-blur-sm"
+    },
+    "textures": {
+      "hero_pattern": "radial-gradient(#FED262 1px, transparent 1px) [background-size:22px_22px]",
+      "noise": "subtle SVG grain overlay for hero depth"
+    }
+  },
+  "layouts": {
+    "page_container": "mx-auto max-w-6xl px-4 sm:px-6 lg:px-8",
+    "grid_tuitions": "grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+    "bento_admin": "grid gap-6 grid-cols-1 md:grid-cols-3 lg:grid-cols-4",
+    "spacing_scale": "p-4, p-6, p-8, p-12, py-16, py-20"
+  },
+  "motion": {
+    "card_rise": "transition-all duration-200 hover:-translate-y-1 hover:shadow-lg",
+    "sheet_slide": "transition-transform duration-300 ease-out",
+    "tab_fade": "transition-opacity duration-150 ease-in-out",
+    "accessibility_reduced_motion": "prefers-reduced-motion: duration-0"
+  },
+  "accessibility": {
+    "contrast": "APCA & WCAG AA compliant. All text against cream background has > 4.5:1 ratio.",
+    "focus_states": "focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2",
+    "touch_targets": "All buttons and interactive chips MUST have a minimum height of 48px on mobile devices.",
+    "testing_attributes": "All interactive and status elements MUST contain unique data-testid attributes in kebab-case."
+  },
+  "component_blueprints": {
+    "Header": {
+      "description": "Sticky top bar with brand logo, quick access to Tutor/Admin panels, and language switch.",
+      "improvements": [
+        "Replace standard bg-cream/95 with solid backdrop-blur-md and a subtle 1px border-b border-brand-100/80 to prevent content bleed.",
+        "Add explicit data-testid attributes to logo, tutor panel, admin panel, and language toggle.",
+        "Ensure navigation pills have a minimum touch target height of 44px on mobile and 48px on desktop."
+      ]
+    },
+    "TuitionCard": {
+      "description": "Primary card component for displaying individual tuition opportunities.",
+      "improvements": [
+        "Maintain high-visibility top GenderStrip with exact color coding: Male (Blue #1D4ED8), Female (Rose #E11D48), Any (Emerald #059669).",
+        "Highlight Salary with an expressive bold font size (text-2xl to text-3xl) in Forest Green.",
+        "Include quick action bar at card bottom: Apply (primary solid brand button), Save (heart toggle icon), Share (native/modal trigger).",
+        "Add structured data-testid on all key text fields: class, subjects, area, days, salary, code, time."
+      ]
+    },
+    "FilterBarAndSheet": {
+      "description": "Horizontal quick filter bar on desktop and bottom drawer sheet on mobile.",
+      "improvements": [
+        "Floating elevated filter container overlapping hero section with -mt-7 offset.",
+        "Horizontal scrollable pill list for instant area, class, gender, and salary filtering.",
+        "Filter sheet includes clear reset all button and live result counter update."
+      ]
+    },
+    "GuardianRequestForm": {
+      "description": "Form for parents/guardians to submit new tuition requirements directly.",
+      "improvements": [
+        "Grouping class/batch choices into clear visual categories: Primary (Play-5), Secondary (6-10, SSC), Higher Secondary (HSC 1st/2nd, HSC batch), Admission, O/A Level.",
+        "Provide explicit gender preference selection with matching color cues.",
+        "Cardless or soft-tinted section containers with 24px padding to avoid visual clutter."
+      ]
+    },
+    "EmptyAndErrorStates": {
+      "description": "Feedback containers for no results or network errors.",
+      "improvements": [
+        "Friendly Bengali text descriptions with relevant Lucide icon (SearchX for empty, WifiOff for errors).",
+        "Include an actionable reset button with minimum 48px touch height."
+      ]
+    },
+    "AdminAndTutorPanels": {
+      "description": "Internal work queue, lead manager, tuition editor, application comparer, and tutor dashboard.",
+      "improvements": [
+        "Keep panels accessible directly without hard auth wall while displaying clear demo/preview banner.",
+        "Density mode layout for admin tables with compact cell padding, clear badges, and WhatsApp deep-link actions.",
+        "Mobile bottom tab bar navigation for tutor workspace."
+      ]
+    }
+  },
+  "implementation_priorities": {
+    "Phase_1_Public_Board_Polish": [
+      "Refine TuitionCard gender strip contrast, salary typography, and 48px touch targets for action buttons.",
+      "Polish Header sticky behavior with backdrop blur and testid coverage.",
+      "Enhance Search Bar focus states, clear button positioning, and submit responsiveness."
+    ],
+    "Phase_2_Form_And_Filters_Polish": [
+      "Upgrade ClassPicker with grouped chip layout for exact batches (SSC 2026-28, HSC Year/Batch).",
+      "Improve FilterSheet drawer animation and multi-select clarity.",
+      "Polish Guardian Request Form with structured section steps and success feedback toast."
+    ],
+    "Phase_3_Panels_And_Workspaces": [
+      "Improve Admin Work Queue card layout with legacy class warning flags.",
+      "Polish Tutor Dashboard checklist, saved tuitions view, and application timeline.",
+      "Ensure dynamic code export ZIP button in footer works seamlessly and stays visually prominent."
+    ]
+  },
+  "image_urls": {
+    "hero_background": "subtle vector dot grid pattern with SVG transparency",
+    "logo_square": "/brand/logo-square.webp",
+    "logo_wide": "/brand/logo-wide.webp",
+    "fallback_avatar": "SVG inline placeholder for tutors"
+  },
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Retain Bangla-first interface and Bengali numerical formatting where applicable.",
+    "Do NOT add fake testimonials, false user review scores, or fake metrics.",
+    "Do NOT advertise guaranteed premium paid tuition or checkout flows (keep premium unpublished).",
+    "Maintain gender color coding strictly: Male (Blue), Female (Rose), Any (Green).",
+    "Ensure every interactive element has a clear data-testid attribute in kebab-case format.",
+    "Ensure total responsive fidelity across mobile (360px+), tablet, and desktop screens."
+  ]
+}

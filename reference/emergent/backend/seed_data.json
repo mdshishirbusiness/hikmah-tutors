@@ -1,0 +1,344 @@
+{
+ "settings": {
+  "contact_whatsapp": "01700000000",
+  "contact_call": "01700000000",
+  "facebook_page_url": "https://facebook.com/",
+  "tuition_code_start": 9001,
+  "daily_application_limit": 20,
+  "closed_page_days": 30,
+  "post_opening": "",
+  "post_closing": "আগ্রহী শিক্ষকরা নির্দিষ্ট আবেদন ফরম্যাট অনুযায়ী WhatsApp অথবা Facebook Page-এ যোগাযোগ করুন।",
+  "post_trust": "Why trust Hikmah Tutors Rajshahi?\nযাচাই করা অভিভাবক, স্বচ্ছ ফি-শর্ত, প্রতিটি ধাপে আপডেট।",
+  "post_multi_headline": "{total}টি নতুন টিউশন ({male}টি পুরুষ, {female}টি মহিলা টিউটরের জন্য)",
+  "sheet_columns": [
+   "code",
+   "class",
+   "subjects",
+   "area",
+   "salary",
+   "days",
+   "tutor_gender",
+   "status"
+  ]
+ },
+ "tuitions": [
+  {
+   "code": 9001,
+   "class_level": "ssc-2027",
+   "medium": "bangla",
+   "subjects": [
+    "physics",
+    "math"
+   ],
+   "area": "saheb-bazar",
+   "mode": "home",
+   "salary_kind": "fixed",
+   "salary_amount": 4000,
+   "salary_period": "per_month",
+   "days_per_week": 3,
+   "tutor_gender_pref": "female",
+   "student_gender": "girl",
+   "requirements_public": "পূর্ব অভিজ্ঞতা অগ্রাধিকার পাবে",
+   "status": "available",
+   "is_public": true
+  },
+  {
+   "code": 9002,
+   "class_level": "c1-5",
+   "medium": "bangla",
+   "subjects": [
+    "all"
+   ],
+   "area": "uposhohor",
+   "mode": "home",
+   "salary_kind": "negotiable",
+   "salary_amount": null,
+   "salary_period": "per_month",
+   "days_per_week": 5,
+   "tutor_gender_pref": "any",
+   "status": "available",
+   "is_public": true
+  },
+  {
+   "code": 9003,
+   "class_level": "hsc-1st",
+   "medium": "bangla",
+   "subjects": [
+    "chemistry"
+   ],
+   "area": "kazla",
+   "mode": "home",
+   "salary_kind": "fixed",
+   "salary_amount": 3333,
+   "salary_period": "per_month",
+   "days_per_week": 4,
+   "tutor_gender_pref": "male",
+   "student_gender": "boy",
+   "requirements_public": "পূর্ব অভিজ্ঞতা অগ্রাধিকার পাবে",
+   "status": "processing",
+   "is_public": true
+  },
+  {
+   "code": 9004,
+   "class_level": "admission",
+   "medium": "bangla",
+   "subjects": [
+    "biology",
+    "chemistry"
+   ],
+   "area": "online",
+   "mode": "online",
+   "salary_kind": "fixed",
+   "salary_amount": 15000,
+   "salary_period": "per_course",
+   "days_per_week": 6,
+   "tutor_gender_pref": "any",
+   "status": "available",
+   "is_public": true
+  },
+  {
+   "code": 9005,
+   "class_level": "c6-8",
+   "medium": "ev",
+   "subjects": [
+    "english"
+   ],
+   "area": "kazla",
+   "mode": "home",
+   "salary_kind": "unspecified",
+   "salary_amount": null,
+   "salary_period": "per_month",
+   "days_per_week": 3,
+   "tutor_gender_pref": "any",
+   "status": "draft",
+   "is_public": false
+  },
+  {
+   "code": 9006,
+   "class_level": "olevel",
+   "medium": "em",
+   "subjects": [
+    "math",
+    "physics"
+   ],
+   "area": "padma-abashik",
+   "mode": "home",
+   "salary_kind": "fixed",
+   "salary_amount": 8000,
+   "salary_period": "per_month",
+   "days_per_week": 3,
+   "tutor_gender_pref": "any",
+   "status": "available",
+   "is_public": true
+  },
+  {
+   "code": 9007,
+   "class_level": "c7",
+   "medium": "madrasa",
+   "subjects": [
+    "quran"
+   ],
+   "area": "terokhadiya",
+   "mode": "home",
+   "salary_kind": "fixed",
+   "salary_amount": 2500,
+   "salary_period": "per_month",
+   "days_per_week": 4,
+   "tutor_gender_pref": "male",
+   "status": "closed",
+   "is_public": false
+  },
+  {
+   "code": 9008,
+   "class_level": "c2",
+   "medium": "bangla",
+   "subjects": [
+    "all"
+   ],
+   "area": "talaimari",
+   "mode": "home",
+   "salary_kind": "fixed",
+   "salary_amount": 3000,
+   "salary_period": "per_month",
+   "days_per_week": 4,
+   "tutor_gender_pref": "female",
+   "student_gender": "boy",
+   "status": "available",
+   "is_public": true
+  },
+  {
+   "code": 9009,
+   "class_level": "hsc-2027",
+   "medium": "bangla",
+   "subjects": [
+    "physics",
+    "hmath"
+   ],
+   "area": "binodpur",
+   "mode": "home",
+   "salary_kind": "fixed",
+   "salary_amount": 6000,
+   "salary_period": "per_month",
+   "days_per_week": 3,
+   "tutor_gender_pref": "male",
+   "student_gender": "boy",
+   "requirements_public": "পূর্ব অভিজ্ঞতা অগ্রাধিকার পাবে",
+   "status": "available",
+   "is_public": true
+  },
+  {
+   "code": 9010,
+   "class_level": "kg",
+   "medium": "ev",
+   "subjects": [
+    "english",
+    "math"
+   ],
+   "area": "uposhohor",
+   "mode": "home",
+   "salary_kind": "fixed",
+   "salary_amount": 3500,
+   "salary_period": "per_month",
+   "days_per_week": 5,
+   "tutor_gender_pref": "female",
+   "status": "available",
+   "is_public": true
+  }
+ ],
+ "tuition_private": [
+  {
+   "tuition_code": 9001,
+   "guardian_name": "Sample Guardian A",
+   "guardian_phone": "01700000101",
+   "exact_address": "SYNTHETIC-ADDRESS-9001",
+   "private_notes": "SYNTHETIC-PRIVATE-MARKER-9001",
+   "lead_source": "facebook"
+  },
+  {
+   "tuition_code": 9003,
+   "guardian_name": "Sample Guardian B",
+   "guardian_phone": "01700000103",
+   "exact_address": "SYNTHETIC-ADDRESS-9003",
+   "private_notes": "SYNTHETIC-PRIVATE-MARKER-9003",
+   "lead_source": "call"
+  }
+ ],
+ "tutors": [
+  {
+   "full_name": "Sample Tutor A",
+   "gender": "female",
+   "phone": "01700000201",
+   "institution": "Sample University",
+   "department": "Physics",
+   "study_status": "studying",
+   "claim_status": "claimed",
+   "subjects": [
+    "physics",
+    "math"
+   ],
+   "class_levels": [
+    "ssc-2026",
+    "ssc-2027",
+    "hsc-1st"
+   ],
+   "areas": [
+    "saheb-bazar",
+    "uposhohor"
+   ],
+   "mode": "home"
+  },
+  {
+   "full_name": "Sample Tutor B",
+   "gender": "male",
+   "phone": "01700000202",
+   "institution": "Sample Engineering University",
+   "department": "Chemical Engineering",
+   "study_status": "studying",
+   "claim_status": "claimed",
+   "subjects": [
+    "chemistry",
+    "biology"
+   ],
+   "class_levels": [
+    "hsc-1st",
+    "hsc-2nd",
+    "hsc-2027",
+    "admission"
+   ],
+   "areas": [
+    "kazla"
+   ],
+   "mode": "both"
+  },
+  {
+   "full_name": "Sample Tutor C (imported)",
+   "gender": "male",
+   "phone": "01700000203",
+   "institution": "Sample College",
+   "claim_status": "unclaimed",
+   "subjects": [
+    "english"
+   ],
+   "class_levels": [
+    "c6",
+    "c7",
+    "c8"
+   ],
+   "areas": [
+    "kazla"
+   ],
+   "legacy_ref": "LEGACY-0001",
+   "created_via": "import"
+  },
+  {
+   "full_name": "সাদিয়া রহমান চৌধুরী (দীর্ঘ নামের পরীক্ষা)",
+   "gender": "female",
+   "phone": "01700000204",
+   "institution": "Sample Medical College",
+   "claim_status": "claimed",
+   "subjects": [
+    "biology"
+   ],
+   "class_levels": [
+    "c9",
+    "ssc-2027"
+   ],
+   "areas": [
+    "dorikhorbona"
+   ],
+   "mode": "home"
+  }
+ ],
+ "leads": [
+  {
+   "client_id": "00000000-0000-4000-8000-000000000001",
+   "channel": "quickpad",
+   "phone": "01700000301",
+   "guardian_name": "Sample Guardian C",
+   "class_level": "c6-8",
+   "subjects": [
+    "math",
+    "english"
+   ],
+   "area": "binodpur",
+   "address": "SYNTHETIC-ADDRESS-LEAD-1",
+   "salary": 3000,
+   "days_per_week": 3,
+   "lead_source": "call",
+   "status": "new"
+  },
+  {
+   "client_id": "00000000-0000-4000-8000-000000000002",
+   "channel": "web_form",
+   "phone": "01700000302",
+   "guardian_name": "Sample Guardian D",
+   "class_level": "hsc-2nd",
+   "subjects": [
+    "physics"
+   ],
+   "area": "talaimari",
+   "consent_given": true,
+   "status": "new"
+  }
+ ]
+}
