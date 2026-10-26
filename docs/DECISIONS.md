@@ -5,8 +5,9 @@ Newest first. Each entry: what was decided, by whom, and why.
 
 ## 2026-10-26
 
-- **Code lives in a private GitHub repo, `hikmah-tutors`** (owner), so the owner, Claude and Imogen work from one
-  place. Secrets never go in it (`.dev.vars`, `.env` and `imports/` stay gitignored).
+- **Code lives in a GitHub repo, `mdshishirbusiness/hikmah-tutors`** (owner), so Claude Code and Emergent work from
+  one place instead of passing ZIPs. Public for now (owner); nothing private may be committed: `.dev.vars`, `.env` and
+  `imports/` stay gitignored, and only synthetic data goes in.
 - **The 21 Oct Emergent export is kept in `reference/emergent/`** (owner), read only, so collaborators can read it
   on GitHub. It is never run or deployed from this repo; see `reference/README.md` for what gets ported and what not.
 
