@@ -40,6 +40,12 @@ export const SUBJECTS: Option[] = [
   { key: "ict", label: "আইসিটি" },
   { key: "accounting", label: "হিসাববিজ্ঞান" },
   { key: "quran", label: "কুরআন / আরবি" },
+  { key: "all-arts", label: "সব বিষয় (মানবিক)" },
+  { key: "all-commerce", label: "সব বিষয় (বাণিজ্য)" },
+  { key: "bgs", label: "BGS" },
+  { key: "islam", label: "ইসলাম শিক্ষা" },
+  { key: "economics", label: "অর্থনীতি" },
+  { key: "finance", label: "ফিন্যান্স" },
 ];
 
 export const MODES: Option[] = [
@@ -120,6 +126,24 @@ export const AREAS: Option[] = [
   { key: "meherchondi", label: "মেহেরচণ্ডী", alt: "Meherchondi" },
   { key: "baneshwar", label: "বানেশ্বর", alt: "Baneshwar" },
   { key: "durgapur", label: "দুর্গাপুর", alt: "Durgapur" },
+  { key: "sonadighi", label: "সোনাদিঘী", alt: "Sonadighi Sonadighir" },
+  { key: "alokar", label: "অলকার মোড়", alt: "Alokar Mor" },
+  { key: "ruet", label: "রুয়েট", alt: "RUET" },
+  { key: "ru-campus", label: "রাজশাহী বিশ্ববিদ্যালয়", alt: "Rajshahi University" },
+  { key: "bilsimla", label: "বিলসিমলা", alt: "Bilsimla" },
+  { key: "debisingpara", label: "দেবীসিংপাড়া", alt: "Debisingpara" },
+  { key: "baliapukur", label: "বালিয়াপুকুর", alt: "Baliapukur" },
+  { key: "dorgapara", label: "দরগাপাড়া", alt: "Dorgapara" },
+  { key: "shipaipara", label: "সিপাইপাড়া", alt: "Shipaipara" },
+  { key: "malda-colony", label: "মালদা কলোনি", alt: "Malda Colony" },
+  { key: "chiriakhana", label: "চিড়িয়াখানা", alt: "Chiriakhana" },
+  { key: "kedur-mor", label: "কেদুর মোড়", alt: "Kedur Mor" },
+  { key: "soshtitola", label: "ষষ্ঠীতলা", alt: "Soshtitola" },
+  { key: "mirerchok", label: "মিরেরচক", alt: "Mirerchok" },
+  { key: "chowddopai", label: "চৌদ্দপাই", alt: "Chowddopai" },
+  { key: "bulonpur", label: "বুলনপুর", alt: "Bulonpur" },
+  { key: "bosua", label: "বসুয়া", alt: "Bosua" },
+  { key: "ghoramara", label: "ঘোড়ামারা", alt: "Ghoramara" },
 ];
 
 export const DAYS_PER_WEEK = [2, 3, 4, 5, 6] as const;

@@ -6,7 +6,16 @@ Newest first. Each entry: what was decided, by whom, and why.
 ## 2026-11-02
 
 - **Tutor profiles are private at launch** (owner). Only the admin can see them: no public tutor directory, and guardians
-  don't see profiles. Assumption to confirm: a signed-in tutor still sees their own profile (see the email login below).
+  don't see profiles. A signed-in tutor sees their own profile, never the admin's notes (owner).
+- **The admin tells guardians about a tutor by phone or WhatsApp** (owner). No guardian login at first; a controlled
+  share link can come later.
+- **Old applicants who match no tutor stay as admin-only history** (owner), linked if that tutor later signs in with a
+  matching number.
+- **Phase 1 tables** (owner approved Claude's structure; `migrations/0003`). Simpler than PRD §9 for now: `users` holds
+  the role with owner and tutor only, and `placements` adds a `selected` stage because the sheet's Booked proves nothing
+  more. Tuition subjects stay comma-separated. Payments, documents, verification and notifications wait for their releases.
+- **Not imported** (Claude): date of birth, blood group, the "share your situation" text, ID document links and the
+  Verified label. Imported tuitions start hidden with empty public requirements, so each needs reviewed wording.
 - **Wrangler logs in with the Hikmah email** (owner), replacing the plan for one login across both accounts, which
   could not reach Hikmah from Wrangler. The Towfique HSC account stays as it is; switching to that work needs a new
   `wrangler login`. Hikmah's `account_id` in `wrangler.jsonc` keeps this project on its own account.
