@@ -14,6 +14,9 @@ Newest first. Each entry: what was decided, by whom, and why.
 - **Phase 1 tables** (owner approved Claude's structure; `migrations/0003`). Simpler than PRD §9 for now: `users` holds
   the role with owner and tutor only, and `placements` adds a `selected` stage because the sheet's Booked proves nothing
   more. Tuition subjects stay comma-separated. Payments, documents, verification and notifications wait for their releases.
+- **Import status rules** (Claude). A selected applicant imports as Shortlisted with a `selected` placement, others on a
+  booked or cancelled tuition as Opportunity closed. The sheet has no tuition medium, so it stays blank until review.
+  Rows needing review, and the applications and placements that depend on them, wait in `import_rows`.
 - **Not imported** (Claude): date of birth, blood group, the "share your situation" text, ID document links and the
   Verified label. Imported tuitions start hidden with empty public requirements, so each needs reviewed wording.
 - **Wrangler logs in with the Hikmah email** (owner), replacing the plan for one login across both accounts, which
