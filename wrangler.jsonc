@@ -7,7 +7,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "hikmah-tutors",
-	// "account_id": "<Hikmah Cloudflare account id>",
+	"account_id": "30ae03db5f3ec13f73efa08f8f6fcf47",
 	"compatibility_date": "2026-10-06",
 	"main": "./workers/app.ts",
 	"observability": {
@@ -22,7 +22,7 @@
 		{
 			"binding": "DB",
 			"database_name": "hikmah",
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			"database_id": "581549d5-386b-4132-86bd-a12c662cf523",
 			"migrations_dir": "migrations"
 		}
 	]

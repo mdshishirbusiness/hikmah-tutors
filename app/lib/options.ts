@@ -42,6 +42,11 @@ export const SUBJECTS: Option[] = [
   { key: "quran", label: "কুরআন / আরবি" },
 ];
 
+export const MODES: Option[] = [
+  { key: "home", label: "বাসায় গিয়ে" },
+  { key: "online", label: "অনলাইন" },
+];
+
 export const STUDENT_GENDERS: Option[] = [
   { key: "boy", label: "ছেলে" },
   { key: "girl", label: "মেয়ে" },

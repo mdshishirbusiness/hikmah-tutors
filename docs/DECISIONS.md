@@ -3,6 +3,87 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-02
+
+- **Tutor profiles are private at launch** (owner). Only the admin can see them: no public tutor directory, and guardians
+  don't see profiles. Assumption to confirm: a signed-in tutor still sees their own profile (see the email login below).
+- **Wrangler logs in with the Hikmah email** (owner), replacing the plan for one login across both accounts, which
+  could not reach Hikmah from Wrangler. The Towfique HSC account stays as it is; switching to that work needs a new
+  `wrangler login`. Hikmah's `account_id` in `wrangler.jsonc` keeps this project on its own account.
+- **The real `hikmah` D1 database is in the APAC region** (Claude), the closest to Rajshahi. It has the tables and no data.
+- **An imported tutor signs in with Google and is linked by email, with no staff approval** (owner), replacing the
+  claim step in PRD FR-AUTH-004 for this case. The Registration form collected the Google account's email automatically,
+  so the address is not typed and proves the account. The link needs an exact match to one record. An email on more than
+  one record, or a tutor with no match, goes to staff review; the mobile-number claim stays for no match, with the same
+  reply whether or not a record exists. On first sign-in the tutor checks their details, confirms availability and
+  accepts the privacy notice and terms. The profile stays private to the tutor and staff.
+
+## 2026-11-01
+
+- **Port the Emergent screens into the Cloudflare app, starting with the public board** (owner). `/` is now the board
+  and `/tuitions/:code` the detail page, on React Router + D1, from the 21 Oct export. The 20 Oct ZIP is older and is
+  not used.
+- **Hikmah gets its own Cloudflare account, never the Towfique HSC one** (owner, restated). Work stays on the local
+  database until that account exists.
+- **`tuitions` holds only public fields** (Claude). Guardian details stay in `leads`, so a public query cannot reach
+  them by mistake, and public queries name their columns.
+- **Left out until what they depend on is built** (Claude): applying and saving (need Google login; the button says
+  applying is coming soon), WhatsApp/call buttons (no public contact number decided yet), the how-it-works and fee pages.
+- **Status transition triggers for `tuitions` come with the admin tuition editor** (Claude). Nothing writes tuitions
+  yet except the local synthetic seed (`db/seed-local-tuitions.sql`).
+- **Claude may read the owner's operations sheet in full, to understand the business and plan the import** (owner),
+  replacing PRD §14 "real data never enters an AI builder" for this sheet only. Real data still never goes in the repo, and the import stays a local script the
+  owner runs with a reviewed dry run.
+
+## 2026-10-28
+
+Context: the owner wants a "Pro" prepaid option for tutors (PRD §7.10, O-05). Piloted on a Google Form + Sheet first;
+built into the site only in R3, as PRD Stage 4 says. Rules decided so far:
+
+- **Price: 50% of the tutor's minimum expected salary** (owner), e.g. minimum ৳3,000 pays ৳1,500. Replaces fixed
+  tiers for Pro.
+- **Delivered = the tutor has received the first month's salary** of a tuition HTR gave (owner), replacing the PRD
+  default "the placement has joined".
+- **Window: 90 days from the day HTR verifies the payment** (owner).
+- **No refund can be asked for before the 90 days end** (owner, strict term shown before payment).
+- The rest were proposed by Claude and accepted by the owner the same day:
+  - **The deposit is the media fee paid in advance, not an extra charge.** On a tuition at or above the tutor's
+    minimum, the tutor pays only 50% of the real salary minus the deposit, within 7 days of the first salary. A
+    tuition below the minimum may be refused with no strike; if accepted, the extra deposit is refunded after the
+    first salary.
+  - **Pro replaces Gold/Platinum/Diamond** (PRD §7.10 table), so there is one prepaid option.
+  - **Strikes.** One strike each for: not answering HTR within 12 hours (9 a.m.–10 p.m.), refusing a tuition that
+    meets the tutor's own area/class/subject/minimum salary, wrong or stale profile details, not telling HTR about a
+    tuition found elsewhere. Each strike is sent in writing on WhatsApp. **3 strikes end Pro with a 50% refund.**
+  - **Trial failed through the tutor's fault** (no-show without 6 hours' notice, over 30 minutes late) = 2 strikes,
+    Pro continues. Misconduct or false qualifications end Pro with no refund. A guardian simply choosing someone else
+    is not a fault.
+  - **Leaving a joined tuition before the first salary** counts as delivered, unless the reason is the guardian's
+    misconduct or safety. A guardian ending it before paying the first salary counts as not delivered.
+  - **At day 90 HTR contacts the tutor:** full refund, or 90 more days with the deposit kept. Fewer than 3 strikes =
+    full refund, to the same bKash/Nagad number, within 7 days, HTR pays the sending charge. If the tutor has joined
+    but the first salary falls after day 90, wait for it.
+  - **Only exception to "no refund before 90 days":** if HTR rejects the tutor or stops Pro, refund in full at once.
+  - **Pilot cap: 10 active Pro tutors**; later no more than half the tuitions HTR gets in a month.
+- **Tutor-facing name is "Premium"; strikes are called হলুদ কার্ড, misconduct is a লাল কার্ড** (owner asked for a word
+  people understand; Claude proposed the football cards). **Premium gives priority only among equally suitable
+  tutors**, never over a clearly better one, so guardians still get the best match.
+- **Only registered tutors can buy Premium**; the form asks for the Registration Code and the registered mobile (to
+  cross-check the code), not the profile again (owner).
+- **Premium form asks what the tutor is best at now** (owner, 2026-10-29): up to 3 subjects and 3 classes, mediums,
+  years of tutoring. Optional uploads, stored in the owner's Drive and seen only by HTR: a 3–5 minute **voice note**
+  on how they teach (audio, 10 MB), and **their own sheets, notes or exam papers** (PDF/image/Document, up to 5,
+  student names and numbers covered). Whether guardians may ever hear or see these is not decided and would need
+  the tutor's consent. In the app this belongs to the R2 profile/verification work, not earlier.
+- **Apply first, pay after selection** (owner chose Claude's recommendation, 2026-10-29). The Premium form takes no
+  money; HTR answers within 24 hours on WhatsApp, and selected tutors pay and fill a separate "পেমেন্ট নিশ্চিতকরণ"
+  form. Reason: with 10 places, taking money from tutors who are then turned down means refunds and lost trust.
+  Payment goes to the personal number 01845359242 by Send Money or Cash In. Help for tutors: admin WhatsApp
+  01522136687, shown on every page.
+- **Terms are written as promises on both sides, without the card wording** (owner found হলুদ/লাল কার্ড hard for
+  newcomers; 2026-10-29). Rules are unchanged except that HTR first talks to the tutor before counting a problem.
+  Few, plain emoji.
+
 ## 2026-10-26
 
 - **Code lives in a GitHub repo, `mdshishirbusiness/hikmah-tutors`** (owner), so Claude Code and Emergent work from

@@ -15,14 +15,18 @@ D1 has no Row Level Security: every loader/action checks the viewer; append-only
 enforced with SQLite triggers. Roles: Owner only for now.
 
 ## Never
-- Use the Towfique HSC Cloudflare account. Hikmah has its own account; set `account_id` in `wrangler.jsonc` once it
-  exists, and check `npx wrangler whoami` before any `--remote` command or deploy.
+- Use the Towfique HSC Cloudflare account. Hikmah has its own account (`account_id` in `wrangler.jsonc`). Run
+  `--remote` commands and deploys in the app's Terminal panel, not Claude's Bash tool: in the desktop app, Bash reads a
+  separate wrangler login that can belong to another account. Check `npx wrangler whoami` there first.
 - Deploy before real login replaces the temporary `requireAdmin` gate (`app/lib/auth.server.ts`).
 - Show a guardian's phone number or full address anywhere a tutor or the public can see it.
 - Show a tutor's phone number, NID or verification document to guardians or the public.
 - Handle passwords, OAuth secrets or API keys. `.dev.vars` stays gitignored.
-- Read or paste real tutor, guardian or payment data into this session. Use synthetic data (PRD Appendix D); the sheet
-  import is a local script the owner runs.
+- Read or paste real tutor, guardian or payment data into this session, except the owner's operations sheet, which
+  Claude may read in full to understand the business and plan the import (owner, 2026-11-01). Don't repeat personal
+  details in replies; report counts and patterns.
+- Put real data in the repo (code, seeds, tests, docs, commit messages; the repo is public) or in any third-party tool.
+  Build and test with synthetic data (PRD Appendix D); the sheet import is a local script the owner runs.
 - Write Bangla with PowerShell `Set-Content`/`Out-File` (corrupts UTF-8); use the Write/Edit tools.
 
 ## How the code is laid out
