@@ -11,7 +11,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  requireAdmin(request);
+  await requireAdmin(request);
   const sp = new URL(request.url).searchParams;
   const f = { q: sp.get("q")?.trim() ?? "", gender: sp.get("gender") ?? "", subject: sp.get("subject") ?? "", band: sp.get("band") ?? "", page: Number(sp.get("page")) || 1 };
   return { ...(await listTutors(f)), f };

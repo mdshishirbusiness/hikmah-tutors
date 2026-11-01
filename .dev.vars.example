@@ -1,3 +1,13 @@
 # Copy this file to .dev.vars (gitignored) for local development.
-# Opens the admin pages on your own computer until Google login is added. Never set this on Cloudflare.
+
+# Google sign-in. From Google Cloud Console > APIs & Services > Credentials > OAuth client ID (Web application).
+# Authorised redirect URI for your computer: http://localhost:5173/auth/google/callback
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# The Google account emails that become admin, comma-separated. Everyone else is a tutor.
+OWNER_EMAILS=
+
+# Opens the admin pages without signing in, on your own computer only. Never set this on Cloudflare.
+# Remove it once Google sign-in works here. A production build ignores it.
 DEV_ADMIN=1

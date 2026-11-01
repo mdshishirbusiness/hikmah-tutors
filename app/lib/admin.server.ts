@@ -110,7 +110,7 @@ function publicTextProblem(text: string): string | null {
   return null;
 }
 
-export async function updateTuition(code: number, form: FormData): Promise<string | null> {
+export async function updateTuition(code: number, form: FormData, actorId: number | null): Promise<string | null> {
   const current = await env.DB.prepare(`SELECT status, posted_at FROM tuitions WHERE code = ?`).bind(code).first<{ status: string; posted_at: number | null }>();
   if (!current) return "টিউশনটি পাওয়া যায়নি।";
 
@@ -149,25 +149,25 @@ export async function updateTuition(code: number, form: FormData): Promise<strin
        WHERE code = ?`,
     ).bind(status, publish ? 1 : 0, publish && form.get("accepting") === "1" ? 1 : 0, medium, classLevel, subjects.join(","), area, days, salaryKind, salaryKind === "fixed" ? amount : null,
       genderPref, requirements, startNote, postedAt, closedAt, closedAt, code),
-    audit("tuition_updated", "tuition", String(code), { status, is_public: publish }),
+    audit(actorId, "tuition_updated", "tuition", String(code), { status, is_public: publish }),
   ]);
   return null;
 }
 
-function audit(action: string, entityType: string, entityId: string, meta: unknown) {
-  return env.DB.prepare(`INSERT INTO audit_log (action, entity_type, entity_id, meta_json, created_at) VALUES (?, ?, ?, ?, ?)`)
-    .bind(action, entityType, entityId, JSON.stringify(meta), now());
+function audit(actorId: number | null, action: string, entityType: string, entityId: string, meta: unknown) {
+  return env.DB.prepare(`INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, meta_json, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
+    .bind(actorId, action, entityType, entityId, JSON.stringify(meta), now());
 }
 
 /** One step along the ladder. Confirming also books the tuition and closes the other applications. */
-export async function moveApplication(id: number, to: string, reason: string): Promise<string | null> {
+export async function moveApplication(id: number, to: string, reason: string, actorId: number | null): Promise<string | null> {
   const app = await env.DB.prepare(`SELECT id, tuition_code, tutor_id, status FROM applications WHERE id = ?`).bind(id).first<{ id: number; tuition_code: number; tutor_id: number | null; status: string }>();
   if (!app) return "আবেদনটি পাওয়া যায়নি।";
   const t = now();
   const steps = [
     env.DB.prepare(`UPDATE applications SET status = ?, updated_at = ? WHERE id = ?`).bind(to, t, id),
-    env.DB.prepare(`INSERT INTO application_events (application_id, from_status, to_status, reason, created_at) VALUES (?, ?, ?, ?, ?)`).bind(id, app.status, to, reason || null, t),
-    audit("application_moved", "application", String(id), { from: app.status, to }),
+    env.DB.prepare(`INSERT INTO application_events (application_id, from_status, to_status, actor_user_id, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)`).bind(id, app.status, to, actorId, reason || null, t),
+    audit(actorId, "application_moved", "application", String(id), { from: app.status, to }),
   ];
   if (to === "confirmed") {
     if (app.tutor_id === null) return "কনফার্ম করার আগে আবেদনকারীকে একজন টিউটরের সাথে মেলাতে হবে।";

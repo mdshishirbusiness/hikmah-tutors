@@ -14,7 +14,7 @@
     "db:seed:local": "wrangler d1 execute hikmah --local --file=db/seed-local-tuitions.sql",
     "import:dry-run": "node scripts/import/dry-run.mjs",
     "import:load-local": "node scripts/import/load-local.mjs",
-    "test:import": "node --test scripts/import/sheet.test.mjs scripts/import/load-sql.test.mjs",
+    "test:import": "node --test scripts/import/sheet.test.mjs scripts/import/load-sql.test.mjs scripts/import/google-auth.test.mjs",
     "db:migrate": "wrangler d1 migrations apply hikmah --remote"
   },
   "dependencies": {

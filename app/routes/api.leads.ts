@@ -6,7 +6,7 @@ import { insertLead } from "~/lib/leads.server";
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") return Response.json({ error: "Method not allowed" }, { status: 405 });
-  requireAdmin(request);
+  await requireAdmin(request);
 
   let body: unknown;
   try {

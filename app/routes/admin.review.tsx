@@ -11,7 +11,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  requireAdmin(request);
+  await requireAdmin(request);
   const sp = new URL(request.url).searchParams;
   const tab = ["registration", "admin", "old"].includes(sp.get("tab") ?? "") ? sp.get("tab")! : "";
   return { ...(await reviewList({ tab, page: Number(sp.get("page")) || 1 })), tab };

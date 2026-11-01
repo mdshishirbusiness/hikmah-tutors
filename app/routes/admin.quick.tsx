@@ -26,8 +26,8 @@ export function meta(_: Route.MetaArgs) {
   return [{ title: "Quick Pad · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
 }
 
-export function loader({ request }: Route.LoaderArgs) {
-  requireAdmin(request);
+export async function loader({ request }: Route.LoaderArgs) {
+  await requireAdmin(request);
   return null;
 }
 

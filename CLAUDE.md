@@ -18,7 +18,8 @@ enforced with SQLite triggers. Roles: Owner only for now.
 - Use the Towfique HSC Cloudflare account. Hikmah has its own account (`account_id` in `wrangler.jsonc`). Run
   `--remote` commands and deploys in the app's Terminal panel, not Claude's Bash tool: in the desktop app, Bash reads a
   separate wrangler login that can belong to another account. Check `npx wrangler whoami` there first.
-- Deploy before real login replaces the temporary `requireAdmin` gate (`app/lib/auth.server.ts`).
+- Deploy before Google login has been tried with real Google credentials and `OWNER_EMAILS` is set on Cloudflare.
+  `DEV_ADMIN` is for `npm run dev` only (`app/lib/auth.server.ts`).
 - Show a guardian's phone number or full address anywhere a tutor or the public can see it.
 - Show a tutor's phone number, NID or verification document to guardians or the public.
 - Handle passwords, OAuth secrets or API keys. `.dev.vars` stays gitignored.

@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Form, Link } from "react-router";
 import type { Route } from "./+types/admin.home";
 import { PageHead, bn } from "~/components/admin";
 import { dashboard } from "~/lib/admin.server";
@@ -9,7 +9,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  requireAdmin(request);
+  await requireAdmin(request);
   return dashboard();
 }
 
@@ -33,6 +33,9 @@ export default function AdminHome({ loaderData: d }: Route.ComponentProps) {
           </Link>
         ))}
       </main>
+      <Form method="post" action="/logout" className="mx-auto max-w-3xl px-4">
+        <button className="min-h-11 rounded-xl border border-brand-100 bg-white px-4 text-sm font-semibold text-forest hover:bg-brand-50">লগআউট</button>
+      </Form>
     </>
   );
 }

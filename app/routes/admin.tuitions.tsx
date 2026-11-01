@@ -12,7 +12,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  requireAdmin(request);
+  await requireAdmin(request);
   const sp = new URL(request.url).searchParams;
   const f = { q: sp.get("q")?.trim() ?? "", status: sp.get("status") ?? "", visibility: sp.get("visibility") ?? "", page: Number(sp.get("page")) || 1 };
   return { ...(await listTuitions(f)), f };

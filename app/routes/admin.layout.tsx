@@ -8,8 +8,8 @@ export function headers(_: Route.HeadersArgs) {
   return { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" };
 }
 
-export function loader({ request }: Route.LoaderArgs) {
-  requireAdmin(request);
+export async function loader({ request }: Route.LoaderArgs) {
+  await requireAdmin(request);
   return null;
 }
 

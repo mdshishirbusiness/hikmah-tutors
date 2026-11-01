@@ -11,7 +11,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  requireAdmin(request);
+  await requireAdmin(request);
   const found = await getGuardian(Number(params.id) || -1);
   if (!found) throw data("গার্ডিয়ান পাওয়া যায়নি", { status: 404 });
   return found;

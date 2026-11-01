@@ -22,7 +22,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  requireAdmin(request);
+  await requireAdmin(request);
   return { leads: await recentLeads(100) };
 }
 

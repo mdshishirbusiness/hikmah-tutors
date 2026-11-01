@@ -11,7 +11,7 @@ export function meta({ params }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  requireAdmin(request);
+  await requireAdmin(request);
   const found = await getTutor(Number(params.code) || -1);
   if (!found) throw data("টিউটর পাওয়া যায়নি", { status: 404 });
   return found;

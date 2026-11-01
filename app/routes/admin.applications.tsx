@@ -11,7 +11,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  requireAdmin(request);
+  await requireAdmin(request);
   const sp = new URL(request.url).searchParams;
   const f = { status: sp.get("status") ?? "", open: sp.get("open") === "1", page: Number(sp.get("page")) || 1 };
   return { ...(await listApplications(f)), f };

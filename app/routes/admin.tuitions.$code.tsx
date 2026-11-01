@@ -12,20 +12,20 @@ export function meta({ params }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  requireAdmin(request);
+  await requireAdmin(request);
   const found = await getTuition(Number(params.code) || -1);
   if (!found) throw data("টিউশনটি পাওয়া যায়নি", { status: 404 });
   return found;
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  requireAdmin(request);
+  const viewer = await requireAdmin(request);
   const form = await request.formData();
   if (form.get("intent") === "move") {
-    const error = await moveApplication(Number(form.get("id")), String(form.get("to")), String(form.get("reason") ?? ""));
+    const error = await moveApplication(Number(form.get("id")), String(form.get("to")), String(form.get("reason") ?? ""), viewer?.id ?? null);
     return { error, saved: !error };
   }
-  const error = await updateTuition(Number(params.code) || -1, form);
+  const error = await updateTuition(Number(params.code) || -1, form, viewer?.id ?? null);
   return { error, saved: !error };
 }
 

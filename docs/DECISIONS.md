@@ -14,6 +14,14 @@ Newest first. Each entry: what was decided, by whom, and why.
 - **Phase 1 tables** (owner approved Claude's structure; `migrations/0003`). Simpler than PRD §9 for now: `users` holds
   the role with owner and tutor only, and `placements` adds a `selected` stage because the sheet's Booked proves nothing
   more. Tuition subjects stay comma-separated. Payments, documents, verification and notifications wait for their releases.
+- **Google sign-in lives in its own `Hikmah Tutors` Google Cloud project under the owner's main Google account** (owner),
+  separate from the Towfique HSC project. That account's email is the support address tutors can see on Google's consent
+  screen.
+- **The owner gave Claude the local Google client file to set up `.dev.vars`** (owner, one exception to "never handle
+  OAuth secrets"). That secret is for local use only; the live site gets a new one, set by the owner on Cloudflare.
+- **Google sign-in is written directly on the Worker, with no auth library** (Claude): authorization code with PKCE, state
+  and nonce, sessions stored hashed in D1, 30-day cookie. It is small, and adds no package to a security path. Admins come
+  only from `OWNER_EMAILS`. The mobile-number claim for tutors with no email match is not built yet; they see a message.
 - **Import status rules** (Claude). A selected applicant imports as Shortlisted with a `selected` placement, others on a
   booked or cancelled tuition as Opportunity closed. The sheet has no tuition medium, so it stays blank until review.
   Rows needing review, and the applications and placements that depend on them, wait in `import_rows`.

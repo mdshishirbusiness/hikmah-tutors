@@ -9,7 +9,7 @@ Node.js 20+ is needed.
 
 ```
 npm install                 # once
-copy .dev.vars.example .dev.vars   # once: opens the admin pages locally (DEV_ADMIN=1)
+copy .dev.vars.example .dev.vars   # once: then fill in the Google values (see the comments in that file)
 npm run db:migrate:local    # once, and after every new file in migrations/
 npm run dev                 # http://localhost:5173
 ```

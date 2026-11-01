@@ -4,10 +4,11 @@ import { Link } from "react-router";
 export function SiteHeader() {
   return (
     <header className="bg-cream">
-      <div className="mx-auto flex h-16 max-w-6xl items-center px-4">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <Link to="/" aria-label="Hikmah Tutors" className="flex min-h-11 items-center">
           <img src="/brand/logo-wide.webp" alt="Hikmah Tutors Rajshahi" className="h-11 w-auto" />
         </Link>
+        <Link to="/me" className="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-forest hover:bg-brand-50">আমার প্রোফাইল</Link>
       </div>
     </header>
   );
