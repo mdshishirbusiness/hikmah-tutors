@@ -25,22 +25,13 @@ email first.
 - **The site is deployed: https://hikmah-tutors.hikmahtutor.workers.dev** (board public and empty until you publish
   tuitions; admin, review and photos need sign-in).
 
-## 1. Give the live site its Google secret (one command)
+## 1. Google sign-in on the live site: done
 
-Done by Claude on 2026-11-03: both owner emails are test users on the consent screen (Testing mode); the live client
-"Hikmah live" exists with the callback `https://hikmah-tutors.hikmahtutor.workers.dev/auth/google/callback`;
-`GOOGLE_CLIENT_ID` and `OWNER_EMAILS` are set on Cloudflare; the site is deployed.
-
-Left for you: the client secret. Google's file for it is in your Downloads (`client_secret_725965718233-kim5…json`).
-Run this in the Terminal panel; it reads that file, sets the secret on Cloudflare, and deletes the file, so the secret is
-never typed or shown:
-
-```powershell
-node scripts/set-google-secret.mjs
-```
-
-Then open https://hikmah-tutors.hikmahtutor.workers.dev/login and sign in with Google. You should land on `/admin`.
-No redeploy is needed. Google may take a few minutes to accept a new client.
+Set up on 2026-11-03: both owner emails are test users (Testing mode), the live client "Hikmah live" exists,
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (set by the owner with `node scripts/set-google-secret.mjs`) and
+`OWNER_EMAILS` are on Cloudflare. Checked: signing in with Google on the live site lands on `/admin` with the real
+data. Before tutors are invited, make a fresh client secret (the first one was shown in a chat) and run the same
+command again.
 
 ## 2. Photos
 
