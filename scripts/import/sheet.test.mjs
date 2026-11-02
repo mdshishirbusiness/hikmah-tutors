@@ -135,3 +135,35 @@ test("posting date falls back to the first application", () => {
 test("a changed sheet layout stops the run", () => {
   assert.throws(() => analyze({ ...tabs, registration: csv([reg({ 0: "Something else" }), tutor(1001, "01811-000001", "a@gmail.com")]) }), /layout changed/);
 });
+
+test("old open tuitions close, new ones stay open (owner, 2026-11-03)", () => {
+  const t = (code, status) => admin({ 0: code, 1: status, 3: "01711-000009", 5: "Class 9", 6: "Math", 7: "3 days", 9: "4,000৳", 10: "Kazla", 13: "Any Tutor" });
+  const out = analyze({ ...tabs, admin: csv([ADMIN_HEAD, ADMIN_SUB, t(944, "Available"), t(945, "Available"), t(946, "Processing")]) });
+  const status = (code) => out.tuitions.find((x) => x.code === code).tuition.status;
+  assert.equal(status(944), "closed");
+  assert.equal(status(945), "available");
+  assert.equal(status(946), "processing");
+});
+
+test("a closed tuition with gaps is imported on a best guess; an open one waits", () => {
+  const gap = (code, status) => admin({ 0: code, 1: status, 3: "01711-000009", 6: "Math", 9: "4,000৳", 13: "Any Tutor" }); // no class, days or area
+  const out = analyze({ ...tabs, admin: csv([ADMIN_HEAD, ADMIN_SUB, gap(700, "Booked"), gap(950, "Available")]) });
+  const old = out.tuitions.find((x) => x.code === 700), open = out.tuitions.find((x) => x.code === 950);
+  assert.equal(old.needsReview, false);
+  assert.deepEqual([old.tuition.class_level, old.tuition.area, old.tuition.days_per_week], ["other", "", 3]);
+  assert.equal(open.needsReview, true);
+});
+
+test("every tutor is imported; a shared phone links no application", () => {
+  const out = analyze({
+    ...tabs,
+    registration: csv([REG_HEAD, tutor(2001, "01811-000021", "a@gmail.com"), tutor(2002, "01811-000021", "b@gmail.com"), tutor(2003, "01811-000023", "not-an-email")]),
+    application: csv([APP_HEAD, app("1/20/2026 10:00:00", 501, "01811-000021")]),
+  });
+  const byCode = (c) => out.tutors.find((t) => t.code === c);
+  for (const c of [2001, 2002, 2003]) assert.equal(byCode(c).needsReview, false);
+  assert.equal(byCode(2001).flagged, true);
+  assert.equal(byCode(2003).flagged, true);
+  assert.equal(byCode(2003).tutor.email, null);
+  assert.equal(out.applications[0].tutor_code, null);
+});

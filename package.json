@@ -13,8 +13,13 @@
     "db:migrate:local": "wrangler d1 migrations apply hikmah --local",
     "db:seed:local": "wrangler d1 execute hikmah --local --file=db/seed-local-tuitions.sql",
     "import:dry-run": "node scripts/import/dry-run.mjs",
-    "import:load-local": "node scripts/import/load-local.mjs",
-    "test:import": "node --test scripts/import/sheet.test.mjs scripts/import/load-sql.test.mjs scripts/import/google-auth.test.mjs",
+    "import:load-local": "node scripts/import/load.mjs --local",
+    "import:top-up-local": "node scripts/import/load.mjs --local --add-only",
+    "import:load-real": "node scripts/import/load.mjs --remote",
+    "import:top-up-real": "node scripts/import/load.mjs --remote --add-only",
+    "photos:upload-local": "node scripts/photos/upload.mjs --local",
+    "photos:upload-real": "node scripts/photos/upload.mjs --remote",
+    "test:import": "node --test scripts/import/sheet.test.mjs scripts/import/load-sql.test.mjs scripts/import/top-up.test.mjs scripts/import/google-auth.test.mjs",
     "db:migrate": "wrangler d1 migrations apply hikmah --remote"
   },
   "dependencies": {
@@ -30,6 +35,7 @@
     "@types/node": "^22.20.5",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "sharp": "^0.34.4",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.3",

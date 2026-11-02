@@ -40,7 +40,7 @@ export const APPLICATION_MOVES: Record<string, string[]> = {
 };
 
 export const REVIEW_ISSUE: Record<string, string> = {
-  email_invalid: "ইমেইল নেই",
+  email_invalid: "ইমেইল ঠিক নেই",
   phone_invalid: "ফোন নম্বর ঠিক নেই",
   tutor_code_repeated: "টিউটর কোড দুইবার আছে",
   tutor_phone_repeated: "একই ফোন অন্য টিউটরেরও",
@@ -51,6 +51,7 @@ export const REVIEW_ISSUE: Record<string, string> = {
   tuition_code_repeated: "টিউশন কোড দুইবার আছে",
   class_missing: "ক্লাস নেই",
   class_unknown: "ক্লাস চেনা যায়নি",
+  tuition_closed_as_old: "শিটে খালি ছিল, পুরোনো বলে বন্ধ করা হয়েছে",
   class_batch_missing: "SSC/HSC-এর বছর নেই",
   class_batch_unknown: "এই SSC/HSC ব্যাচ তালিকায় নেই",
   area_missing: "এলাকা নেই",

@@ -25,5 +25,15 @@
 			"database_id": "581549d5-386b-4132-86bd-a12c662cf523",
 			"migrations_dir": "migrations"
 		}
+	],
+	/**
+	 * Tutor photos, private: nothing here is public. R2 must be enabled once in the Hikmah Cloudflare dashboard, then
+	 * `npx wrangler r2 bucket create hikmah-photos` (Terminal panel). Local dev uses a local copy automatically.
+	 */
+	"r2_buckets": [
+		{
+			"binding": "PHOTOS",
+			"bucket_name": "hikmah-photos"
+		}
 	]
 }

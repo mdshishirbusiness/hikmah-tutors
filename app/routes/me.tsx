@@ -60,7 +60,10 @@ export default function Me({ loaderData: { email, profile } }: Route.ComponentPr
       <SiteHeader />
       <main className="mx-auto max-w-3xl space-y-4 px-4 pb-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="min-w-0 text-2xl font-semibold break-words text-forest">{t.full_name}</h1>
+          <div className="flex min-w-0 items-center gap-3">
+            {t.photo_key && <img src={`/photos/tutor/${t.code}`} alt="" width={64} height={64} className="size-16 shrink-0 rounded-2xl object-cover" />}
+            <h1 className="min-w-0 text-2xl font-semibold break-words text-forest">{t.full_name}</h1>
+          </div>
           <SignOut />
         </div>
         <p className="text-sm text-slate-600">এই তথ্য পাবলিক নয়। শুধু আপনি ও Hikmah Tutors-এর অ্যাডমিন দেখতে পান।</p>

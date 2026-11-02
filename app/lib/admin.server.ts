@@ -25,7 +25,7 @@ export async function dashboard() {
            AND tuition_code IN (SELECT code FROM tuitions WHERE status IN ('available', 'processing'))`),
     count(`SELECT count(*) n FROM tutors WHERE deleted_at IS NULL`),
     count(`SELECT count(*) n FROM leads WHERE status = 'new'`),
-    count(`SELECT count(*) n FROM import_rows WHERE status = 'needs_review' AND tab IN ('registration', 'admin', 'old')`),
+    reviewCounts().then((c) => c.tutors + c.tuitions + c.held),
   ]);
   return { open, publicNow, waiting, tutors, leads, held };
 }
@@ -234,7 +234,7 @@ export async function listTutors(f: { q: string; gender: string; subject: string
 }
 
 export type TutorFull = AdminTutorRow & {
-  email: string | null; alt_phone: string | null; facebook_url: string | null; photo_source_url: string | null; ssc_school: string | null; ssc_year: number | null; ssc_result: string | null;
+  email: string | null; alt_phone: string | null; facebook_url: string | null; photo_source_url: string | null; photo_key: string | null; ssc_school: string | null; ssc_year: number | null; ssc_result: string | null;
   ssc_group: string | null; hsc_college: string | null; hsc_year: number | null; hsc_result: string | null; hsc_group: string | null; mediums: string | null; home_division: string | null;
   home_district: string | null; demo_willing: number | null; transport: string | null; referral_code: string | null; registered_at: number | null;
 };
@@ -323,4 +323,84 @@ export async function reviewList(f: { tab: string; page: number }) {
     return { ...r, title: raw.tutor?.full_name || [raw.private?.raw?.class, raw.private?.raw?.location].filter(Boolean).join(" · ") || "" };
   });
   return { total, items, dependents, issueCounts };
+}
+
+// The owner's review list after an import (docs/DECISIONS.md, 2026-11-03): flagged tutors, open tuitions not yet on the
+// board, and sheet rows still held back. Old tuitions and unmatched applications are left as the import guessed.
+
+const OPEN_UNPUBLISHED = `status IN ('available', 'processing') AND is_public = 0`;
+
+export async function reviewCounts() {
+  const [tutors, tuitions, held] = await Promise.all([
+    count(`SELECT count(*) n FROM import_rows WHERE status = 'needs_review' AND tab = 'tutor_flag'`),
+    count(`SELECT count(*) n FROM tuitions WHERE ${OPEN_UNPUBLISHED}`),
+    count(`SELECT count(*) n FROM import_rows WHERE status = 'needs_review' AND tab IN ('registration', 'admin', 'old')`),
+  ]);
+  return { tutors, tuitions, held };
+}
+
+export type FlaggedTutor = { id: number; issues: string | null; code: number; full_name: string; email: string | null; phone: string };
+
+export async function flaggedTutors(page: number) {
+  const [total, items] = await Promise.all([
+    count(`SELECT count(*) n FROM import_rows WHERE status = 'needs_review' AND tab = 'tutor_flag'`),
+    all<FlaggedTutor>(
+      `SELECT r.id, r.issues, t.code, t.full_name, t.email, t.phone FROM import_rows r JOIN tutors t ON t.code = CAST(r.legacy_ref AS INTEGER)
+       WHERE r.status = 'needs_review' AND r.tab = 'tutor_flag' ORDER BY t.code LIMIT ? OFFSET ?`,
+      PAGE_SIZE, pageOffset(page),
+    ),
+  ]);
+  return { total, items };
+}
+
+export type TuitionToReview = {
+  code: number; status: string; class_level: string; area: string; medium: string; subjects: string; requirements_public: string;
+  session_minutes: number | null; posted_at: number | null; applications: number;
+};
+
+/** What still stops an open tuition from going on the board, in the editor's words. */
+export function tuitionGaps(t: TuitionToReview): string[] {
+  const gaps = [];
+  if (!CLASS_CHOICES.some((c) => c.key === t.class_level)) gaps.push("ক্লাস");
+  if (!AREAS.some((a) => a.key === t.area)) gaps.push("এলাকা");
+  if (!t.medium) gaps.push("মাধ্যম");
+  if (!t.subjects) gaps.push("বিষয়");
+  if (!t.requirements_public) gaps.push("অভিভাবকের চাওয়া");
+  if (!t.session_minutes) gaps.push("সময়");
+  return gaps;
+}
+
+export async function tuitionsToReview(page: number) {
+  const [total, items] = await Promise.all([
+    count(`SELECT count(*) n FROM tuitions WHERE ${OPEN_UNPUBLISHED}`),
+    all<TuitionToReview>(
+      `SELECT t.code, t.status, t.class_level, t.area, t.medium, t.subjects, t.requirements_public, t.session_minutes, t.posted_at,
+              (SELECT count(*) FROM applications a WHERE a.tuition_code = t.code AND a.status IN ${ACTIVE_APPLICATIONS}) applications
+       FROM tuitions t WHERE ${OPEN_UNPUBLISHED} ORDER BY t.code DESC LIMIT ? OFFSET ?`,
+      PAGE_SIZE, pageOffset(page),
+    ),
+  ]);
+  return { total, items: items.map((t) => ({ ...t, gaps: tuitionGaps(t), legacyClass: CLASS_LEVELS.some((c) => c.legacy && c.key === t.class_level) })) };
+}
+
+/** Marks a flagged tutor as checked. With an email, fixes it first (the tutor signs in with Google by this address). */
+export async function resolveFlaggedTutor(rowId: number, email: string, actorId: number | null): Promise<string | null> {
+  const row = await env.DB.prepare(`SELECT legacy_ref FROM import_rows WHERE id = ? AND tab = 'tutor_flag' AND status = 'needs_review'`)
+    .bind(rowId).first<{ legacy_ref: string }>();
+  if (!row) return "এটি আর রিভিউ তালিকায় নেই।";
+  const code = Number(row.legacy_ref);
+  const steps = [];
+  const fixed = email.trim().toLowerCase();
+  if (fixed) {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fixed)) return "ইমেইল ঠিক নেই।";
+    const taken = await count(`SELECT count(*) n FROM tutors WHERE email = ? AND code <> ? AND deleted_at IS NULL`, fixed, code);
+    if (taken) return "এই ইমেইল আরেকজন টিউটরের।";
+    steps.push(env.DB.prepare(`UPDATE tutors SET email = ?, updated_at = ? WHERE code = ?`).bind(fixed, now(), code));
+  }
+  steps.push(
+    env.DB.prepare(`UPDATE import_rows SET status = 'approved' WHERE id = ?`).bind(rowId),
+    audit(actorId, "tutor_flag_resolved", "tutor", String(code), { email_changed: !!fixed }),
+  );
+  await env.DB.batch(steps);
+  return null;
 }

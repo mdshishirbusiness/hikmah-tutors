@@ -6,11 +6,11 @@ export type MyTutor = {
   id: number; code: number; full_name: string; gender: string | null; email: string | null; phone: string; alt_phone: string | null; institution: string | null; department: string | null;
   session_year: string | null; ssc_school: string | null; ssc_year: number | null; ssc_result: string | null; ssc_group: string | null; hsc_college: string | null; hsc_year: number | null;
   hsc_result: string | null; hsc_group: string | null; mediums: string | null; current_location: string | null; home_division: string | null; home_district: string | null;
-  demo_willing: number | null; transport: string | null; availability_confirmed_at: number | null;
+  demo_willing: number | null; transport: string | null; availability_confirmed_at: number | null; photo_key: string | null;
 };
 
 const COLUMNS = `id, code, full_name, gender, email, phone, alt_phone, institution, department, session_year, ssc_school, ssc_year, ssc_result, ssc_group,
-  hsc_college, hsc_year, hsc_result, hsc_group, mediums, current_location, home_division, home_district, demo_willing, transport, availability_confirmed_at`;
+  hsc_college, hsc_year, hsc_result, hsc_group, mediums, current_location, home_division, home_district, demo_willing, transport, availability_confirmed_at, photo_key`;
 
 export async function myProfile(userId: number) {
   const tutor = await env.DB.prepare(`SELECT ${COLUMNS} FROM tutors WHERE user_id = ? AND deleted_at IS NULL`).bind(userId).first<MyTutor>();

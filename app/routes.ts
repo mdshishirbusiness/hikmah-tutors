@@ -23,4 +23,5 @@ export default [
     route("admin/leads", "routes/admin.leads.tsx"),
   ]),
   route("api/leads", "routes/api.leads.ts"),
+  route("photos/tutor/:code", "routes/photos.tutor.$code.ts"),
 ] satisfies RouteConfig;

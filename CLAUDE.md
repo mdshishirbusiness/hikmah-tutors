@@ -4,7 +4,8 @@ Home-tutor media in Rajshahi. The owner takes guardian calls, posts tuitions, an
 Today everything lives in a Google Sheet ("Hikmah Tutors Mastersheet Tuition"); this app replaces it step by step.
 
 ## Spec and decisions
-- `docs/PRD.md` is the product spec (releases R1 → R2 → R3; build R1 first, never later releases early).
+- `docs/PRD.md` is the product spec. Its R1/R2/R3 labels no longer fix the order (owner, 2026-11-03): propose each
+  next step and get the owner's OK. Money features (fees, payments, Premium) come after the core is live.
 - `docs/DECISIONS.md` records where we depart from it (stack, roles, design). It wins over the PRD. Add every new owner
   decision there in the same session.
 

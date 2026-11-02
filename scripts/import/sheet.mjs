@@ -166,6 +166,9 @@ const dataRows = (rows) => {
   return start < 0 ? [] : rows.slice(start).map((r, i) => ({ r, rowNo: start + i + 1 }));
 };
 
+/** Tuitions from this code on keep the sheet's status; older open ones are closed. */
+export const OPEN_FROM_CODE = 945;
+
 function bump(map, key, by = 1) { map[key] = (map[key] ?? 0) + by; }
 
 function parseTuitionRow(tab, r, rowNo) {
@@ -242,7 +245,8 @@ export function analyze(tabs) {
   const issues = {};
   const note = (code) => bump(issues, code);
 
-  // Tutors. A repeated code, phone or email needs a person to decide, so those rows wait for review.
+  // Tutors. Every registered tutor is imported (owner, 2026-11-03). Only what the database can't hold waits in review:
+  // a repeated code or email, or no phone. Other problems are imported and flagged for the review list.
   // Numbered rows with nothing in them are not tutors.
   const regData = dataRows(rows.registration);
   const filledReg = regData.filter(({ r }) => clean(r[7]) || clean(r[9]) || clean(r[13]));
@@ -261,14 +265,26 @@ export function analyze(tabs) {
     if (!t.termsAsWritten) t.issues.push("tutor_changed_fee_terms");
     t.issues.forEach(note);
   }
-  const blocking = /^(email_invalid|phone_invalid|tutor_code_repeated|tutor_phone_repeated|tutor_email_repeated|tutor_name_missing)$/;
-  for (const t of tutorRows) t.needsReview = t.issues.some((i) => blocking.test(i));
+  const blocking = /^(phone_invalid|tutor_code_repeated|tutor_email_repeated)$/;
+  const flagging = /^(email_invalid|tutor_phone_repeated|tutor_name_missing)$/;
+  for (const t of tutorRows) {
+    t.needsReview = t.issues.some((i) => blocking.test(i));
+    t.flagged = !t.needsReview && t.issues.some((i) => flagging.test(i));
+    if (t.issues.includes("email_invalid")) t.tutor.email = null; // can't sign in until the owner fixes it
+    if (!t.tutor.full_name) t.tutor.full_name = "(নাম নেই)";
+  }
+  // A number two tutors share (a relative's or a friend's) can't tell who applied, so it links nobody.
   const tutorByPhone = new Map();
+  const shared = new Set();
   for (const t of tutorRows) {
     if (t.needsReview) continue;
-    tutorByPhone.set(t.phone, t.code);
-    if (t.tutor.alt_phone && !tutorByPhone.has(t.tutor.alt_phone)) tutorByPhone.set(t.tutor.alt_phone, t.code);
+    for (const ph of [t.phone, t.tutor.alt_phone]) {
+      if (!ph || tutorByPhone.get(ph) === t.code) continue;
+      if (tutorByPhone.has(ph)) shared.add(ph);
+      else tutorByPhone.set(ph, t.code);
+    }
   }
+  for (const ph of shared) tutorByPhone.delete(ph);
 
   // Tuitions: the current tab wins where a code is in both.
   // A row counts if it holds anything beyond its code; only empty, pre-numbered rows are skipped.
@@ -287,8 +303,22 @@ export function analyze(tabs) {
   });
   for (const t of tuitions) {
     if (codeCount[`${t.tab}:${t.code}`] > 1) t.issues.push("tuition_code_repeated");
+    // The sheet still says "available" on many old tuitions that are long gone (owner, 2026-11-03).
+    const open = t.tuition.status === "available" || t.tuition.status === "processing";
+    if (open && t.code < OPEN_FROM_CODE) {
+      t.tuition.status = "closed";
+      t.issues.push("tuition_closed_as_old");
+    }
     t.issues.forEach(note);
-    t.needsReview = t.issues.some((i) => /^(tuition_code_repeated|class_missing|area_unknown|area_missing|days_missing)$/.test(i));
+    const stillOpen = t.tuition.status === "available" || t.tuition.status === "processing";
+    // An open tuition with gaps waits for the owner. A closed one is history: best guess, no review.
+    t.needsReview = t.issues.includes("tuition_code_repeated") ||
+      (stillOpen && t.issues.some((i) => /^(class_missing|area_unknown|area_missing|days_missing)$/.test(i)));
+    if (!t.needsReview && !stillOpen) {
+      t.tuition.class_level ??= "other";
+      t.tuition.area ??= "";
+      t.tuition.days_per_week ??= 3;
+    }
   }
   const tuitionCodes = new Set(tuitions.map((t) => t.code));
   const guardianNumbers = {};
@@ -339,7 +369,7 @@ export function analyze(tabs) {
   const emails = tutorRows.map((t) => t.tutor.email).filter(Boolean);
   const report = {
     tutors: {
-      rows: tutorRows.length, blankRowsSkipped: regData.length - filledReg.length, ready: tutorRows.filter((t) => !t.needsReview).length, needsReview: tutorRows.filter((t) => t.needsReview).length,
+      rows: tutorRows.length, blankRowsSkipped: regData.length - filledReg.length, ready: tutorRows.filter((t) => !t.needsReview).length, flagged: tutorRows.filter((t) => t.flagged).length, needsReview: tutorRows.filter((t) => t.needsReview).length,
       gmail: emails.filter((e) => e.endsWith("@gmail.com")).length, otherEmail: emails.filter((e) => !e.endsWith("@gmail.com")).length,
       canLinkByEmail: tutorRows.filter((t) => !t.needsReview && t.tutor.email).length,
     },

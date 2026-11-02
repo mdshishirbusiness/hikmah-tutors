@@ -3,6 +3,57 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-03
+
+Context: a Q&A round on moving the sheet's tutors, tuitions and applications into D1.
+
+- **Release labels no longer bind the order of work** (owner). Claude proposes each next step and the owner approves
+  it. One rule stays (owner agreed): money features (fees, payments, Premium) come after the core is live and working.
+- **Premium becomes a sign-up system on the website** (owner), replacing the Google Form pilot for new members. Until
+  it is built every tutor is a Normal tutor. Tutor type (Normal/Premium) is visible only to the admin and the tutor.
+- **A tutor code being given is the verification** (owner): the sheet's "Verified" only means the code was sent on
+  WhatsApp, and every registrant is a real person. No "Verified" badge is shown. The site's own document check comes
+  later and may bring a badge then.
+- **No separate privacy notice before the import** (owner). Tutors still accept the privacy notice and terms on first
+  sign-in, as decided on 2026-11-02.
+- **The import order** (owner chose Claude's recommendation): rehearse locally → add-only import mode → review page →
+  backup restore test on the empty real database → owner-only deploy on `workers.dev` → real import and online review
+  → top-ups with the add-only mode → one cutover day, after which the Google Forms close and the sheet is a read-only
+  archive. A full re-import would wipe the owner's review, so after the first real load only new rows are added.
+- **Every registered tutor is imported** (owner), including flagged ones, which also go on the review list. The owner
+  removed duplicate registrations from the sheet. Two tutors may share a phone number (a relative's or a
+  friend's), so a shared number is not an error; applications from a shared number are not linked by phone.
+- **Old "available" tuitions are closed** (owner): the sheet still shows many as available that are not. Codes 945
+  and newer keep the sheet's status; older open ones import as closed. Open ones start hidden until reviewed. Old
+  tuitions and unmatched applications use the import's best guess and need no review.
+- **Backups** (owner chose Claude's recommendation): D1 Time Travel (always on), a restore test before the real load,
+  and an export file before every import and weekly, kept on the owner's computer, never in the repo.
+- **Photos and documents** (owner): an Apps Script in the owner's account copies each tutor's photo into a Drive
+  folder as `T<code>.jpg`, and the document into a separate private folder as `T<code>-doc.jpg`. Photos are resized
+  (~400 px) and uploaded to a private R2 bucket by a local script; only the admin and the tutor see them. Documents
+  stay in Drive until verification is built.
+- **Deploy first on `workers.dev`, buy the domain before tutors are invited** (owner). Google login runs in Testing
+  mode with the owner as the only tester. Two owner emails go in `OWNER_EMAILS`, set on Cloudflare, not in the repo.
+- **Claude may read the owner's sheet and Drive through the connected tools** (owner), within the 2026-11-01 rule:
+  nothing personal goes into the repo, commit messages or replies.
+- **How it was built** (Claude, owner asked for the remaining steps to be done unattended):
+  - `scripts/import/load.mjs` replaces `load-local.mjs`: full load or `--add-only` top-up, `--local` or `--remote`,
+    `--undo-batch <id>`. A full load on the real database is refused once any import exists. Every real run exports a
+    backup to `imports/backups/` first.
+  - The top-up matches tutors and tuitions by code and applications by tuition + phone + time (or the same tutor on
+    that tuition), and adds children only under parents it created. A tuition already loaded keeps its status even if
+    the sheet changes it: after the first load, status lives in the app.
+  - `/admin/review` has three lists: flagged tutors (mark checked, or fix a broken email), open tuitions not on the
+    board with what each still lacks, and sheet rows still held back.
+  - Restore drill on the empty real database passed (2026-11-03): Time Travel restore removed a marker table, and a
+    `wrangler d1 export` rebuilt all tables, triggers and migrations in a blank SQLite.
+  - Photos: `migrations/0007` adds `tutors.photo_key`; bucket `hikmah-photos` (binding `PHOTOS`); `/photos/tutor/:code`
+    serves a photo only to the admin or that tutor, `Cache-Control: private`. `scripts/tutor-files.gs` (Apps Script)
+    copies photos and documents into Drive folders by code; `scripts/photos/upload.mjs` resizes to 400 px WebP with
+    `sharp` (dev-only, never shipped to phones) and uploads. R2 is not yet enabled on the Hikmah account: the owner
+    has to switch it on in the dashboard (`docs/GO-LIVE.md` step 1).
+  - The owner's steps for going live are in `docs/GO-LIVE.md`.
+
 ## 2026-11-02
 
 - **The ticket card is built into the real board** (owner asked to build it; details by Claude):

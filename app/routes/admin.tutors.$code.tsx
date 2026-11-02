@@ -34,6 +34,7 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
       <main className="mx-auto max-w-3xl space-y-4 px-4 py-4">
         <p className="text-sm text-slate-600">এই প্রোফাইল পাবলিক নয়। শুধু অ্যাডমিন ও টিউটর নিজে দেখতে পারবেন।</p>
         <Card>
+          {t.photo_key && <img src={`/photos/tutor/${t.code}`} alt={`${t.full_name}-এর ছবি`} width={96} height={96} className="mb-3 size-24 rounded-2xl object-cover" />}
           <div className="mb-2 flex flex-wrap gap-1.5">
             <Badge tone={t.claim_status === "claimed" ? "green" : "grey"}>{t.claim_status === "claimed" ? "লগইন করেছেন" : "এখনো লগইন করেননি"}</Badge>
             {t.priority === "urgent" && <Badge tone="dark">জরুরি প্রয়োজন</Badge>}
@@ -41,7 +42,7 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
           <ContactButtons phone={t.phone} />
           {t.alt_phone && <div className="mt-2"><ContactButtons phone={t.alt_phone} /></div>}
           <div className="mt-2 flex flex-wrap gap-2">
-            {photo && <a href={photo} target="_blank" rel="noreferrer" className={linkClass}>ছবি</a>}
+            {photo && !t.photo_key && <a href={photo} target="_blank" rel="noreferrer" className={linkClass}>ছবি</a>}
             {facebook && <a href={facebook} target="_blank" rel="noreferrer" className={linkClass}>Facebook</a>}
           </div>
           <div className="mt-2">
