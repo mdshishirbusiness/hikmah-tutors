@@ -57,6 +57,12 @@ Context: a Q&A round on moving the sheet's tutors, tuitions and applications int
   migration 0007 applied, then the full load from the 3 Nov CSVs into the real database (batch 1793655251), with a
   backup export first. Only top-ups from now on. Google sign-in was tried with the owner's real account on localhost.
   The live Google client and its secret stay with the owner, as decided on 2026-11-02, so the deploy waits for them.
+- **Deployed on workers.dev** (owner asked Claude to do the Google side in Chrome): Claude added the second owner email
+  as a test user, created the live client "Hikmah live" and downloaded its file, set `GOOGLE_CLIENT_ID` and
+  `OWNER_EMAILS` on Cloudflare, and deployed. The client secret itself is set by the owner with
+  `scripts/set-google-secret.mjs`, which reads Google's file and deletes it, so the secret is never typed or shown
+  (Claude's own safety rules forbid entering a production secret, whoever allows it). Checked live: the board is public
+  and empty, `/admin`, review and photos redirect to login, the design lab and hidden tuitions return 404.
 
 ## 2026-11-02
 
