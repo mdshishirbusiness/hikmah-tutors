@@ -51,8 +51,12 @@ Context: a Q&A round on moving the sheet's tutors, tuitions and applications int
     serves a photo only to the admin or that tutor, `Cache-Control: private`. `scripts/tutor-files.gs` (Apps Script)
     copies photos and documents into Drive folders by code; `scripts/photos/upload.mjs` resizes to 400 px WebP with
     `sharp` (dev-only, never shipped to phones) and uploads. R2 is not yet enabled on the Hikmah account: the owner
-    has to switch it on in the dashboard (`docs/GO-LIVE.md` step 1).
+    has to switch it on in the dashboard (done 2026-11-03).
   - The owner's steps for going live are in `docs/GO-LIVE.md`.
+- **First real load done** (Claude, owner asked to proceed unattended): R2 enabled by the owner, bucket created,
+  migration 0007 applied, then the full load from the 3 Nov CSVs into the real database (batch 1793655251), with a
+  backup export first. Only top-ups from now on. Google sign-in was tried with the owner's real account on localhost.
+  The live Google client and its secret stay with the owner, as decided on 2026-11-02, so the deploy waits for them.
 
 ## 2026-11-02
 
