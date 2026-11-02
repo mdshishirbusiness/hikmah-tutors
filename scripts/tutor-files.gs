@@ -18,10 +18,17 @@ const TAB = "Registration";
 const FIRST_DATA_ROW = 3; // row 1 is the group heading, row 2 the column names
 const COL = { code: 1, photo: 5, document: 6 }; // A: Tutor, E: Professional Profile Photo, F: Verification Document
 const STOP_AFTER_MS = 5 * 60 * 1000;
+const BACKUP_AFTER_MS = 8 * 60 * 1000; // longer than one run, so it only fires if a run dies
+const SAVE_EVERY = 20; // rows between progress saves
 const RESUME_HANDLER = "copyTutorFiles";
 
 function copyTutorFiles() {
   const started = Date.now();
+  // One run at a time, and a backup restart booked before any work: if Google stops this run with a server error,
+  // the backup picks up where the last saved row was (2026-11-03: a run died that way and the chain stopped).
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) return;
+  resumeSoon_(BACKUP_AFTER_MS);
   const props = PropertiesService.getScriptProperties();
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TAB);
   if (!sheet) throw new Error(`No tab named "${TAB}".`);
@@ -35,11 +42,12 @@ function copyTutorFiles() {
   const counts = JSON.parse(props.getProperty("counts") || '{"photos":0,"documents":0,"skipped":0,"unreadable":0}');
 
   for (; row < rows.length; row++) {
+    if (row % SAVE_EVERY === 0) save_(props, row, counts);
     if (Date.now() - started > STOP_AFTER_MS) {
-      props.setProperty("nextRow", String(row));
-      props.setProperty("counts", JSON.stringify(counts));
-      resumeSoon_();
+      save_(props, row, counts);
+      resumeSoon_(60 * 1000);
       console.log(`Paused at sheet row ${row + FIRST_DATA_ROW}; continuing in a minute. So far: ${JSON.stringify(counts)}`);
+      lock.releaseLock();
       return;
     }
     const code = String(rows[row][COL.code - 1]).trim();
@@ -51,6 +59,12 @@ function copyTutorFiles() {
   props.deleteAllProperties();
   stopResuming_();
   console.log(`Done. ${JSON.stringify(counts)}`);
+  lock.releaseLock();
+}
+
+function save_(props, row, counts) {
+  props.setProperty("nextRow", String(row));
+  props.setProperty("counts", JSON.stringify(counts));
 }
 
 /** A cell can hold several links (some tutors uploaded more than one document): -1, -2 … after the first. */
@@ -59,15 +73,19 @@ function copyAll_(cell, base, folder, have, counts, kind) {
   ids.forEach((id, i) => {
     const stem = i ? `${base}-${i + 1}` : base;
     if (have.has(stem)) { counts.skipped++; return; }
-    try {
-      const file = DriveApp.getFileById(id);
-      const ext = (file.getName().match(/\.[A-Za-z0-9]{2,5}$/) || [""])[0].toLowerCase();
-      file.makeCopy(stem + ext, folder);
-      have.add(stem);
-      counts[kind]++;
-    } catch (e) {
-      counts.unreadable++; // deleted, or not shared with this account
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const file = DriveApp.getFileById(id);
+        const ext = (file.getName().match(/\.[A-Za-z0-9]{2,5}$/) || [""])[0].toLowerCase();
+        file.makeCopy(stem + ext, folder);
+        have.add(stem);
+        counts[kind]++;
+        return;
+      } catch (e) {
+        if (attempt === 1) Utilities.sleep(2000); // Google's "server error" usually passes on a retry
+      }
     }
+    counts.unreadable++; // deleted, not shared with this account, or Google kept failing; a re-run tries again
   });
 }
 
@@ -84,9 +102,9 @@ function names_(folder) {
   return out;
 }
 
-function resumeSoon_() {
+function resumeSoon_(ms) {
   stopResuming_();
-  ScriptApp.newTrigger(RESUME_HANDLER).timeBased().after(60 * 1000).create();
+  ScriptApp.newTrigger(RESUME_HANDLER).timeBased().after(ms).create();
 }
 
 function stopResuming_() {
