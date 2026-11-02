@@ -23,5 +23,7 @@ if (!candidates.length) {
 const { f, path, web } = candidates[0];
 console.log(`Using ${f} (client ${web.client_id.slice(0, 12)}…).`);
 execFileSync("npx", ["wrangler", "secret", "put", "GOOGLE_CLIENT_SECRET"], { input: web.client_secret, stdio: ["pipe", "inherit", "inherit"], shell: true });
-for (const p of [path, path.replace(/\.json$/, "")]) rmSync(p, { force: true });
-console.log("GOOGLE_CLIENT_SECRET is set on Cloudflare, and the downloaded file is deleted.");
+// Every downloaded copy of this client goes: "….json", "… (1).json", and the one Chrome saved without an extension.
+const copies = readdirSync(dir).filter((name) => name.startsWith(`client_secret_${web.client_id}`));
+for (const name of copies) rmSync(join(dir, name), { force: true });
+console.log(`GOOGLE_CLIENT_SECRET is set on Cloudflare, and ${copies.length} downloaded cop${copies.length === 1 ? "y is" : "ies are"} deleted.`);
