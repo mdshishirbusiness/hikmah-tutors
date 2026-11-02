@@ -44,7 +44,7 @@ enforced with SQLite triggers. Roles: Owner only for now.
 `npx tsc -b` (after `npx react-router typegen`) with 0 errors, then try it in the browser at phone width (375 px).
 
 ## Language and design
-- UI text in clear Bangla (চলিত), English only for names like WhatsApp, SSC, O Level.
+- UI text in clear Bangla (চলিত) or English, whichever reads better (owner, 2026-11-02: tutors read English well).
 - Modern and bold, aimed at young tutors (university students), with stunning polish: the kind of site a student
   tells friends about (owner, 2026-10-16). NO claymorphism. Boldness comes from colour bands, large confident type
   (salary and area), crisp layout and short purposeful motion, not heavy effects. Palette from the logo

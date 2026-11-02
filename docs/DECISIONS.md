@@ -5,6 +5,33 @@ Newest first. Each entry: what was decided, by whom, and why.
 
 ## 2026-11-02
 
+- **English is allowed in the UI** (owner). Tutors are university students and read English well, so not every word
+  has to be Bangla. Use whichever reads better and looks more professional.
+- **A tuition's class is one class or one exam batch, never a range** (owner): Class 9, Class 10, SSC 27, SSC 28 (and
+  the same for HSC). `CLASS_LEVELS` in `app/lib/options.ts` (ranges like ৯ম–১০ম) must change before the board goes live.
+- **Board design, round 1 rejected** (owner): five concepts at `/design` (earnings, match, ticket, poster, chat). The
+  earnings one was too dark; poster and chat are not to be used as inspiration. Round 2: three light card styles that
+  share one detail, apply and done flow. Design is confirmed first, functionality after.
+- **Board card: the sideways ticket goes forward** (owner, round 2; the colour-band card was rejected). Refinements the
+  owner asked for: no barcode; each subject has its own colour, the same everywhere; the guardian's short English
+  requirement line ("RU science faculty, patient female tutor needed") shows on the card.
+- **Ticket card details** (owner, agreed in a Q&A round):
+  - Tutor gender is a solid chip in English beside the class: Female Tutor (deep rose), Male Tutor (deep blue),
+    Male/Female Tutor when there is no preference (forest).
+  - Short labels are English: class (SSC 27), medium (Bangla medium), gender, badges and statuses (New, Apply,
+    Applied, Processing, Submitted, Under review, Shortlisted, Demo class, Confirmed). Sentences stay Bangla.
+  - The card shows how many active applications a tuition has, to everyone ("এখনো কেউ আবেদন করেনি" at zero).
+  - The stub has an Apply button that opens the apply sheet over the board (sign-in first, then back to the same
+    sheet). Save/bookmark lives on the detail page only. After applying, the stub shows Applied.
+  - Distance and the fit count are shown only to a signed-in tutor; the per-class rate stays.
+  - Processing tuitions stay on the board with a grey stub and no Apply; booked ones leave the board.
+  - Later in the same round (owner): the fit count ("৪/৪ মিল") moves off the card to the detail page only; the stub
+    carries salary, per-class rate and the schedule (days, session length, time of day) above Apply; "New" sits on
+    the stub beside the code; applicants show as a small stack of anonymous circles with the count. The guardian's
+    requirement line sits in the left column in bold forest text with a green bar (a tinted strip at the bottom
+    was tried and read poorly).
+  - **Per-class rate counts a month as 4 weeks** (owner): 3 days a week = 12 classes, 4 = 16, 5 = 20.
+  - Tuitions need a **session length** (e.g. ১.৫ ঘণ্টা), which the data model does not have yet.
 - **Tutor profiles are private at launch** (owner). Only the admin can see them: no public tutor directory, and guardians
   don't see profiles. A signed-in tutor sees their own profile, never the admin's notes (owner).
 - **The admin tells guardians about a tutor by phone or WhatsApp** (owner). No guardian login at first; a controlled
