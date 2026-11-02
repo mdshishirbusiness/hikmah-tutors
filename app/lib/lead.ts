@@ -1,6 +1,6 @@
 // One lead (guardian request) and its validation. Shared by the phone (before saving or queueing)
 // and the server (before writing to D1), so a queued lead is always one the server will accept.
-import { CLASS_LEVELS, DAYS_PER_WEEK, LEAD_SOURCES, MEDIUMS, STUDENT_GENDERS, SUBJECTS, TUTOR_GENDERS } from "./options";
+import { CLASS_CHOICES, DAYS_PER_WEEK, LEAD_SOURCES, MEDIUMS, STUDENT_GENDERS, SUBJECTS, TUTOR_GENDERS } from "./options";
 
 export type LeadInput = {
   client_id: string;
@@ -34,7 +34,7 @@ export function bdPhone(raw: unknown): string {
 }
 
 const keys = (list: { key: string }[]) => new Set(list.map((o) => o.key));
-const CLASS_KEYS = keys(CLASS_LEVELS);
+const CLASS_KEYS = keys(CLASS_CHOICES);
 const MEDIUM_KEYS = keys(MEDIUMS);
 const GENDER_KEYS = keys(TUTOR_GENDERS);
 const STUDENT_GENDER_KEYS = keys(STUDENT_GENDERS);

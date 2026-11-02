@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigation, useSearchParams } from "react-router";
 import type { Route } from "./+types/home";
 import { FilterSheet } from "~/components/FilterSheet";
-import { SiteFooter, SiteHeader, Toast, useShare } from "~/components/site";
+import { SiteFooter, SiteHeader } from "~/components/site";
 import { TuitionCard } from "~/components/TuitionCard";
 import { AREAS, CLASS_LEVELS, MEDIUMS, MODES, SUBJECTS, TUTOR_GENDERS, labelOf } from "~/lib/options";
-import { applyFilters, bnDigits, readFilters, taka, type PublicTuition } from "~/lib/tuition";
+import { applyFilters, bnDigits, readFilters, taka } from "~/lib/tuition";
 import { openTuitions } from "~/lib/tuitions.server";
 
 export function meta(_: Route.MetaArgs) {
@@ -31,7 +31,6 @@ export default function Home({ loaderData: { items, now } }: Route.ComponentProp
   const [sheetOpen, setSheetOpen] = useState(false);
   const [searchText, setSearchText] = useState(filters.q ?? "");
   useEffect(() => setSearchText(filters.q ?? ""), [filters.q]);
-  const { share, toast } = useShare();
 
   const setParam = useCallback(
     (name: string, value: string | number | undefined) => {
@@ -48,7 +47,6 @@ export default function Home({ loaderData: { items, now } }: Route.ComponentProp
     [setSp],
   );
   const clearAll = useCallback(() => setSp(new URLSearchParams(), { preventScrollReset: true }), [setSp]);
-  const onShare = useCallback((t: PublicTuition) => share(`/tuitions/${t.code_label}`, `${t.code_label} · Hikmah Tutors`), [share]);
 
   const active: { param: string; label: string }[] = [
     filters.area && { param: "area", label: labelOf(AREAS, filters.area) },
@@ -132,8 +130,8 @@ export default function Home({ loaderData: { items, now } }: Route.ComponentProp
                 {hasAny && <button type="button" onClick={clearAll} className="mt-3 min-h-11 rounded-xl bg-forest px-5 text-sm font-semibold text-white">ফিল্টার মুছুন</button>}
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((t, i) => <TuitionCard key={t.code} t={t} now={now} index={i} onShare={onShare} />)}
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((t, i) => <TuitionCard key={t.code} t={t} now={now} index={i} />)}
               </div>
             )}
           </div>
@@ -141,7 +139,6 @@ export default function Home({ loaderData: { items, now } }: Route.ComponentProp
       </main>
       <SiteFooter />
       <FilterSheet open={sheetOpen} onClose={() => setSheetOpen(false)} filters={filters} setParam={setParam} clearAll={clearAll} resultCount={items.length} />
-      <Toast message={toast} />
     </>
   );
 }

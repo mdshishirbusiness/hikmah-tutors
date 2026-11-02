@@ -1,7 +1,7 @@
 // Queries behind the admin screens. Private data: only routes under /admin that call requireAdmin may import this.
 import { env } from "cloudflare:workers";
 import { ADMIN_PAGE_SIZE, TUITION_MOVES } from "./admin-labels";
-import { AREAS, CLASS_LEVELS, MEDIUMS, SUBJECTS } from "./options";
+import { AREAS, CLASS_CHOICES, CLASS_LEVELS, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY } from "./options";
 
 const PAGE_SIZE = ADMIN_PAGE_SIZE;
 const pageOffset = (page: number) => (Math.max(page, 1) - 1) * PAGE_SIZE;
@@ -67,7 +67,7 @@ export async function listTuitions(f: { q: string; status: string; visibility: s
 
 export type TuitionFull = AdminTuitionRow & {
   medium: string; mode: string; salary_period: string; days_per_week: number; student_gender: string | null; accepting_applications: number;
-  requirements_public: string; start_note: string; closed_at: number | null;
+  requirements_public: string; start_note: string; closed_at: number | null; session_minutes: number | null; time_of_day: string | null;
 };
 export type TuitionPrivate = {
   guardian_id: number | null; guardian_label: string | null; guardian_phone: string | null; exact_address: string | null; lead_source: string | null;
@@ -120,10 +120,13 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   const requirements = text("requirements_public"), startNote = text("start_note");
   const days = Number(text("days_per_week")), salaryKind = text("salary_kind"), amount = Number(text("salary_amount"));
   const genderPref = text("tutor_gender_pref"), publish = form.get("is_public") === "1";
+  const sessionMinutes = Number(text("session_minutes")) || null, timeOfDay = text("time_of_day") || null;
 
   if (status !== current.status && !TUITION_MOVES[current.status]?.includes(status)) return "এই স্ট্যাটাসে নেওয়া যাবে না।";
   if (medium && !MEDIUMS.some((m) => m.key === medium)) return "মাধ্যম ঠিক নেই।";
   if (!CLASS_LEVELS.some((c) => c.key === classLevel)) return "ক্লাস বেছে নাও।";
+  if (sessionMinutes !== null && !(SESSION_MINUTES as readonly number[]).includes(sessionMinutes)) return "সেশনের সময় ঠিক নেই।";
+  if (timeOfDay !== null && !TIMES_OF_DAY.some((o) => o.key === timeOfDay)) return "কোন সময়ে, সেটা ঠিক নেই।";
   if (!AREAS.some((a) => a.key === area)) return "এলাকা বেছে নাও।";
   if (!Number.isInteger(days) || days < 1 || days > 7) return "সপ্তাহে দিন ১ থেকে ৭ এর মধ্যে হবে।";
   if (!["fixed", "negotiable", "unspecified"].includes(salaryKind)) return "বেতনের ধরন ঠিক নেই।";
@@ -137,6 +140,8 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   if (publish && !open) return "শুধু খালি বা প্রক্রিয়াধীন টিউশন পাবলিক করা যায়।";
   if (publish && !medium) return "পাবলিক করার আগে মাধ্যম বেছে নাও।";
   if (publish && !subjects.length) return "পাবলিক করার আগে বিষয় বেছে নাও।";
+  // Old range classes (৯ম–১০ম) can stay on hidden rows, but the board shows one class or one batch only.
+  if (publish && !CLASS_CHOICES.some((c) => c.key === classLevel)) return "পাবলিক করার আগে নতুন তালিকা থেকে একটি ক্লাস বা ব্যাচ বেছে নাও।";
 
   const t = now();
   const postedAt = publish ? current.posted_at ?? t : current.posted_at;
@@ -144,10 +149,10 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE tuitions SET status = ?, is_public = ?, accepting_applications = ?, medium = ?, class_level = ?, subjects = ?, area = ?, days_per_week = ?,
-              salary_kind = ?, salary_amount = ?, tutor_gender_pref = ?, requirements_public = ?, start_note = ?, posted_at = ?,
+              session_minutes = ?, time_of_day = ?, salary_kind = ?, salary_amount = ?, tutor_gender_pref = ?, requirements_public = ?, start_note = ?, posted_at = ?,
               closed_at = CASE WHEN ? IS NULL THEN NULL ELSE COALESCE(closed_at, ?) END
        WHERE code = ?`,
-    ).bind(status, publish ? 1 : 0, publish && form.get("accepting") === "1" ? 1 : 0, medium, classLevel, subjects.join(","), area, days, salaryKind, salaryKind === "fixed" ? amount : null,
+    ).bind(status, publish ? 1 : 0, publish && form.get("accepting") === "1" ? 1 : 0, medium, classLevel, subjects.join(","), area, days, sessionMinutes, timeOfDay, salaryKind, salaryKind === "fixed" ? amount : null,
       genderPref, requirements, startNote, postedAt, closedAt, closedAt, code),
     audit(actorId, "tuition_updated", "tuition", String(code), { status, is_public: publish }),
   ]);

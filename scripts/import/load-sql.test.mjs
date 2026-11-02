@@ -11,7 +11,7 @@ const tutor = (code, needsReview = false) => ({
 });
 const tuition = (code, status, needsReview = false) => ({
   code, tab: "admin", rowNo: code, needsReview, issues: needsReview ? ["area_unknown"] : [], guardianPhone: "01711000001", selected: null,
-  tuition: { status, is_public: 0, accepting_applications: 0, class_level: "ssc", subjects: ["math", "physics"], area: "kazla", days_per_week: 3, salary_kind: "fixed", salary_amount: 4000, student_gender: null, tutor_gender_pref: "any", requirements_public: "", posted_at: 1 },
+  tuition: { status, is_public: 0, accepting_applications: 0, class_level: "ssc-27", subjects: ["math", "physics"], area: "kazla", days_per_week: 3, salary_kind: "fixed", salary_amount: 4000, student_gender: null, tutor_gender_pref: "any", requirements_public: "", posted_at: 1 },
   private: { guardian_label: "Sir", exact_address: MARKER, lead_source: "call", private_notes: MARKER, tutor_qualification: null, raw: { location: MARKER } },
 });
 const app = (rowNo, code, tutorCode, phone) => ({ rowNo, tuition_code: code, tutor_code: tutorCode, applicant_name: "A", applicant_phone: phone, applicant_gender: "male", applicant_shortcode: null, applicant_location: null, note: null, fee_plan: "early", created_at: 5 });

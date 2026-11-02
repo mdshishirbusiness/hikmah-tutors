@@ -3,7 +3,7 @@ import type { Route } from "./+types/tuitions.$code";
 import { SiteFooter, SiteHeader, Toast, useShare } from "~/components/site";
 import { SalaryText, StatusBadges, TuitionCard, placeLabel, subjectList } from "~/components/TuitionCard";
 import { CLASS_LEVELS, MEDIUMS, MODES, STUDENT_GENDERS, TUTOR_GENDERS, labelOf } from "~/lib/options";
-import { GENDER_NEED, GENDER_STYLE, bnDigits, feeDisplay, formatDate, taka, type PublicTuition } from "~/lib/tuition";
+import { GENDER_NEED, GENDER_STYLE, bnDigits, feeDisplay, formatDate, scheduleNote, taka, type PublicTuition } from "~/lib/tuition";
 import { similarTuitions, visibleTuition } from "~/lib/tuitions.server";
 
 export function meta({ loaderData }: Route.MetaArgs) {
@@ -60,6 +60,7 @@ export default function TuitionDetail({ loaderData: { t, similar, now } }: Route
     ["মাধ্যম", labelOf(MEDIUMS, t.medium)],
     ["মোড", labelOf(MODES, t.mode)],
     ["দিন", `সপ্তাহে ${bnDigits(t.days_per_week)} দিন`],
+    ["সময়", scheduleNote(t) || "উল্লেখ নেই"],
     ["কাঙ্ক্ষিত টিউটর", labelOf(TUTOR_GENDERS, t.tutor_gender_pref)],
   ];
   if (t.student_gender) facts.push(["শিক্ষার্থী", labelOf(STUDENT_GENDERS, t.student_gender)]);
@@ -128,7 +129,7 @@ export default function TuitionDetail({ loaderData: { t, similar, now } }: Route
             <section>
               <h2 className="mb-4 text-lg font-semibold text-forest">মিল থাকা টিউশন</h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                {similar.map((s, i) => <TuitionCard key={s.code} t={s} now={now} index={i} onShare={(x) => share(`/tuitions/${x.code_label}`, `${x.code_label} · Hikmah Tutors`)} />)}
+                {similar.map((s, i) => <TuitionCard key={s.code} t={s} now={now} index={i} />)}
               </div>
             </section>
           )}

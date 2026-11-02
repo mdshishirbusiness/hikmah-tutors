@@ -11,7 +11,7 @@ import { flushPending, saveLead, usePendingCount } from "~/lib/lead-queue";
 import {
   AREAS,
   AREAS_TOP,
-  CLASS_LEVELS,
+  CLASS_CHOICES,
   DAYS_PER_WEEK,
   LEAD_SOURCES,
   MEDIUMS,
@@ -227,7 +227,7 @@ export default function QuickPad() {
         </Section>
 
         <Section id="f-class_level" title="শ্রেণি" required error={errors.class_level}>
-          <Chips options={CLASS_LEVELS} isOn={(k) => form.class_level === k} onTap={(k) => toggle("class_level", k)} />
+          <Chips options={CLASS_CHOICES} isOn={(k) => form.class_level === k} onTap={(k) => toggle("class_level", k)} />
         </Section>
 
         <Section title="শিক্ষার্থী">

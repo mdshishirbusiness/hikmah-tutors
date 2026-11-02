@@ -1,6 +1,6 @@
 // Tuition rules and formatting shared by the server and the pages. Ported from the Emergent reference
 // (backend/logic/fees.py, logic/text.py, frontend/src/lib/format.ts).
-import { AREAS, CLASS_LEVELS, MEDIUMS, SUBJECTS, labelOf } from "./options";
+import { AREAS, CLASS_LEVELS, MEDIUMS, SUBJECTS, TIMES_OF_DAY, labelOf } from "./options";
 
 export type PublicTuition = {
   code: number;
@@ -16,12 +16,15 @@ export type PublicTuition = {
   salary_amount: number | null;
   salary_period: "per_month" | "per_course";
   days_per_week: number;
+  session_minutes: number | null;
+  time_of_day: string | null;
   student_gender: "boy" | "girl" | null;
   tutor_gender_pref: "any" | "male" | "female";
   requirements_public: string;
   start_note: string;
   posted_at: number | null;
   is_available: boolean; // on the board
+  applicants: number; // live applications; the count is public (owner, 2026-11-02), never who applied
 };
 
 export type TuitionFilters = {
@@ -78,13 +81,15 @@ export function normalizeSearch(s: string): string {
 
 function searchBlob(t: PublicTuition): string {
   const area = AREAS.find((a) => a.key === t.area);
+  const cls = CLASS_LEVELS.find((c) => c.key === t.class_level);
   return normalizeSearch(
     [
       t.code_label,
       t.code,
       area?.label,
       area?.alt,
-      labelOf(CLASS_LEVELS, t.class_level),
+      cls?.label,
+      cls?.alt,
       labelOf(MEDIUMS, t.medium),
       ...t.subjects.map((s) => labelOf(SUBJECTS, s)),
       t.requirements_public,
@@ -92,7 +97,7 @@ function searchBlob(t: PublicTuition): string {
   );
 }
 
-const isFixedMonthly = (t: PublicTuition) =>
+const isFixedMonthly = (t: Pick<PublicTuition, "salary_kind" | "salary_period" | "salary_amount">) =>
   t.salary_kind === "fixed" && t.salary_period === "per_month" && !!t.salary_amount;
 
 /** `items` must arrive newest first. */
@@ -174,3 +179,45 @@ export const GENDER_STYLE: Record<PublicTuition["tutor_gender_pref"], { strip: s
   female: { strip: "bg-rose-50 text-rose-900", border: "border-rose-200", bar: "bg-rose-600", badge: "bg-rose-100 text-rose-900" },
   any: { strip: "bg-emerald-50 text-emerald-900", border: "border-emerald-200", bar: "bg-emerald-600", badge: "bg-emerald-100 text-emerald-900" },
 };
+
+/** "১.৫ ঘণ্টা" from minutes. */
+export const sessionLength = (minutes: number) => `${bnDigits(String(minutes / 60))} ঘণ্টা`;
+
+/** "১.৫ ঘণ্টা · বিকেলে", or only the part that is known, or "". */
+export const scheduleNote = (t: Pick<PublicTuition, "session_minutes" | "time_of_day">) =>
+  [t.session_minutes && sessionLength(t.session_minutes), t.time_of_day && labelOf(TIMES_OF_DAY, t.time_of_day)].filter(Boolean).join(" · ");
+
+/** Monthly salary per class, rounded to ৳10, or null when there is no fixed monthly salary. A month counts as 4 weeks
+ * (owner: 3 days a week = 12 classes, 4 = 16, 5 = 20). */
+export const perClass = (t: Pick<PublicTuition, "salary_kind" | "salary_amount" | "salary_period" | "days_per_week">) =>
+  isFixedMonthly(t) ? Math.round(t.salary_amount! / (t.days_per_week * 4) / 10) * 10 : null;
+
+/** Short labels on the card are English (owner, 2026-11-02). */
+export const MEDIUM_EN: Record<string, string> = { bangla: "Bangla medium", ev: "English version", em: "English medium", madrasa: "Madrasa" };
+
+/** The tutor-gender chip: Female Tutor deep rose, Male Tutor deep blue, no preference forest. */
+export const GENDER_CHIP: Record<PublicTuition["tutor_gender_pref"], { label: string; tone: string }> = {
+  female: { label: "Female Tutor", tone: "bg-rose-700 text-white" },
+  male: { label: "Male Tutor", tone: "bg-blue-700 text-white" },
+  any: { label: "Male/Female Tutor", tone: "bg-forest text-cream" },
+};
+
+// One colour per subject, the same everywhere, so tutors learn "blue = গণিত". Dark text on a pale fill (contrast ≥ 7).
+export const SUBJECT_TONE: Record<string, string> = {
+  math: "bg-blue-50 text-blue-800 ring-blue-100",
+  hmath: "bg-indigo-50 text-indigo-800 ring-indigo-100",
+  physics: "bg-violet-50 text-violet-800 ring-violet-100",
+  chemistry: "bg-orange-50 text-orange-800 ring-orange-100",
+  biology: "bg-lime-50 text-lime-800 ring-lime-100",
+  science: "bg-teal-50 text-teal-800 ring-teal-100",
+  english: "bg-rose-50 text-rose-800 ring-rose-100",
+  bangla: "bg-cyan-50 text-cyan-800 ring-cyan-100",
+  ict: "bg-sky-50 text-sky-800 ring-sky-100",
+  accounting: "bg-amber-50 text-amber-800 ring-amber-100",
+  finance: "bg-amber-50 text-amber-800 ring-amber-100",
+  economics: "bg-yellow-50 text-yellow-800 ring-yellow-100",
+  bgs: "bg-fuchsia-50 text-fuchsia-800 ring-fuchsia-100",
+  quran: "bg-emerald-50 text-emerald-800 ring-emerald-100",
+  islam: "bg-emerald-50 text-emerald-800 ring-emerald-100",
+};
+export const SUBJECT_TONE_OTHER = "bg-slate-100 text-slate-700 ring-slate-200";

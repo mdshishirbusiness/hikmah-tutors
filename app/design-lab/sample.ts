@@ -1,6 +1,6 @@
 // Synthetic tuitions and a synthetic tutor for the design lab (/design). Never real people or posts.
 import { AREAS, MEDIUMS, SUBJECTS, labelOf } from "~/lib/options";
-import { feeDisplay, type PublicTuition } from "~/lib/tuition";
+import { MEDIUM_EN, feeDisplay, perClass as realPerClass, type PublicTuition } from "~/lib/tuition";
 
 export type Check = { ok: boolean; short: string; title: string; detail: string };
 /** A public tuition plus what the lab pretends to know: its real class label, the viewer's fit and distance. */
@@ -9,7 +9,7 @@ export type Plan = "standard" | "early";
 
 export const ME = { name: "নুসরাত জাহান", first: "নুসরাত", from: "বিনোদপুর" };
 
-const base = { status: "open", accepting_applications: true, mode: "home", salary_kind: "fixed", salary_period: "per_month", is_available: true, posted_at: null } as const;
+const base = { status: "open", accepting_applications: true, mode: "home", salary_kind: "fixed", salary_period: "per_month", is_available: true, posted_at: null, session_minutes: null, time_of_day: null, applicants: 0 } as const;
 
 export const T1: LabTuition = {
   ...base,
@@ -100,21 +100,14 @@ export const T3: LabTuition = {
 };
 
 export const area = (t: PublicTuition) => labelOf(AREAS, t.area);
-/** Short labels are English on the card (owner, 2026-11-02). */
-export const mediumEn = (t: PublicTuition) => ({ bangla: "Bangla medium", ev: "English version", em: "English medium", madrasa: "Madrasa" })[t.medium] ?? t.medium;
-export const GENDER: Record<PublicTuition["tutor_gender_pref"], { label: string; tone: string }> = {
-  female: { label: "Female Tutor", tone: "bg-rose-700 text-white" },
-  male: { label: "Male Tutor", tone: "bg-blue-700 text-white" },
-  any: { label: "Male/Female Tutor", tone: "bg-forest text-cream" },
-};
+export const mediumEn = (t: PublicTuition) => MEDIUM_EN[t.medium] ?? t.medium;
 export const cls = (t: LabTuition) => t.level;
 export const medium = (t: PublicTuition) => labelOf(MEDIUMS, t.medium);
 export const subjects = (t: PublicTuition, sep = ", ") => t.subjects.map((s) => labelOf(SUBJECTS, s)).join(sep);
 export const student = (t: PublicTuition) => (t.student_gender === "girl" ? "মেয়ে" : "ছেলে");
 export const need = (t: PublicTuition) => ({ female: "মহিলা", male: "পুরুষ", any: "যেকোনো" })[t.tutor_gender_pref];
 export const fees = (t: LabTuition) => feeDisplay(t);
-/** Salary per class, rounded to ৳10. A month counts as 4 weeks (owner: 3 days a week = 12 classes, 4 = 16, 5 = 20). */
-export const perClass = (t: LabTuition) => Math.round(t.salary_amount / (t.days_per_week * 4) / 10) * 10;
+export const perClass = (t: LabTuition) => realPerClass(t) ?? 0;
 export const planFee = (t: LabTuition, p: Plan) => (p === "early" ? fees(t).early_total : fees(t).standard_total);
 export const fit = (t: LabTuition) => ({ ok: t.checks.filter((c) => c.ok).length, total: t.checks.length, miss: t.checks.find((c) => !c.ok) });
 

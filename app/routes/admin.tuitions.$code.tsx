@@ -5,7 +5,8 @@ import { Badge, Card, ContactButtons, Facts, PageHead, bn, inputClass, primaryBu
 import { APPLICATION_MOVES, APPLICATION_STATUS, TUITION_MOVES, TUITION_STATUS } from "~/lib/admin-labels";
 import { type Applicant, getTuition, moveApplication, updateTuition } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
-import { AREAS, CLASS_LEVELS, MEDIUMS, STUDENT_GENDERS, SUBJECTS, TUTOR_GENDERS, labelOf } from "~/lib/options";
+import { AREAS, CLASS_CHOICES, CLASS_LEVELS, MEDIUMS, SESSION_MINUTES, STUDENT_GENDERS, SUBJECTS, TIMES_OF_DAY, TUTOR_GENDERS, labelOf } from "~/lib/options";
+import { sessionLength } from "~/lib/tuition";
 
 export function meta({ params }: Route.MetaArgs) {
   return [{ title: `HTR-${params.code} · অ্যাডমিন` }, { name: "robots", content: "noindex" }];
@@ -144,7 +145,10 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
               </Field>
               <Field label="ক্লাস">
                 <select name="class_level" defaultValue={t.class_level} className={inputClass}>
-                  {CLASS_LEVELS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                  {CLASS_LEVELS.some((c) => c.key === t.class_level && c.legacy) && (
+                    <option value={t.class_level}>{labelOf(CLASS_LEVELS, t.class_level)} (পুরোনো, বদলাও)</option>
+                  )}
+                  {CLASS_CHOICES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
                 </select>
               </Field>
               <Field label="এলাকা">
@@ -154,6 +158,18 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
               </Field>
               <Field label="সপ্তাহে দিন">
                 <input name="days_per_week" type="number" min={1} max={7} inputMode="numeric" defaultValue={t.days_per_week} className={inputClass} />
+              </Field>
+              <Field label="প্রতিদিন কতক্ষণ">
+                <select name="session_minutes" defaultValue={t.session_minutes ?? ""} className={inputClass}>
+                  <option value="">জানা নেই</option>
+                  {SESSION_MINUTES.map((m) => <option key={m} value={m}>{sessionLength(m)}</option>)}
+                </select>
+              </Field>
+              <Field label="কোন সময়ে">
+                <select name="time_of_day" defaultValue={t.time_of_day ?? ""} className={inputClass}>
+                  <option value="">জানা নেই</option>
+                  {TIMES_OF_DAY.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+                </select>
               </Field>
               <Field label="টিউটর">
                 <select name="tutor_gender_pref" defaultValue={t.tutor_gender_pref} className={inputClass}>

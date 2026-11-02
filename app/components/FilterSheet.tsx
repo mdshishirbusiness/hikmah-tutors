@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AREAS, AREAS_TOP, CLASS_LEVELS, DAYS_PER_WEEK, MEDIUMS, MODES, SALARY_PRESETS, SUBJECTS, TUTOR_GENDERS } from "~/lib/options";
+import { AREAS, AREAS_TOP, CLASS_CHOICES, DAYS_PER_WEEK, MEDIUMS, MODES, SALARY_PRESETS, SUBJECTS, TUTOR_GENDERS } from "~/lib/options";
 import { bnDigits, normalizeSearch, taka, type TuitionFilters } from "~/lib/tuition";
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -81,7 +81,7 @@ export function FilterSheet({ open, onClose, filters, setParam, clearAll, result
             />
             {options("area", filters.area, chosenArea ? [chosenArea, ...areas] : areas)}
           </Group>
-          <Group title="ক্লাস">{options("class", filters.class_level, CLASS_LEVELS)}</Group>
+          <Group title="ক্লাস">{options("class", filters.class_level, CLASS_CHOICES)}</Group>
           <Group title="বিষয়">{options("subject", filters.subject, SUBJECTS)}</Group>
           <Group title="মাধ্যম">{options("medium", filters.medium, MEDIUMS)}</Group>
           <Group title="টিউটর">{options("gender", filters.tutor_gender, TUTOR_GENDERS)}</Group>

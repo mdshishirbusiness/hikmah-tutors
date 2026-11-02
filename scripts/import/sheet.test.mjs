@@ -62,9 +62,13 @@ test("small parsers", () => {
   assert.equal(parseSalary("Negotiable").kind, "negotiable");
   assert.deepEqual(parseSalary("4000/4500").issues, ["salary_unclear"]);
   assert.equal(parseSalary("").kind, "unspecified");
-  assert.equal(parseClass("hsc 27").key, "hsc");
-  assert.equal(parseClass("Class 9").key, "ssc");
-  assert.equal(parseClass("KG").key, "c1-5");
+  assert.equal(parseClass("hsc 27").key, "hsc-27");
+  assert.equal(parseClass("SSC'28").key, "ssc-28");
+  assert.deepEqual(parseClass("SSC"), { key: "other", issues: ["class_batch_missing"] });
+  assert.deepEqual(parseClass("HSC 19"), { key: "other", issues: ["class_batch_unknown"] });
+  assert.equal(parseClass("Class 9").key, "class-9");
+  assert.equal(parseClass("Class 12").key, "class-12");
+  assert.equal(parseClass("KG").key, "pre");
   assert.equal(parseClass("Medical Admission").key, "admission");
   assert.deepEqual(parseSubjects("H. Math, Physics, Not Interested").keys, ["hmath", "physics"]);
   assert.equal(parseArea("Padma Residential Area (পদ্মা আবাসিক এলাকা)").key, "padma-abashik");

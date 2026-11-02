@@ -1,54 +1,16 @@
 // Design lab, round 3: the ticket card the owner chose, refined. It also heads the detail page; the rest of the flow
 // is in Flow.tsx.
 import type { CSSProperties } from "react";
-import { SUBJECTS, labelOf } from "~/lib/options";
+import { GenderChip, SubjectChips } from "~/components/TuitionCard";
 import { bnDigits, taka } from "~/lib/tuition";
 import { Icon } from "./parts";
-import { GENDER, area, cls, mediumEn, perClass, type LabTuition } from "./sample";
+import { area, cls, mediumEn, perClass, type LabTuition } from "./sample";
+
+export { GenderChip, SubjectChips };
 
 export type CardProps = { t: LabTuition; onOpen?: () => void; onApply?: () => void; applied?: boolean; hero?: boolean };
 
-/** Female, Male or Male/Female Tutor as a solid chip, so eligibility reads before anything else. */
-export function GenderChip({ t }: { t: LabTuition }) {
-  const g = GENDER[t.tutor_gender_pref];
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${g.tone}`}>
-      <Icon name="user" className="size-3.5" />
-      {g.label}
-    </span>
-  );
-}
-
 export const appliedText = (t: LabTuition) => (t.applied ? `${bnDigits(t.applied)} জন আবেদন করেছেন` : "এখনো কেউ আবেদন করেনি");
-
-// One colour per subject, the same everywhere, so tutors learn "blue = গণিত". Dark text on a pale fill (contrast ≥ 7).
-const TONE: Record<string, string> = {
-  math: "bg-blue-50 text-blue-800 ring-blue-100",
-  hmath: "bg-indigo-50 text-indigo-800 ring-indigo-100",
-  physics: "bg-violet-50 text-violet-800 ring-violet-100",
-  chemistry: "bg-orange-50 text-orange-800 ring-orange-100",
-  biology: "bg-lime-50 text-lime-800 ring-lime-100",
-  science: "bg-teal-50 text-teal-800 ring-teal-100",
-  english: "bg-rose-50 text-rose-800 ring-rose-100",
-  bangla: "bg-cyan-50 text-cyan-800 ring-cyan-100",
-  ict: "bg-sky-50 text-sky-800 ring-sky-100",
-  accounting: "bg-amber-50 text-amber-800 ring-amber-100",
-  finance: "bg-amber-50 text-amber-800 ring-amber-100",
-  economics: "bg-yellow-50 text-yellow-800 ring-yellow-100",
-  bgs: "bg-fuchsia-50 text-fuchsia-800 ring-fuchsia-100",
-  quran: "bg-emerald-50 text-emerald-800 ring-emerald-100",
-  islam: "bg-emerald-50 text-emerald-800 ring-emerald-100",
-};
-
-export function SubjectChips({ t }: { t: LabTuition }) {
-  return (
-    <ul className="flex flex-wrap gap-1.5">
-      {t.subjects.map((s) => (
-        <li key={s} className={`rounded-md px-2 py-0.5 text-[13px] font-semibold ring-1 ${TONE[s] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}>{labelOf(SUBJECTS, s)}</li>
-      ))}
-    </ul>
-  );
-}
 
 // The tear line: white on the left, the stub colour on the right, with half-circle holes at top and bottom.
 const HOLES = "radial-gradient(circle at 50% 0, transparent 10px, #000 10.5px) top / 100% 51% no-repeat, radial-gradient(circle at 50% 100%, transparent 10px, #000 10.5px) bottom / 100% 51% no-repeat";

@@ -1,7 +1,9 @@
 // Turns the Mastersheet's CSV exports into clean records and a report of problems. Pure: reads nothing, writes nothing.
 // Column positions come from the sheet as of 2026-11-01; checkHeaders stops the run if the layout has changed.
 // Rules from PRD §14: hide every imported tuition, never publish raw notes, never treat Booked or Verified as proof.
-import { AREAS } from "../../app/lib/options.ts";
+import { AREAS, CLASS_CHOICES } from "../../app/lib/options.ts";
+
+const CLASS_KEYS = new Set(CLASS_CHOICES.map((c) => c.key));
 
 export function parseCSV(text) {
   const rows = [];
@@ -58,10 +60,17 @@ export function parseClass(s) {
   if (/admission|ভর্তি/.test(c)) return hit("admission");
   if (/o ?level/.test(c)) return hit("olevel");
   if (/a ?level/.test(c)) return hit("alevel");
-  if (/hsc|college|1[12]/.test(c)) return hit("hsc");
-  if (/ssc|class (9|10)\b/.test(c)) return hit("ssc");
-  if (/class [6-8]\b/.test(c)) return hit("c6-8");
-  if (/class [1-5]\b|\bkg\b|play|nursery/.test(c)) return hit("c1-5");
+  // One class or one exam batch (owner, 2026-11-02). A batch with no year, or a year the app does not list yet, goes
+  // to review as "other" rather than being guessed.
+  const batch = c.match(/\b(ssc|hsc)\s*'?(\d{2})\b/);
+  if (batch) {
+    const key = `${batch[1]}-${batch[2]}`;
+    return CLASS_KEYS.has(key) ? hit(key) : { key: "other", issues: ["class_batch_unknown"] };
+  }
+  if (/hsc|ssc|college/.test(c)) return { key: "other", issues: ["class_batch_missing"] };
+  const n = c.match(/\bclass\s*(\d{1,2})\b/)?.[1] ?? c.match(/^(\d{1,2})$/)?.[1];
+  if (n && CLASS_KEYS.has(`class-${+n}`)) return hit(`class-${+n}`);
+  if (/\bkg\b|play|nursery/.test(c)) return hit("pre");
   return { key: "other", issues: ["class_unknown"] };
 }
 

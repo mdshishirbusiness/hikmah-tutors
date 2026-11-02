@@ -1,17 +1,42 @@
 // Choices shown as tap-chips on the Quick Pad. The database stores the `key`, so a label can be reworded at any time.
 // Keep keys short, lowercase and never change one that is already in use.
 
-export type Option = { key: string; label: string; alt?: string }; // alt: English spelling, used by search
+// alt: English spelling, used by search. legacy: an old key that still names stored rows but is no longer offered.
+export type Option = { key: string; label: string; alt?: string; legacy?: boolean };
 
+// One class or one exam batch, never a range (owner, 2026-11-02). Add the next SSC/HSC batch each year; keep old ones
+// while tuitions use them.
 export const CLASS_LEVELS: Option[] = [
-  { key: "c1-5", label: "১ম–৫ম" },
-  { key: "c6-8", label: "৬ষ্ঠ–৮ম" },
-  { key: "ssc", label: "৯ম–১০ম (SSC)" },
-  { key: "hsc", label: "একাদশ–দ্বাদশ (HSC)" },
-  { key: "admission", label: "ভর্তি প্রস্তুতি" },
+  { key: "pre", label: "Play–KG", alt: "play nursery kg" },
+  ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({ key: `class-${n}`, label: `Class ${n}` })),
+  { key: "ssc-27", label: "SSC 27" },
+  { key: "ssc-28", label: "SSC 28" },
+  { key: "class-11", label: "Class 11", alt: "HSC 1st year" },
+  { key: "class-12", label: "Class 12", alt: "HSC 2nd year" },
+  { key: "hsc-27", label: "HSC 27" },
+  { key: "hsc-28", label: "HSC 28" },
+  { key: "admission", label: "Admission" },
   { key: "olevel", label: "O Level" },
   { key: "alevel", label: "A Level" },
-  { key: "other", label: "অন্যান্য" },
+  { key: "other", label: "Other" },
+  { key: "c1-5", label: "১ম–৫ম", legacy: true },
+  { key: "c6-8", label: "৬ষ্ঠ–৮ম", legacy: true },
+  { key: "ssc", label: "৯ম–১০ম (SSC)", legacy: true },
+  { key: "hsc", label: "একাদশ–দ্বাদশ (HSC)", legacy: true },
+];
+/** The classes offered when choosing; legacy range keys only show on old rows. */
+export const CLASS_CHOICES = CLASS_LEVELS.filter((c) => !c.legacy);
+
+/** Session length in minutes, as the admin picks it. */
+export const SESSION_MINUTES = [60, 90, 120, 150, 180] as const;
+
+export const TIMES_OF_DAY: Option[] = [
+  { key: "morning", label: "সকালে" },
+  { key: "noon", label: "দুপুরে" },
+  { key: "afternoon", label: "বিকেলে" },
+  { key: "evening", label: "সন্ধ্যায়" },
+  { key: "night", label: "রাতে" },
+  { key: "flexible", label: "সময় আলোচনা সাপেক্ষে" },
 ];
 
 export const MEDIUMS: Option[] = [

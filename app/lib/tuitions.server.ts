@@ -2,9 +2,12 @@ import { env } from "cloudflare:workers";
 import type { PublicTuition } from "./tuition";
 
 // Anyone can read these pages, so columns are named one by one (PRD T-SEC-01), never SELECT *.
+// The applicant count is a number only: who applied never leaves the admin pages.
 const PUBLIC_COLUMNS = `code, status, accepting_applications, class_level, medium, subjects, area, mode, salary_kind,
-  salary_amount, salary_period, days_per_week, student_gender, tutor_gender_pref, requirements_public, start_note,
-  posted_at, is_public, closed_at`;
+  salary_amount, salary_period, days_per_week, session_minutes, time_of_day, student_gender, tutor_gender_pref,
+  requirements_public, start_note, posted_at, is_public, closed_at,
+  (SELECT count(*) FROM applications a WHERE a.tuition_code = tuitions.code
+     AND a.status IN ('submitted', 'under_review', 'shortlisted', 'trial_arranged', 'confirmed')) AS applicants`;
 
 const OPEN = `is_public = 1 AND status IN ('available', 'processing')`;
 const CLOSED_PAGE_DAYS = 30; // a closed tuition's link keeps working this long, so shared links don't just die

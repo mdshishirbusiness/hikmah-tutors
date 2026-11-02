@@ -5,6 +5,19 @@ Newest first. Each entry: what was decided, by whom, and why.
 
 ## 2026-11-02
 
+- **The ticket card is built into the real board** (owner asked to build it; details by Claude):
+  - Classes are now Play–KG, Class 1–12, SSC 27/28, HSC 27/28, Admission, O/A Level, Other (English labels). The old
+    range keys (`c1-5`, `c6-8`, `ssc`, `hsc`) stay readable as `legacy` so imported rows don't break, but they are no
+    longer offered, and the admin editor will not publish a tuition until its class is picked from the new list. Add
+    the next SSC/HSC batch to `CLASS_LEVELS` each year.
+  - The sheet import maps "SSC 27" to `ssc-27` and "Class 9" to `class-9`. A batch with no year, or a year that's not
+    listed, imports as Other with a review note instead of being guessed.
+  - `migrations/0006` adds `session_minutes` (1, 1.5, 2, 2.5 or 3 hours) and `time_of_day` (morning … night,
+    flexible) to tuitions. Both are optional. The card leaves out whatever is unknown.
+  - The applicant count is live applications only (submitted through confirmed), as a number. Who applied never
+    reaches a public page.
+  - Until the apply sheet is built, the card's Apply opens the detail page. Available but not accepting = grey stub
+    with "Paused". Share and distance are off the card; share stays on the detail page.
 - **English is allowed in the UI** (owner). Tutors are university students and read English well, so not every word
   has to be Bangla. Use whichever reads better and looks more professional.
 - **A tuition's class is one class or one exam batch, never a range** (owner): Class 9, Class 10, SSC 27, SSC 28 (and

@@ -51,6 +51,8 @@ export const REVIEW_ISSUE: Record<string, string> = {
   tuition_code_repeated: "টিউশন কোড দুইবার আছে",
   class_missing: "ক্লাস নেই",
   class_unknown: "ক্লাস চেনা যায়নি",
+  class_batch_missing: "SSC/HSC-এর বছর নেই",
+  class_batch_unknown: "এই SSC/HSC ব্যাচ তালিকায় নেই",
   area_missing: "এলাকা নেই",
   area_unknown: "এলাকা চেনা যায়নি",
   days_missing: "সপ্তাহে কত দিন লেখা নেই",
