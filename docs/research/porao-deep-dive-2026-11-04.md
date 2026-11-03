@@ -145,7 +145,32 @@ Worth avoiding:
   captures the full job during the call.
 - 1.3 MB single JS bundle plus heavy trackers.
 
-## 6. Unknowns
+## 6. Signed in as a tutor (owner's own account, same day)
+
+Read only: nothing applied for, submitted, paid or changed.
+
+- **Dashboard**: count strip (Applied · Shortlisted · Appointed), a banner for an unpaid invoice with "View
+  invoices", profile % card, an admin **Notice Board** (the one notice was a promotion from Feb 2025, still showing
+  in Nov 2026), wallet card, member-since date. Bottom bar on phone: Home · Profile · Jobs · Settings.
+- **Board**: 742 jobs nationwide. Each card shows a **match % bar** and the **distance in km** from the tutor's
+  location, salary, days/week, subjects, area, posted time, wanted gender, Job ID, save. A side panel explains the
+  80 % rule. Filter: tuition type (home / online / group), category, class, city, area, subjects, Job ID, salary
+  band (2–5k, 5–8k, 8–12k+), **radius 1–50 km**, tutor gender.
+- **Job page**: "Need Tutor For Class Nine", "Possible Match" badge, area plus a **landmark-level address visible to
+  every signed-in tutor**, salary, Job ID, **hiring (start) date**, posted time, a details grid, qualification
+  lines **generated from the structured requirements** ("Must be from Science background"), **applicant count and
+  view count**, Apply, Share, Direction (map).
+- **Invoices**: applying for address verification created a BDT 500 invoice with a due date at once; it shows
+  as a pending banner on the dashboard until paid.
+- **Address verification**: "We've sent an OTP to your physical mailing address", then a code box.
+- **Wallet**: permanent wallet ID (`<number>@porawallet`), history, deposit, PDF statements, withdraw.
+- **Refer a tuition** (tutor-sourced leads): guardian name, phone, class, address, note. Lead statuses shown to
+  the tutor: **Under review → Job posted → Tutor assigned → Successful → Commission paid**, or Closed / Unsuccessful.
+- **Settings**: personal info, password, social media, account status (locked / unlocked), payment info (bKash,
+  Nagad, Upay numbers for payouts), a Bangla pitch to turn on push.
+- **Profile**: % bar, star rating, profile view count, **Download CV**, Overview / Students tabs.
+
+## 7. Unknowns
 - The admin screens themselves, staff roles and permissions.
 - How `match` is calculated; what `priority_level` changes (ordering? SMS?).
 - Whether guardians pay anything (a parent invoice page and "Payment Pending For Tuition Matching" text exist).

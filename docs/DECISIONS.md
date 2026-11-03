@@ -3,6 +3,35 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-04 (Porao comparison)
+
+Context: ideas from `docs/research/porao-deep-dive-2026-11-04.md`, discussed one by one. All by the owner.
+Fees and refunds are still built with the money features, after the core is live; these fix the rules now.
+
+- **Check-in calls.** The admin to-do list gets two calls to the guardian per placement: **day 7** after Confirmed
+  ("how is it going?") and **day 30** ("first salary paid? happy?"). The day-30 answer records the first salary
+  (PRD BR-SAL-001), which makes instalment 2 due. Replaces the single one-month check-in of PRD BR-SAL-002.
+- **Fee timing.** Confirmed still means "second trial class held and guardian continues" (PRD §7.4). Each fee
+  instalment is to be paid **within 7 days** of falling due. Reminders on days 1, 3 and 7; on day 8 it is **Overdue**
+  on the admin to-do list. Replaces the 14-day rule of PRD BR-DUE-001/002. Still no fines (BR-DUE-004).
+- **On-time badge** (owner's "pay on time, get priority"): a visible badge for tutors whose fees are all paid within
+  the window. It appears after the first on-time fee, is lost while any fee is overdue, and comes back with the next
+  on-time fee. Shown on the tutor's profile and apply sheet, and to the admin in the applicant list. Not ranked by it.
+- **Refund rule** (fills PRD §7.7 for this case). Guardian ends the tuition, not the tutor's fault; the tutor
+  reports it **within 24 hours** and **within 45 days of Confirmed**. HTR first offers a **replacement tuition
+  within 30 days** with the paid fee carried over. If none, refund = fee paid − 25% of salary received, never below
+  0. The admin decides fault. Goes on the Fees page with a worked example.
+- **Do-not-place flag, warning only**: a private flag with a reason on a guardian or a tutor. Quick Pad warns when a
+  flagged guardian's phone comes in; the applicant list warns on a flagged tutor. Nothing is blocked.
+- **Tutor referrals, no commission yet**: a "Refer a tuition" form for tutors (guardian name, phone, class, area,
+  note) that lands on the Leads page as "Referred by <tutor>". The tutor sees its status (New → Called → Posted /
+  Not now). A reward is decided with the money features.
+- **Tuition card and page show the applicant count** ("৫ জন আবেদন করেছে") **and a start date** (new field). No
+  view count.
+- **Owner notice**: one short notice to all tutors on Home, with an end date, so it disappears by itself.
+- **Requirement lines written from the tuition's fields** ("RU tutor · Science background · Female tutor"); the
+  private qualification note stays.
+
 ## 2026-11-03
 
 Context: planning the tutor journey from sign-up to getting the guardian's number; the owner showed Home Tutor
