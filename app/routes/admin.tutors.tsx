@@ -1,13 +1,13 @@
 import { Form, Link } from "react-router";
 import type { Route } from "./+types/admin.tutors";
-import { Badge, Empty, PageHead, Pager, bn, inputClass, primaryButton } from "~/components/admin";
+import { Badge, Empty, PageHead, Pager, num, inputClass, primaryButton } from "~/components/admin";
 import { ADMIN_PAGE_SIZE } from "~/lib/admin-labels";
 import { listTutors } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { SUBJECTS } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
-  return [{ title: "টিউটর · অ্যাডমিন" }, { name: "robots", content: "noindex" }];
+  return [{ title: "Tutors · Admin" }, { name: "robots", content: "noindex" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -20,28 +20,28 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function AdminTutors({ loaderData: { total, items, f } }: Route.ComponentProps) {
   return (
     <>
-      <PageHead title={`টিউটর (${bn(total)})`} />
+      <PageHead title={`Tutors (${num(total)})`} />
       <main className="space-y-3">
         <Form method="get" className="grid grid-cols-2 gap-2">
-          <input name="q" defaultValue={f.q} aria-label="খুঁজুন" placeholder="নাম, ফোন, ইমেইল, কোড, প্রতিষ্ঠান, বিভাগ" className={`${inputClass} col-span-2`} />
-          <select name="subject" defaultValue={f.subject} aria-label="বিষয়" className={inputClass}>
-            <option value="">সব বিষয়</option>
+          <input name="q" defaultValue={f.q} aria-label="Search" placeholder="Name, phone, email, code, institution, department" className={`${inputClass} col-span-2`} />
+          <select name="subject" defaultValue={f.subject} aria-label="Subject" className={inputClass}>
+            <option value="">All subjects</option>
             {SUBJECTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
-          <select name="band" defaultValue={f.band} aria-label="স্তর" className={inputClass}>
-            <option value="">সব স্তর</option>
-            <option value="junior">১ম–৮ম</option>
-            <option value="ssc">৯ম–১০ম</option>
-            <option value="hsc">একাদশ–দ্বাদশ</option>
+          <select name="band" defaultValue={f.band} aria-label="Level" className={inputClass}>
+            <option value="">All levels</option>
+            <option value="junior">Class 1–8</option>
+            <option value="ssc">Class 9–10</option>
+            <option value="hsc">Class 11–12</option>
           </select>
-          <select name="gender" defaultValue={f.gender} aria-label="জেন্ডার" className={inputClass}>
-            <option value="">পুরুষ ও মহিলা</option>
-            <option value="male">পুরুষ</option>
-            <option value="female">মহিলা</option>
+          <select name="gender" defaultValue={f.gender} aria-label="Gender" className={inputClass}>
+            <option value="">Male and female</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
           </select>
-          <button className={primaryButton}>খুঁজুন</button>
+          <button className={primaryButton}>Search</button>
         </Form>
-        {items.length === 0 ? <Empty>কোনো টিউটর পাওয়া যায়নি।</Empty> : (
+        {items.length === 0 ? <Empty>No tutors found.</Empty> : (
           <ul className="space-y-3">
             {items.map((t) => (
               <li key={t.id}>
@@ -49,12 +49,12 @@ export default function AdminTutors({ loaderData: { total, items, f } }: Route.C
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <p className="min-w-0 font-semibold break-words text-forest">{t.full_name}</p>
                     <span className="flex gap-1.5">
-                      {t.gender === "female" && <Badge tone="green">মহিলা</Badge>}
-                      {t.priority === "urgent" && <Badge tone="dark">জরুরি</Badge>}
+                      {t.gender === "female" && <Badge tone="green">Female</Badge>}
+                      {t.priority === "urgent" && <Badge tone="dark">Urgent</Badge>}
                     </span>
                   </div>
                   <p className="mt-0.5 text-sm text-slate-700">{[t.institution, t.department, t.session_year].filter(Boolean).join(" · ")}</p>
-                  <p className="mt-1 text-sm text-slate-600">কোড {t.code} · {t.current_location} · {bn(t.applications)}টি আবেদন{t.placements > 0 ? ` · ${bn(t.placements)}টি বাছাই` : ""}</p>
+                  <p className="mt-1 text-sm text-slate-600">Code {t.code} · {t.current_location} · {num(t.applications)} applications{t.placements > 0 ? ` · ${num(t.placements)} selected` : ""}</p>
                 </Link>
               </li>
             ))}

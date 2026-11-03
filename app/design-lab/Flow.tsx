@@ -1,7 +1,7 @@
 // Design lab, round 2: the shared light flow (board → detail → apply → done) around any of the three cards. It keeps
 // the parts of round 1 the owner found useful: per-class rate and an honest fee chart, the fit checks, a clear receipt.
 import { useState, type ComponentType, type ReactNode } from "react";
-import { bnDigits, taka } from "~/lib/tuition";
+import { taka } from "~/lib/tuition";
 import { GenderChip, SubjectChips, appliedText, type CardProps } from "./Cards";
 import { CheckRow, Icon, Sheet, useApply, useStage } from "./parts";
 import { ME, PLAN_NAME, PLAN_TERMS, STEPS, T1, T2, T3, area, cls, fees, fit, mediumEn, planFee, student, type LabTuition, type Plan } from "./sample";
@@ -22,7 +22,7 @@ function Board({ Card, card }: { Card: ComponentType<CardProps>; card: (t: LabTu
     <div className={`${PAGE} pb-10`}>
       <header className="px-5 pt-6 pb-4">
         <p className="text-sm text-slate-600">শুভ বিকেল, {ME.first}</p>
-        <h2 className="mt-1 text-[28px] leading-tight font-semibold text-forest">আজ {bnDigits(12)}টি নতুন টিউশন</h2>
+        <h2 className="mt-1 text-[28px] leading-tight font-semibold text-forest">আজ {String(12)}টি নতুন টিউশন</h2>
         <div className="mt-4 flex min-h-12 items-center gap-2 rounded-2xl bg-white px-4 text-slate-500 ring-1 ring-brand-100">
           <Icon name="search" className="size-5 text-brand-600" />
           <span className="text-[15px]">এলাকা, ক্লাস বা বিষয় খুঁজুন</span>
@@ -54,7 +54,7 @@ function Months({ t, plan }: { t: LabTuition; plan: Plan }) {
         ))}
       </div>
       <div className="mt-1.5 flex gap-1.5 text-center text-[11px] text-slate-600">
-        {[1, 2, 3, 4, 5, 6].map((m) => <span key={m} className="flex-1">মাস {bnDigits(m)}</span>)}
+        {[1, 2, 3, 4, 5, 6].map((m) => <span key={m} className="flex-1">মাস {String(m)}</span>)}
       </div>
     </div>
   );
@@ -69,7 +69,7 @@ function Detail({ t, Card, applied, onBack, onApply }: { t: LabTuition; Card: Co
     ["শিক্ষার্থী", `${student(t)}, ${cls(t)}`],
     ["বিষয়", <SubjectChips key="s" t={t} />],
     ["মাধ্যম", mediumEn(t)],
-    ["সময়", `সপ্তাহে ${bnDigits(t.days_per_week)} দিন, ${t.hours} করে, ${t.when}`],
+    ["সময়", `সপ্তাহে ${String(t.days_per_week)} দিন, ${t.hours} করে, ${t.when}`],
     ["কোথায়", `${area(t)} · বাসায় গিয়ে`],
     ["টিউটর", <GenderChip key="g" t={t} />],
     ["শুরু", t.start_note],
@@ -87,7 +87,7 @@ function Detail({ t, Card, applied, onBack, onApply }: { t: LabTuition; Card: Co
       <section className="mx-4 mt-4 rounded-3xl bg-white p-5 ring-1 ring-brand-100">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-forest">কেন আপনার জন্য</h3>
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${match.ok === match.total ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-700"}`}>{bnDigits(match.ok)}/{bnDigits(match.total)} মিল</span>
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${match.ok === match.total ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-700"}`}>{String(match.ok)}/{String(match.total)} মিল</span>
         </div>
         <ul className="mt-3 space-y-3">
           {t.checks.map((c) => (
@@ -207,7 +207,7 @@ function ApplySheet({ t, onClose, onDone }: { t: LabTuition; onClose: () => void
         </fieldset>
         <div className="mt-5 space-y-2.5">
           <CheckRow checked={a.can} onChange={a.setCan} className="bg-cream ring-1 ring-brand-100" box={box(a.can)}>
-            সপ্তাহে {bnDigits(t.days_per_week)} দিন, {t.hours} করে, {t.when} {area(t)} এলাকায় পড়াতে পারব
+            সপ্তাহে {String(t.days_per_week)} দিন, {t.hours} করে, {t.when} {area(t)} এলাকায় পড়াতে পারব
           </CheckRow>
           <CheckRow checked={a.agree} onChange={a.setAgree} className="bg-cream ring-1 ring-brand-100" box={box(a.agree)}>ফির শর্ত পড়েছি, রাজি আছি</CheckRow>
         </div>
@@ -215,7 +215,7 @@ function ApplySheet({ t, onClose, onDone }: { t: LabTuition; onClose: () => void
           <label className="mt-4 block">
             <span className="text-sm font-semibold text-slate-700">Hikmah-এর জন্য ছোট নোট (ঐচ্ছিক)</span>
             <textarea autoFocus value={a.note} onChange={(e) => a.setNote(e.target.value)} rows={2} placeholder="যেমন: ২ বছর SSC গণিত পড়ানোর অভিজ্ঞতা" className="mt-1.5 w-full resize-none rounded-2xl bg-white p-3.5 text-base ring-1 ring-brand-100 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-forest" />
-            <span className="block text-right text-xs text-slate-500">{bnDigits(a.note.length)}/৩০০</span>
+            <span className="block text-right text-xs text-slate-500">{String(a.note.length)}/৩০০</span>
           </label>
         ) : (
           <button type="button" onClick={() => setNoteOpen(true)} className="mt-3 min-h-11 text-sm font-semibold text-brand-700">+ নোট যোগ করুন (ঐচ্ছিক)</button>

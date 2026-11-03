@@ -3,11 +3,21 @@
 import { Link, NavLink, useSearchParams } from "react-router";
 import { ArrowLeft } from "lucide-react";
 
-export const bn = (n: number) => n.toLocaleString("bn-BD");
+// Numbers and dates use English digits (owner, 2026-11-04).
+export const num = (n: number) => n.toLocaleString("en-IN");
 
 export function when(sec: number | null) {
   if (!sec) return "";
-  return new Date(sec * 1000).toLocaleDateString("bn-BD", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", year: "numeric" });
+  return new Date(sec * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", year: "numeric" });
+}
+
+/** "5 min ago", "2 h ago", "3 days ago". */
+export function ago(sec: number | null) {
+  if (!sec) return "";
+  const m = Math.max(Math.floor((Date.now() / 1000 - sec) / 60), 0);
+  if (m < 60) return `${m} min ago`;
+  if (m < 48 * 60) return `${Math.floor(m / 60)} h ago`;
+  return `${Math.floor(m / 1440)} days ago`;
 }
 
 /** Sheet data can hold anything, so only web links become clickable. */
@@ -79,7 +89,7 @@ export function ContactButtons({ phone }: { phone: string | null }) {
   if (!phone) return null;
   return (
     <div className="flex flex-wrap gap-2">
-      <a href={`tel:${phone}`} className={secondaryButton}>কল {phone}</a>
+      <a href={`tel:${phone}`} className={secondaryButton}>Call {phone}</a>
       <a href={`https://wa.me/88${phone}`} target="_blank" rel="noreferrer" className={secondaryButton}>WhatsApp</a>
     </div>
   );
@@ -110,10 +120,10 @@ export function Pager({ total, pageSize }: { total: number; pageSize: number }) 
   };
   const link = "inline-flex min-h-11 items-center rounded-xl border border-brand-100 bg-white px-4 text-sm font-semibold text-forest hover:bg-brand-50";
   return (
-    <nav aria-label="পাতা" className="flex items-center justify-between gap-2 pt-2">
-      {page > 1 ? <Link to={href(page - 1)} className={link}>← আগের</Link> : <span />}
-      <span className="text-sm text-slate-600">{bn(page)} / {bn(pages)}</span>
-      {page < pages ? <Link to={href(page + 1)} className={link}>পরের →</Link> : <span />}
+    <nav aria-label="Pages" className="flex items-center justify-between gap-2 pt-2">
+      {page > 1 ? <Link to={href(page - 1)} className={link}>← Previous</Link> : <span />}
+      <span className="text-sm text-slate-600">{num(page)} / {num(pages)}</span>
+      {page < pages ? <Link to={href(page + 1)} className={link}>Next →</Link> : <span />}
     </nav>
   );
 }

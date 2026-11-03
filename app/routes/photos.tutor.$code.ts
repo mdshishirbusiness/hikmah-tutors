@@ -13,7 +13,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const ownPhoto = viewer?.role === "tutor" && tutor?.user_id === viewer.id;
   if (!ownPhoto) await requireAdmin(request);
   const object = tutor?.photo_key ? await env.PHOTOS.get(tutor.photo_key) : null;
-  if (!object) throw new Response("ছবি নেই", { status: 404 });
+  if (!object) throw new Response("No photo", { status: 404 });
   return new Response(object.body, {
     headers: {
       "Content-Type": object.httpMetadata?.contentType ?? "image/webp",

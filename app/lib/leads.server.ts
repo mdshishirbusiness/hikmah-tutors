@@ -1,25 +1,6 @@
 import { env } from "cloudflare:workers";
 import type { LeadInput } from "./lead";
 
-export type LeadRow = {
-  id: number;
-  phone: string;
-  guardian_name: string | null;
-  class_level: string;
-  medium: string | null;
-  student_gender: string | null;
-  tutor_gender: string | null;
-  subjects: string | null;
-  area: string;
-  address: string | null;
-  salary: number | null;
-  days_per_week: number | null;
-  notes: string | null;
-  lead_source: string | null;
-  status: string;
-  created_at: number;
-};
-
 /** How many website requests this phone number sent in the last day (the public form allows a few). */
 export async function recentWebsiteLeads(phone: string): Promise<number> {
   const since = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
@@ -57,15 +38,4 @@ export async function insertLead(lead: LeadInput): Promise<{ duplicate: boolean 
     )
     .run();
   return { duplicate: r.meta.changes === 0 };
-}
-
-export async function recentLeads(limit = 100): Promise<LeadRow[]> {
-  const { results } = await env.DB.prepare(
-    `SELECT id, phone, guardian_name, class_level, medium, student_gender, tutor_gender, subjects, area, address,
-            salary, days_per_week, notes, lead_source, status, created_at
-     FROM leads ORDER BY created_at DESC LIMIT ?`,
-  )
-    .bind(limit)
-    .all<LeadRow>();
-  return results;
 }

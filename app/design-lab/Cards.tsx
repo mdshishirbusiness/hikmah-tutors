@@ -2,7 +2,7 @@
 // is in Flow.tsx.
 import type { CSSProperties } from "react";
 import { GenderChip, SubjectChips } from "~/components/TuitionCard";
-import { bnDigits, taka } from "~/lib/tuition";
+import { taka } from "~/lib/tuition";
 import { Icon } from "./parts";
 import { area, cls, mediumEn, perClass, type LabTuition } from "./sample";
 
@@ -10,7 +10,7 @@ export { GenderChip, SubjectChips };
 
 export type CardProps = { t: LabTuition; onOpen?: () => void; onApply?: () => void; applied?: boolean; hero?: boolean };
 
-export const appliedText = (t: LabTuition) => (t.applied ? `${bnDigits(t.applied)} জন আবেদন করেছেন` : "এখনো কেউ আবেদন করেনি");
+export const appliedText = (t: LabTuition) => (t.applied ? `${String(t.applied)} জন আবেদন করেছেন` : "এখনো কেউ আবেদন করেনি");
 
 // The tear line: white on the left, the stub colour on the right, with half-circle holes at top and bottom.
 const HOLES = "radial-gradient(circle at 50% 0, transparent 10px, #000 10.5px) top / 100% 51% no-repeat, radial-gradient(circle at 50% 100%, transparent 10px, #000 10.5px) bottom / 100% 51% no-repeat";
@@ -29,7 +29,7 @@ function Applicants({ t }: { t: LabTuition }) {
         )}
       </span>
       <span className="min-w-0 leading-tight">
-        <span className="block text-[12px] font-semibold whitespace-nowrap text-forest">{t.applied ? `${bnDigits(t.applied)} জন আবেদন করেছেন` : "এখনো কেউ আবেদন করেনি"}</span>
+        <span className="block text-[12px] font-semibold whitespace-nowrap text-forest">{t.applied ? `${String(t.applied)} জন আবেদন করেছেন` : "এখনো কেউ আবেদন করেনি"}</span>
         <span className="block text-[11px] text-slate-500">{t.applied ? `${t.ago} পোস্ট` : "প্রথম আবেদন আপনার হোক"}</span>
       </span>
     </div>
@@ -78,7 +78,7 @@ export function TicketCard({ t, onOpen, onApply, applied }: CardProps) {
           <p className="mt-1 text-[11px]">ক্লাসপ্রতি ≈ {taka(perClass(t))}</p>
           <div className={`mt-2.5 border-t border-dashed pt-2.5 ${processing ? "border-slate-400/50" : "border-forest/25"}`}>
             <p className="text-[11px] font-semibold">সপ্তাহে</p>
-            <p className="text-lg leading-tight font-semibold">{bnDigits(t.days_per_week)} দিন</p>
+            <p className="text-lg leading-tight font-semibold">{String(t.days_per_week)} দিন</p>
             <p className="text-[11px]">{t.hours} · {t.when}</p>
           </div>
           <div className="mt-auto pt-3">

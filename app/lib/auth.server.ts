@@ -49,11 +49,11 @@ export async function getViewer(request: Request): Promise<Viewer | null> {
 function checkSameOrigin(request: Request) {
   if (request.method === "GET" || request.method === "HEAD") return;
   const origin = request.headers.get("Origin");
-  if (origin && origin !== new URL(request.url).origin) throw new Response("অনুমতি নেই", { status: 403 });
+  if (origin && origin !== new URL(request.url).origin) throw new Response("Not allowed", { status: 403 });
 }
 
 function refuseOrLogin(request: Request): never {
-  if (request.method !== "GET" && request.method !== "HEAD") throw new Response("লগইন দরকার", { status: 401 }); // Quick Pad keeps the lead queued
+  if (request.method !== "GET" && request.method !== "HEAD") throw new Response("Sign-in needed", { status: 401 }); // Quick Pad keeps the lead queued
   const url = new URL(request.url);
   throw redirect(`/login?next=${encodeURIComponent(url.pathname.replace(/\.data$/, "") + url.search)}`);
 }
@@ -63,7 +63,7 @@ export async function requireAdmin(request: Request): Promise<Viewer | null> {
   checkSameOrigin(request);
   const viewer = await getViewer(request);
   if (viewer) {
-    if (viewer.role !== "owner") throw new Response("এই পাতাটি শুধু অ্যাডমিনের জন্য", { status: 403 });
+    if (viewer.role !== "owner") throw new Response("This page is for the admin only", { status: 403 });
     return viewer;
   }
   // A production build is always locked: import.meta.env.DEV is false there, whatever the variables say.

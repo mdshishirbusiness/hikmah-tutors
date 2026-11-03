@@ -20,6 +20,7 @@ export type PublicTuition = {
   time_of_day: string | null;
   student_gender: "boy" | "girl" | null;
   tutor_gender_pref: "any" | "male" | "female";
+  tutor_from: string[]; // ru, ruet, medical; empty = any university
   requirements_public: string;
   start_note: string;
   posted_at: number | null;
@@ -91,7 +92,7 @@ function searchBlob(t: PublicTuition): string {
       cls?.label,
       cls?.alt,
       labelOf(MEDIUMS, t.medium),
-      ...t.subjects.map((s) => labelOf(SUBJECTS, s)),
+      ...t.subjects.flatMap((s) => [labelOf(SUBJECTS, s), SUBJECTS.find((o) => o.key === s)?.alt]),
       t.requirements_public,
     ].join(" "),
   );
@@ -138,40 +139,34 @@ export function feeDisplay(t: Pick<PublicTuition, "salary_kind" | "salary_amount
   return { basis, first, second: standard_total - first, standard_total, early_total, saving: standard_total - early_total, is_example: !real };
 }
 
-export const bnDigits = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[Number(d)]);
-
-export const taka = (n: number) => `৳ ${bnDigits(new Intl.NumberFormat("en-IN").format(n))}`;
+// English digits everywhere (owner, 2026-11-04).
+export const taka = (n: number) => `৳${new Intl.NumberFormat("en-IN").format(n)}`;
 
 const NEW_FOR_SECONDS = 48 * 3600;
 
 export const isNew = (postedAt: number | null, now: number) => postedAt !== null && now - postedAt < NEW_FOR_SECONDS;
 
 export function formatDate(unix: number): string {
-  const s = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Dhaka" }).format(new Date(unix * 1000));
-  const months: Record<string, string> = {
-    January: "জানুয়ারি", February: "ফেব্রুয়ারি", March: "মার্চ", April: "এপ্রিল", May: "মে", June: "জুন",
-    July: "জুলাই", August: "আগস্ট", September: "সেপ্টেম্বর", October: "অক্টোবর", November: "নভেম্বর", December: "ডিসেম্বর",
-  };
-  return bnDigits(s.replace(/[A-Za-z]+/, (m) => months[m] ?? m));
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Dhaka" }).format(new Date(unix * 1000));
 }
 
 /** `now` comes from the loader so the server and the phone render the same text. */
 export function timeAgo(unix: number | null, now: number): string {
   if (unix === null) return "";
   const mins = Math.floor(Math.max(0, now - unix) / 60);
-  if (mins < 1) return "এইমাত্র";
-  if (mins < 60) return `${bnDigits(mins)} মিনিট আগে`;
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${bnDigits(hours)} ঘণ্টা আগে`;
+  if (hours < 24) return `${hours} h ago`;
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${bnDigits(days)} দিন আগে`;
+  if (days < 30) return `${days} ${days === 1 ? "day" : "days"} ago`;
   return formatDate(unix);
 }
 
 export const GENDER_NEED: Record<PublicTuition["tutor_gender_pref"], string> = {
-  male: "পুরুষ টিউটর প্রয়োজন",
-  female: "মহিলা টিউটর প্রয়োজন",
-  any: "যেকোনো টিউটর (পুরুষ/মহিলা)",
+  male: "Male tutor needed",
+  female: "Female tutor needed",
+  any: "Male or female tutor",
 };
 
 export const GENDER_STYLE: Record<PublicTuition["tutor_gender_pref"], { strip: string; border: string; bar: string; badge: string }> = {
@@ -180,10 +175,10 @@ export const GENDER_STYLE: Record<PublicTuition["tutor_gender_pref"], { strip: s
   any: { strip: "bg-emerald-50 text-emerald-900", border: "border-emerald-200", bar: "bg-emerald-600", badge: "bg-emerald-100 text-emerald-900" },
 };
 
-/** "১.৫ ঘণ্টা" from minutes. */
-export const sessionLength = (minutes: number) => `${bnDigits(String(minutes / 60))} ঘণ্টা`;
+/** "1.5 hours" from minutes. */
+export const sessionLength = (minutes: number) => `${minutes / 60} ${minutes === 60 ? "hour" : "hours"}`;
 
-/** "১.৫ ঘণ্টা · বিকেলে", or only the part that is known, or "". */
+/** "1.5 hours · Afternoon", or only the part that is known, or "". */
 export const scheduleNote = (t: Pick<PublicTuition, "session_minutes" | "time_of_day">) =>
   [t.session_minutes && sessionLength(t.session_minutes), t.time_of_day && labelOf(TIMES_OF_DAY, t.time_of_day)].filter(Boolean).join(" · ");
 
@@ -192,8 +187,6 @@ export const scheduleNote = (t: Pick<PublicTuition, "session_minutes" | "time_of
 export const perClass = (t: Pick<PublicTuition, "salary_kind" | "salary_amount" | "salary_period" | "days_per_week">) =>
   isFixedMonthly(t) ? Math.round(t.salary_amount! / (t.days_per_week * 4) / 10) * 10 : null;
 
-/** Short labels on the card are English (owner, 2026-11-02). */
-export const MEDIUM_EN: Record<string, string> = { bangla: "Bangla medium", ev: "English version", em: "English medium", madrasa: "Madrasa" };
 
 /** The tutor-gender chip: Female Tutor deep rose, Male Tutor deep blue, no preference forest. */
 export const GENDER_CHIP: Record<PublicTuition["tutor_gender_pref"], { label: string; tone: string }> = {
@@ -202,7 +195,7 @@ export const GENDER_CHIP: Record<PublicTuition["tutor_gender_pref"], { label: st
   any: { label: "Male/Female Tutor", tone: "bg-forest text-cream" },
 };
 
-// One colour per subject, the same everywhere, so tutors learn "blue = গণিত". Dark text on a pale fill (contrast ≥ 7).
+// One colour per subject, the same everywhere, so tutors learn "blue = Math". Dark text on a pale fill (contrast ≥ 7).
 export const SUBJECT_TONE: Record<string, string> = {
   math: "bg-blue-50 text-blue-800 ring-blue-100",
   hmath: "bg-indigo-50 text-indigo-800 ring-indigo-100",

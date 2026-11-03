@@ -2,14 +2,14 @@
 // board, and sheet rows still held back. Old tuitions and unmatched applications are left as the import guessed.
 import { Form, Link, useNavigation } from "react-router";
 import type { Route } from "./+types/admin.review";
-import { Badge, Card, Empty, PageHead, Pager, bn, inputClass, primaryButton, when } from "~/components/admin";
+import { Badge, Card, Empty, PageHead, Pager, num, inputClass, primaryButton, when } from "~/components/admin";
 import { ADMIN_PAGE_SIZE, REVIEW_ISSUE } from "~/lib/admin-labels";
 import { flaggedTutors, resolveFlaggedTutor, reviewCounts, reviewList, tuitionsToReview } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { AREAS, CLASS_LEVELS, labelOf } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
-  return [{ title: "রিভিউ · অ্যাডমিন" }, { name: "robots", content: "noindex" }];
+  return [{ title: "Review · Admin" }, { name: "robots", content: "noindex" }];
 }
 
 const LISTS = ["tutors", "tuitions", "held"] as const;
@@ -34,9 +34,9 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 const TABS: { key: List; label: string; count: (c: { tutors: number; tuitions: number; held: number }) => number }[] = [
-  { key: "tutors", label: "টিউটর", count: (c) => c.tutors },
-  { key: "tuitions", label: "খোলা টিউশন", count: (c) => c.tuitions },
-  { key: "held", label: "আটকে আছে", count: (c) => c.held },
+  { key: "tutors", label: "Tutors", count: (c) => c.tutors },
+  { key: "tuitions", label: "Open tuitions", count: (c) => c.tuitions },
+  { key: "held", label: "Held", count: (c) => c.held },
 ];
 const SHEET_TABS: Record<string, string> = { registration: "Registration", admin: "Admin Pannel 1", old: "Tuition Admin Panel" };
 
@@ -44,16 +44,16 @@ export default function AdminReview({ loaderData: d, actionData }: Route.Compone
   const left = d.counts.tutors + d.counts.tuitions + d.counts.held;
   return (
     <>
-      <PageHead title={left ? `রিভিউ বাকি (${bn(left)})` : "রিভিউ শেষ"} back={{ to: "/admin", label: "হোম" }} />
+      <PageHead title={left ? `To review (${num(left)})` : "Review done"} back={{ to: "/admin", label: "Today" }} />
       <main className="space-y-3">
-        <nav aria-label="রিভিউয়ের তালিকা" className="grid grid-cols-3 gap-2">
+        <nav aria-label="Review lists" className="grid grid-cols-3 gap-2">
           {TABS.map((t) => {
             const n = t.count(d.counts);
             const on = d.list === t.key;
             return (
               <Link key={t.key} to={`?list=${t.key}`} aria-current={on ? "page" : undefined}
                 className={`rounded-2xl border p-3 transition-colors duration-150 ${on ? "border-forest bg-forest text-cream" : "border-brand-100 bg-white text-forest hover:bg-brand-50"}`}>
-                <span className={`block text-2xl font-semibold ${on && n ? "text-mango" : ""}`}>{bn(n)}</span>
+                <span className={`block text-2xl font-semibold ${on && n ? "text-mango" : ""}`}>{num(n)}</span>
                 <span className="block text-sm">{t.label}</span>
               </Link>
             );
@@ -62,8 +62,8 @@ export default function AdminReview({ loaderData: d, actionData }: Route.Compone
 
         {d.list === "tutors" && d.tutors && (
           <>
-            <p className="text-sm text-slate-600">সবাই ইমপোর্ট হয়েছে। এখানে যাদের কিছু দেখার আছে: একই নম্বর দুজনের (ঠিক থাকলে "ঠিক আছে"), বা ইমেইল ভুল (ঠিক ইমেইল না দিলে Google দিয়ে ঢুকতে পারবে না)।</p>
-            {d.tutors.items.length === 0 ? <Empty>টিউটরের রিভিউ শেষ।</Empty> : (
+            <p className="text-sm text-slate-600">সবাই ইমপোর্ট হয়েছে। এখানে যাদের কিছু দেখার আছে: একই নম্বর দুজনের (ঠিক থাকলে "Looks fine"), বা ইমেইল ভুল (ঠিক ইমেইল না দিলে Google দিয়ে ঢুকতে পারবে না)।</p>
+            {d.tutors.items.length === 0 ? <Empty>No tutors to review.</Empty> : (
               <ul className="space-y-2">
                 {d.tutors.items.map((t) => <TutorRow key={t.id} t={t} error={actionData?.id === t.id ? actionData.error : null} />)}
               </ul>
@@ -74,19 +74,19 @@ export default function AdminReview({ loaderData: d, actionData }: Route.Compone
 
         {d.list === "tuitions" && d.tuitions && (
           <>
-            <p className="text-sm text-slate-600">খোলা কিন্তু বোর্ডে নেই। প্রতিটিতে ক্লাস, এলাকা, মাধ্যম, সময় আর অভিভাবকের চাওয়া ঠিক করে "বোর্ডে পাবলিক করো" দিন। আর খোলা না থাকলে স্ট্যাটাস বদলে দিন।</p>
-            {d.tuitions.items.length === 0 ? <Empty>সব খোলা টিউশন বোর্ডে আছে।</Empty> : (
+            <p className="text-sm text-slate-600">খোলা কিন্তু বোর্ডে নেই। প্রতিটিতে ক্লাস, এলাকা, মাধ্যম, সময় আর অভিভাবকের চাওয়া ঠিক করে "Show on the board" দিন। আর খোলা না থাকলে স্ট্যাটাস বদলে দিন।</p>
+            {d.tuitions.items.length === 0 ? <Empty>Every open tuition is on the board.</Empty> : (
               <ul className="space-y-2">
                 {d.tuitions.items.map((t) => (
                   <li key={t.code}>
                     <Link to={`/admin/tuitions/${t.code}`} className="block rounded-xl border border-brand-100 bg-white px-3 py-3 transition-colors duration-150 hover:bg-brand-50">
                       <p className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-semibold text-forest">HTR-{t.code} · {labelOf(CLASS_LEVELS, t.class_level) || "ক্লাস নেই"} · {labelOf(AREAS, t.area) || "এলাকা নেই"}</span>
-                        <span className="text-xs text-slate-600">{bn(t.applications)}টি আবেদন{t.posted_at ? ` · ${when(t.posted_at)}` : ""}</span>
+                        <span className="font-semibold text-forest">HTR-{t.code} · {labelOf(CLASS_LEVELS, t.class_level) || "No class"} · {labelOf(AREAS, t.area) || "No area"}</span>
+                        <span className="text-xs text-slate-600">{num(t.applications)} applications{t.posted_at ? ` · ${when(t.posted_at)}` : ""}</span>
                       </p>
                       <p className="mt-1.5 flex flex-wrap gap-1.5">
-                        {t.gaps.length ? t.gaps.map((g) => <Badge key={g} tone="red">{g} বাকি</Badge>) : <Badge tone="green">সব আছে, পাবলিক করা যায়</Badge>}
-                        {t.legacyClass && <Badge tone="grey">পুরোনো ক্লাস</Badge>}
+                        {t.gaps.length ? t.gaps.map((g) => <Badge key={g} tone="red">{g} missing</Badge>) : <Badge tone="green">Ready to publish</Badge>}
+                        {t.legacyClass && <Badge tone="grey">Old class</Badge>}
                       </p>
                     </Link>
                   </li>
@@ -100,16 +100,16 @@ export default function AdminReview({ loaderData: d, actionData }: Route.Compone
         {d.list === "held" && d.held && (
           <>
             <Card>
-              <p className="text-sm text-slate-700">এই সারিগুলো শিট থেকে আসেনি। শিটে ঠিক করুন; পরের টপ-আপে নিজে থেকেই চলে আসবে। এদের সাথে আরও {bn(d.held.dependents)}টি আবেদন ও বাছাই অপেক্ষায় আছে।</p>
+              <p className="text-sm text-slate-700">এই সারিগুলো শিট থেকে আসেনি। শিটে ঠিক করুন; পরের টপ-আপে নিজে থেকেই চলে আসবে। এদের সাথে আরও {num(d.held.dependents)}টি আবেদন ও বাছাই অপেক্ষায় আছে।</p>
               <ul className="mt-2 flex flex-wrap gap-1.5">
-                {Object.entries(d.held.issueCounts).sort((a, b) => b[1] - a[1]).map(([k, n]) => <li key={k}><Badge>{REVIEW_ISSUE[k] ?? k}: {bn(n)}</Badge></li>)}
+                {Object.entries(d.held.issueCounts).sort((a, b) => b[1] - a[1]).map(([k, n]) => <li key={k}><Badge>{REVIEW_ISSUE[k] ?? k}: {num(n)}</Badge></li>)}
               </ul>
             </Card>
-            {d.held.items.length === 0 ? <Empty>আটকে থাকা কিছু নেই।</Empty> : (
+            {d.held.items.length === 0 ? <Empty>Nothing held.</Empty> : (
               <ul className="space-y-2">
                 {d.held.items.map((r) => (
                   <li key={r.id} className="rounded-xl border border-brand-100 bg-white px-3 py-3">
-                    <p className="text-sm font-semibold text-forest">{SHEET_TABS[r.tab] ?? r.tab} · সারি {bn(r.row_no)} · কোড {r.legacy_ref}</p>
+                    <p className="text-sm font-semibold text-forest">{SHEET_TABS[r.tab] ?? r.tab} · row {r.row_no} · code {r.legacy_ref}</p>
                     {r.title && <p className="mt-0.5 text-sm break-words text-slate-700">{r.title}</p>}
                     <p className="mt-1 flex flex-wrap gap-1.5">
                       {(r.issues ?? "").split(",").filter(Boolean).map((i) => <Badge key={i} tone={/repeated|missing|unknown|invalid/.test(i) ? "red" : "grey"}>{REVIEW_ISSUE[i] ?? i}</Badge>)}
@@ -143,9 +143,9 @@ function TutorRow({ t, error }: { t: { id: number; issues: string | null; code: 
       <Form method="post" className="mt-2 flex flex-wrap gap-2">
         <input type="hidden" name="id" value={t.id} />
         {needsEmail && (
-          <input name="email" type="email" required inputMode="email" placeholder="সঠিক Gmail লিখুন" aria-label={`T-${t.code} এর ইমেইল`} className={`${inputClass} min-w-0 flex-1`} />
+          <input name="email" type="email" required inputMode="email" placeholder="Correct Gmail" aria-label={`Email for T-${t.code}`} className={`${inputClass} min-w-0 flex-1`} />
         )}
-        <button disabled={busy} className={`${primaryButton} shrink-0`}>{needsEmail ? "ইমেইল সেভ" : "ঠিক আছে"}</button>
+        <button disabled={busy} className={`${primaryButton} shrink-0`}>{needsEmail ? "Save email" : "Looks fine"}</button>
       </Form>
       {error && <p role="alert" className="mt-1 text-sm font-semibold text-rose-800">{error}</p>}
     </li>

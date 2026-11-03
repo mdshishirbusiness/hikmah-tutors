@@ -6,9 +6,9 @@ import { ArrowLeft, ArrowUpRight, BookOpen, Menu, MessageCircle, Phone, UserRoun
 import { CONTACT, telLink, waLink } from "~/lib/contact";
 
 const NAV: [string, string][] = [
-  ["/", "টিউশন বোর্ড"],
-  ["/how-it-works", "কীভাবে কাজ করে"],
-  ["/fees", "ফি"],
+  ["/", "Tuition board"],
+  ["/how-it-works", "How it works"],
+  ["/fees", "Fees"],
 ];
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -28,22 +28,22 @@ export function SiteHeader() {
             <span className="block truncate text-[10px] font-semibold tracking-[0.12em] text-slate-500 uppercase min-[400px]:tracking-[0.2em]">Rajshahi · শিখি. শেখাই. এগিয়ে যাই.</span>
           </span>
         </Link>
-        <nav className="hidden items-center gap-1 xl:flex" aria-label="মূল নেভিগেশন">
+        <nav className="hidden items-center gap-1 xl:flex" aria-label="Main navigation">
           {NAV.map(([to, label]) => <NavLink key={to} to={to} end={to === "/"} className={navClass}>{label}</NavLink>)}
         </nav>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <Link to="/request-tutor" className="hidden min-h-11 items-center gap-2 rounded-xl bg-forest px-4 text-sm font-semibold text-white transition-colors hover:bg-forest-mid lg:inline-flex">
-            টিউটর খুঁজুন<ArrowUpRight size={16} aria-hidden />
+            Find a tutor<ArrowUpRight size={16} aria-hidden />
           </Link>
           <NavLink to="/me" className={({ isActive }) => `hidden min-h-11 items-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors lg:inline-flex ${isActive ? "border-brand-200 bg-brand-50 text-brand-700" : "border-brand-100 text-forest hover:bg-brand-50"}`}>
-            <UserRound size={18} aria-hidden />আমার প্রোফাইল
+            <UserRound size={18} aria-hidden />My profile
           </NavLink>
           <button
             type="button"
             onClick={() => setOpen(!open)}
             aria-expanded={open}
             aria-controls="mobile-site-nav"
-            aria-label={open ? "মেনু বন্ধ করুন" : "মেনু খুলুন"}
+            aria-label={open ? "Close menu" : "Open menu"}
             className="inline-flex size-11 items-center justify-center rounded-xl border border-brand-100 text-forest lg:hidden"
           >
             {open ? <X size={20} aria-hidden /> : <Menu size={20} aria-hidden />}
@@ -51,10 +51,10 @@ export function SiteHeader() {
         </div>
       </div>
       {open && (
-        <nav id="mobile-site-nav" aria-label="মূল নেভিগেশন" className="grid animate-fade grid-cols-2 gap-2 border-t border-brand-100 bg-cream p-4 lg:hidden">
+        <nav id="mobile-site-nav" aria-label="Main navigation" className="grid animate-fade grid-cols-2 gap-2 border-t border-brand-100 bg-cream p-4 lg:hidden">
           {NAV.map(([to, label]) => <NavLink key={to} to={to} end={to === "/"} className={navClass}>{label}</NavLink>)}
-          <Link to="/request-tutor" className="flex min-h-12 items-center rounded-xl bg-forest px-3 text-sm font-semibold text-white">টিউটর খুঁজুন</Link>
-          <Link to="/me" className="flex min-h-12 items-center gap-2 px-3 text-sm font-semibold text-forest"><UserRound size={18} aria-hidden />আমার প্রোফাইল</Link>
+          <Link to="/request-tutor" className="flex min-h-12 items-center rounded-xl bg-forest px-3 text-sm font-semibold text-white">Find a tutor</Link>
+          <Link to="/me" className="flex min-h-12 items-center gap-2 px-3 text-sm font-semibold text-forest"><UserRound size={18} aria-hidden />My profile</Link>
         </nav>
       )}
     </header>
@@ -62,8 +62,8 @@ export function SiteHeader() {
 }
 
 const FOOTER_GROUPS: { title: string; links: [string, string][] }[] = [
-  { title: "ঘুরে দেখুন", links: [["/", "টিউশন বোর্ড"], ["/how-it-works", "কীভাবে কাজ করে"], ["/fees", "ফি"], ["/request-tutor", "অভিভাবকদের জন্য"]] },
-  { title: "টিউটরদের জন্য", links: [["/me", "আমার প্রোফাইল"], ["/login", "লগইন"], ["/contact", "যোগাযোগ"]] },
+  { title: "Explore", links: [["/", "Tuition board"], ["/how-it-works", "How it works"], ["/fees", "Fees"], ["/request-tutor", "For guardians"]] },
+  { title: "For tutors", links: [["/me", "My profile"], ["/login", "Log in"], ["/contact", "Contact"]] },
 ];
 
 export function SiteFooter() {
@@ -88,19 +88,19 @@ export function SiteFooter() {
           </nav>
         ))}
         <div className="col-span-2 lg:col-span-1">
-          <h2 className="mb-2 text-sm font-semibold">কথা বলুন</h2>
+          <h2 className="mb-2 text-sm font-semibold">Talk to us</h2>
           <div className="flex flex-wrap gap-x-6 lg:flex-col lg:items-start">
             <a href={waLink(CONTACT.whatsapp, "আসসালামু আলাইকুম, Hikmah Tutors Rajshahi সম্পর্কে জানতে চাই।")} target="_blank" rel="noreferrer" className={contactClass}><MessageCircle size={16} aria-hidden />WhatsApp<ArrowUpRight size={13} aria-hidden /></a>
-            <a href={telLink(CONTACT.call)} className={contactClass}><Phone size={16} aria-hidden />কল</a>
+            <a href={telLink(CONTACT.call)} className={contactClass}><Phone size={16} aria-hidden />Call</a>
           </div>
         </div>
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-5 sm:px-6 lg:px-8">
-          <p className="text-xs text-brand-200">© ২০২৬ Hikmah Tutors Rajshahi</p>
+          <p className="text-xs text-brand-200">© 2026 Hikmah Tutors Rajshahi</p>
           <div className="flex flex-wrap items-center gap-x-5">
-            <Link to="/privacy" className={contactClass}>গোপনীয়তা</Link>
-            <Link to="/terms" className={contactClass}>শর্তাবলি</Link>
+            <Link to="/privacy" className={contactClass}>Privacy</Link>
+            <Link to="/terms" className={contactClass}>Terms</Link>
           </div>
         </div>
       </div>
@@ -125,10 +125,10 @@ export function PageShell({ title, sub, draft, children }: { title: string; sub?
     <SitePage>
       <div className="bg-forest text-cream">
         <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
-          <Link to="/" className="inline-flex min-h-11 items-center gap-1 text-sm text-brand-200 hover:text-mango"><ArrowLeft size={16} aria-hidden /> বোর্ডে ফিরুন</Link>
+          <Link to="/" className="inline-flex min-h-11 items-center gap-1 text-sm text-brand-200 hover:text-mango"><ArrowLeft size={16} aria-hidden /> Back to board</Link>
           <h1 className="mt-2 text-4xl font-bold sm:text-5xl">{title}</h1>
           {sub && <p className="mt-3 max-w-xl text-brand-200">{sub}</p>}
-          {draft && <p className="mt-4 inline-block rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800">খসড়া — আইনি পর্যালোচনা বাকি</p>}
+          {draft && <p className="mt-4 inline-block rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800">Draft: legal review pending</p>}
         </div>
       </div>
       <div className="mx-auto max-w-3xl space-y-8 px-4 py-10 sm:px-6 sm:py-12">{children}</div>
@@ -155,17 +155,17 @@ export function GuardianPanel() {
   return (
     <section className="rounded-3xl border border-brand-100 bg-cream p-6 text-forest sm:p-7">
       <div className="flex items-center justify-between gap-4">
-        <span className="inline-flex items-center gap-2 text-xs font-semibold text-brand-700"><span className="size-1.5 rounded-full bg-brand-600" />অভিভাবকদের জন্য</span>
+        <span className="inline-flex items-center gap-2 text-xs font-semibold text-brand-700"><span className="size-1.5 rounded-full bg-brand-600" />For guardians</span>
         <BookOpen className="text-brand-600" size={27} strokeWidth={1.5} aria-hidden />
       </div>
       <h2 className="mt-4 text-lg font-bold">টিউটর খুঁজছেন?</h2>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">আপনার সন্তানের ক্লাস, বিষয় ও এলাকা জানান। উপযুক্ত টিউটর খুঁজতে আমাদের সাথে কথা বলুন।</p>
       <Link to="/request-tutor" className="group mt-5 flex min-h-12 items-center justify-between gap-3 rounded-xl bg-mango px-4 font-semibold text-forest transition-colors hover:bg-mango-deep">
-        টিউটর খুঁজুন<ArrowUpRight className="transition-transform group-hover:translate-x-0.5" size={20} aria-hidden />
+        Find a tutor<ArrowUpRight className="transition-transform group-hover:translate-x-0.5" size={20} aria-hidden />
       </Link>
       <div className="mt-3 flex flex-wrap gap-x-5 border-b border-brand-100 pb-3">
         <a href={waLink(CONTACT.whatsapp, GUARDIAN_WA_TEXT)} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-700 hover:text-forest"><MessageCircle size={17} aria-hidden /> WhatsApp</a>
-        <a href={telLink(CONTACT.call)} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-700 hover:text-forest"><Phone size={16} aria-hidden />কল করুন</a>
+        <a href={telLink(CONTACT.call)} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-700 hover:text-forest"><Phone size={16} aria-hidden />Call us</a>
       </div>
       <p className="mt-3 text-xs text-slate-500">আপনার চাহিদা জানান। উপযুক্ত টিউটর নিয়ে আমরা ফোনে কথা বলব।</p>
     </section>
@@ -190,10 +190,10 @@ export function useShare() {
       }
       return;
     }
-    let message = `কপি করা যায়নি। লিংক: ${url}`;
+    let message = `Couldn't copy. Link: ${url}`;
     try {
       await navigator.clipboard.writeText(url);
-      message = "শেয়ার লিংক কপি হয়েছে";
+      message = "Link copied";
     } catch {
       // keeps the message that shows the link
     }

@@ -1,7 +1,8 @@
 // Queries behind the admin screens. Private data: only routes under /admin that call requireAdmin may import this.
 import { env } from "cloudflare:workers";
 import { ADMIN_PAGE_SIZE, TUITION_MOVES } from "./admin-labels";
-import { AREAS, CLASS_CHOICES, CLASS_LEVELS, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY } from "./options";
+import { bandOf } from "./fit";
+import { AREAS, CLASS_CHOICES, CLASS_LEVELS, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM } from "./options";
 
 const PAGE_SIZE = ADMIN_PAGE_SIZE;
 const pageOffset = (page: number) => (Math.max(page, 1) - 1) * PAGE_SIZE;
@@ -28,6 +29,91 @@ export async function dashboard() {
     reviewCounts().then((c) => c.tutors + c.tuitions + c.held),
   ]);
   return { open, publicNow, waiting, tutors, leads, held };
+}
+
+/** The admin's to-do list, most urgent first. Steps that come with the tutor's own ticks (3-hour call, demo, confirm) join later. */
+export async function todayList() {
+  const [leads, applications, drafts] = await Promise.all([
+    all<{ id: number; status: string; class_level: string; area: string; guardian_name: string | null; created_at: number }>(
+      `SELECT id, status, class_level, area, guardian_name, created_at FROM leads WHERE status IN ('new', 'called') ORDER BY status = 'new' DESC, created_at LIMIT 20`,
+    ),
+    all<{ code: number; class_level: string; area: string; waiting: number; oldest: number }>(
+      `SELECT t.code, t.class_level, t.area, count(*) waiting, min(a.created_at) oldest
+       FROM applications a JOIN tuitions t ON t.code = a.tuition_code
+       WHERE a.status = 'submitted' AND t.status IN ('available', 'processing')
+       GROUP BY t.code ORDER BY oldest LIMIT 20`,
+    ),
+    all<{ code: number; class_level: string; area: string; created_at: number | null }>(
+      `SELECT t.code, t.class_level, t.area, p.created_at FROM tuitions t LEFT JOIN tuition_private p ON p.tuition_code = t.code
+       WHERE t.status = 'draft' ORDER BY t.code DESC LIMIT 20`,
+    ),
+  ]);
+  return { leads, applications, drafts };
+}
+
+// ---------- Leads ----------
+
+export type AdminLead = {
+  id: number; phone: string; guardian_name: string | null; class_level: string; medium: string | null; student_gender: string | null;
+  tutor_gender: string | null; subjects: string | null; area: string; address: string | null; salary: number | null; days_per_week: number | null;
+  notes: string | null; lead_source: string | null; status: string; created_at: number; tuitions: string | null;
+};
+
+export async function listLeads(status: string) {
+  const [counts, items] = await Promise.all([
+    all<{ status: string; n: number }>(`SELECT status, count(*) n FROM leads GROUP BY status`),
+    all<AdminLead>(
+      `SELECT l.id, l.phone, l.guardian_name, l.class_level, l.medium, l.student_gender, l.tutor_gender, l.subjects, l.area, l.address, l.salary,
+              l.days_per_week, l.notes, l.lead_source, l.status, l.created_at,
+              (SELECT group_concat(p.tuition_code) FROM tuition_private p WHERE p.lead_id = l.id) tuitions
+       FROM leads l ${status ? "WHERE l.status = ?" : ""} ORDER BY l.created_at DESC LIMIT 100`,
+      ...(status ? [status] : []),
+    ),
+  ]);
+  return { counts: Object.fromEntries(counts.map((c) => [c.status, c.n])) as Record<string, number>, items };
+}
+
+/** Steps a lead can take by hand. Posted is reached only by posting a tuition. */
+const LEAD_MOVES: Record<string, string[]> = { new: ["called", "not_now"], called: ["not_now"], not_now: ["new"] };
+
+export async function moveLead(id: number, to: string, actorId: number | null): Promise<string | null> {
+  const lead = await env.DB.prepare(`SELECT status FROM leads WHERE id = ?`).bind(id).first<{ status: string }>();
+  if (!lead) return "Lead not found.";
+  if (!LEAD_MOVES[lead.status]?.includes(to)) return "Can't move to that step.";
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE leads SET status = ?, status_at = ? WHERE id = ?`).bind(to, now(), id),
+    audit(actorId, "lead_moved", "lead", String(id), { from: lead.status, to }),
+  ]);
+  return null;
+}
+
+/** Makes a hidden draft tuition from a lead and returns its code. The admin finishes the public wording in the editor. */
+export async function postLeadAsTuition(id: number, actorId: number | null): Promise<number | null> {
+  const l = await env.DB.prepare(`SELECT * FROM leads WHERE id = ?`).bind(id).first<AdminLead & { guardian_id: number | null }>();
+  if (!l) return null;
+  const t = now();
+  const areaKnown = AREAS.some((a) => a.key === l.area);
+  const notes = [areaKnown ? "" : `Area (as typed in the lead): ${l.area}`, l.notes ?? ""].filter(Boolean).join("\n");
+  // One batch is one transaction, so MAX(code) below is the tuition this batch just made.
+  const code = `(SELECT MAX(code) FROM tuitions)`;
+  await env.DB.batch([
+    env.DB.prepare(`INSERT OR IGNORE INTO guardians (phone, name, created_at) VALUES (?, ?, ?)`).bind(l.phone, l.guardian_name, t),
+    env.DB.prepare(
+      `INSERT INTO tuitions (code, status, is_public, class_level, medium, subjects, area, salary_kind, salary_amount, days_per_week,
+                             student_gender, tutor_gender_pref)
+       SELECT COALESCE(MAX(code), 0) + 1, 'draft', 0, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM tuitions`,
+    ).bind(l.class_level, l.medium ?? "", l.subjects ?? "", areaKnown ? l.area : "", l.salary ? "fixed" : "unspecified", l.salary || null,
+      l.days_per_week && l.days_per_week >= 1 && l.days_per_week <= 7 ? l.days_per_week : 3, l.student_gender, l.tutor_gender || "any"),
+    env.DB.prepare(
+      `INSERT INTO tuition_private (tuition_code, guardian_id, guardian_label, exact_address, lead_source, private_notes, lead_id, created_at, updated_at)
+       VALUES (${code}, (SELECT id FROM guardians WHERE phone = ?), ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(l.phone, l.guardian_name, l.address, l.lead_source, notes || null, id, t, t),
+    env.DB.prepare(`UPDATE leads SET status = 'posted', status_at = ?, tuition_code = ${code}, guardian_id = (SELECT id FROM guardians WHERE phone = ?) WHERE id = ?`)
+      .bind(t, l.phone, id),
+    env.DB.prepare(`INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, meta_json, created_at) VALUES (?, 'tuition_from_lead', 'tuition', ${code}, ?, ?)`)
+      .bind(actorId, JSON.stringify({ lead_id: id }), t),
+  ]);
+  return (await env.DB.prepare(`SELECT tuition_code FROM leads WHERE id = ?`).bind(id).first<{ tuition_code: number }>())?.tuition_code ?? null;
 }
 
 // ---------- Tuitions ----------
@@ -68,6 +154,7 @@ export async function listTuitions(f: { q: string; status: string; visibility: s
 export type TuitionFull = AdminTuitionRow & {
   medium: string; mode: string; salary_period: string; days_per_week: number; student_gender: string | null; accepting_applications: number;
   requirements_public: string; start_note: string; closed_at: number | null; session_minutes: number | null; time_of_day: string | null;
+  tutor_from: string;
 };
 export type TuitionPrivate = {
   guardian_id: number | null; guardian_label: string | null; guardian_phone: string | null; exact_address: string | null; lead_source: string | null;
@@ -75,12 +162,18 @@ export type TuitionPrivate = {
 };
 export type Applicant = {
   id: number; tutor_id: number | null; tutor_code: number | null; name: string | null; phone: string | null; gender: string | null; shortcode: string | null;
-  location: string | null; note: string | null; fee_plan: string | null; status: string; created_at: number; subject_hits: number; priority: string | null; transport: string | null;
+  location: string | null; note: string | null; fee_plan: string | null; status: string; created_at: number; priority: string | null; transport: string | null;
+  institution: string | null; department: string | null; session_year: string | null; ssc_group: string | null; ssc_result: string | null;
+  hsc_group: string | null; hsc_result: string | null;
+  subject_fit: string | null; // the tuition's subjects the tutor teaches at its band, comma-separated
+  areas: string | null; // the tutor's chosen areas, comma-separated (empty until they sign in)
+  experience: string | null; // the tutor's experience statement for the tuition's band
 };
 
 export async function getTuition(code: number) {
   const tuition = await env.DB.prepare(`SELECT t.*, 0 applications FROM tuitions t WHERE t.code = ?`).bind(code).first<TuitionFull>();
   if (!tuition) return null;
+  const band = bandOf(tuition.class_level) ?? "";
   const [priv, applicants, placements] = await Promise.all([
     env.DB.prepare(
       `SELECT p.guardian_id, p.guardian_label, g.phone guardian_phone, p.exact_address, p.lead_source, p.private_notes, p.tutor_qualification, p.raw_json
@@ -88,11 +181,15 @@ export async function getTuition(code: number) {
     ).bind(code).first<TuitionPrivate>(),
     all<Applicant>(
       `SELECT a.id, a.tutor_id, t.code tutor_code, COALESCE(t.full_name, a.applicant_name) name, COALESCE(a.applicant_phone, t.phone) phone,
-              COALESCE(t.gender, a.applicant_gender) gender, COALESCE(a.applicant_shortcode, t.institution) shortcode, a.applicant_location location,
-              a.note, a.fee_plan, a.status, a.created_at, t.priority, t.transport,
-              (SELECT count(*) FROM tutor_subjects s WHERE s.tutor_id = a.tutor_id AND instr(',' || ? || ',', ',' || s.subject || ',') > 0) subject_hits
+              COALESCE(t.gender, a.applicant_gender) gender, COALESCE(a.applicant_shortcode, t.institution) shortcode,
+              COALESCE(a.applicant_location, t.current_location) location, a.note, a.fee_plan, a.status, a.created_at, t.priority, t.transport,
+              t.institution, t.department, t.session_year, t.ssc_group, t.ssc_result, t.hsc_group, t.hsc_result,
+              (SELECT group_concat(DISTINCT s.subject) FROM tutor_subjects s WHERE s.tutor_id = a.tutor_id AND (? = '' OR s.band = ?)
+                 AND instr(',' || ? || ',', ',' || s.subject || ',') > 0) subject_fit,
+              (SELECT group_concat(ar.area) FROM tutor_areas ar WHERE ar.tutor_id = a.tutor_id) areas,
+              (SELECT body FROM tutor_statements st WHERE st.tutor_id = a.tutor_id AND st.kind = ?) experience
        FROM applications a LEFT JOIN tutors t ON t.id = a.tutor_id WHERE a.tuition_code = ? ORDER BY a.created_at`,
-      tuition.subjects, code,
+      band, band, tuition.subjects, band ? `${band}_experience` : "", code,
     ),
     all<{ id: number; status: string; tutor_id: number | null; tutor_name: string | null; legacy_tutor_name: string | null; legacy_tutor_phone: string | null }>(
       `SELECT p.id, p.status, p.tutor_id, t.full_name tutor_name, p.legacy_tutor_name, p.legacy_tutor_phone
@@ -106,13 +203,13 @@ export async function getTuition(code: number) {
 /** Public wording must not carry contact details. Returns an error in Bangla, or null. */
 function publicTextProblem(text: string): string | null {
   const digits = text.replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d))).replace(/[\s-]/g, "");
-  if (/01[3-9]\d{8}/.test(digits)) return "সবার দেখার লেখায় ফোন নম্বর রাখা যাবে না।";
+  if (/01[3-9]\d{8}/.test(digits)) return "Public text can't contain a phone number.";
   return null;
 }
 
 export async function updateTuition(code: number, form: FormData, actorId: number | null): Promise<string | null> {
   const current = await env.DB.prepare(`SELECT status, posted_at FROM tuitions WHERE code = ?`).bind(code).first<{ status: string; posted_at: number | null }>();
-  if (!current) return "টিউশনটি পাওয়া যায়নি।";
+  if (!current) return "Tuition not found.";
 
   const text = (name: string) => String(form.get(name) ?? "").trim();
   const status = text("status"), medium = text("medium"), classLevel = text("class_level"), area = text("area");
@@ -121,27 +218,28 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   const days = Number(text("days_per_week")), salaryKind = text("salary_kind"), amount = Number(text("salary_amount"));
   const genderPref = text("tutor_gender_pref"), publish = form.get("is_public") === "1";
   const sessionMinutes = Number(text("session_minutes")) || null, timeOfDay = text("time_of_day") || null;
+  const tutorFrom = form.getAll("tutor_from").map(String).filter((k) => TUTOR_FROM.some((o) => o.key === k));
 
-  if (status !== current.status && !TUITION_MOVES[current.status]?.includes(status)) return "এই স্ট্যাটাসে নেওয়া যাবে না।";
-  if (medium && !MEDIUMS.some((m) => m.key === medium)) return "মাধ্যম ঠিক নেই।";
-  if (!CLASS_LEVELS.some((c) => c.key === classLevel)) return "ক্লাস বেছে নাও।";
-  if (sessionMinutes !== null && !(SESSION_MINUTES as readonly number[]).includes(sessionMinutes)) return "সেশনের সময় ঠিক নেই।";
-  if (timeOfDay !== null && !TIMES_OF_DAY.some((o) => o.key === timeOfDay)) return "কোন সময়ে, সেটা ঠিক নেই।";
-  if (!AREAS.some((a) => a.key === area)) return "এলাকা বেছে নাও।";
-  if (!Number.isInteger(days) || days < 1 || days > 7) return "সপ্তাহে দিন ১ থেকে ৭ এর মধ্যে হবে।";
-  if (!["fixed", "negotiable", "unspecified"].includes(salaryKind)) return "বেতনের ধরন ঠিক নেই।";
-  if (salaryKind === "fixed" && (!Number.isInteger(amount) || amount <= 0)) return "বেতনের অঙ্ক লেখো।";
-  if (!["any", "male", "female"].includes(genderPref)) return "টিউটরের ধরন ঠিক নেই।";
-  if (requirements.length > 500 || startNote.length > 100) return "লেখা বেশি লম্বা হয়ে গেছে।";
+  if (status !== current.status && !TUITION_MOVES[current.status]?.includes(status)) return "Can't move to that status.";
+  if (medium && !MEDIUMS.some((m) => m.key === medium)) return "Medium not valid.";
+  if (!CLASS_LEVELS.some((c) => c.key === classLevel)) return "Pick a class.";
+  if (sessionMinutes !== null && !(SESSION_MINUTES as readonly number[]).includes(sessionMinutes)) return "Session length not valid.";
+  if (timeOfDay !== null && !TIMES_OF_DAY.some((o) => o.key === timeOfDay)) return "Time of day not valid.";
+  if (!AREAS.some((a) => a.key === area)) return "Pick an area.";
+  if (!Number.isInteger(days) || days < 1 || days > 7) return "Days per week must be 1 to 7.";
+  if (!["fixed", "negotiable", "unspecified"].includes(salaryKind)) return "Salary type not valid.";
+  if (salaryKind === "fixed" && (!Number.isInteger(amount) || amount <= 0)) return "Enter the salary.";
+  if (!["any", "male", "female"].includes(genderPref)) return "Tutor choice not valid.";
+  if (requirements.length > 500 || startNote.length > 100) return "Text is too long.";
   const problem = publicTextProblem(`${requirements} ${startNote}`);
   if (problem) return problem;
 
   const open = status === "available" || status === "processing";
-  if (publish && !open) return "শুধু খালি বা প্রক্রিয়াধীন টিউশন পাবলিক করা যায়।";
-  if (publish && !medium) return "পাবলিক করার আগে মাধ্যম বেছে নাও।";
-  if (publish && !subjects.length) return "পাবলিক করার আগে বিষয় বেছে নাও।";
-  // Old range classes (৯ম–১০ম) can stay on hidden rows, but the board shows one class or one batch only.
-  if (publish && !CLASS_CHOICES.some((c) => c.key === classLevel)) return "পাবলিক করার আগে নতুন তালিকা থেকে একটি ক্লাস বা ব্যাচ বেছে নাও।";
+  if (publish && !open) return "Only Available or Processing tuitions can go on the board.";
+  if (publish && !medium) return "Pick a medium before showing it on the board.";
+  if (publish && !subjects.length) return "Pick subjects before showing it on the board.";
+  // Old range classes (Class 9–10) can stay on hidden rows, but the board shows one class or one batch only.
+  if (publish && !CLASS_CHOICES.some((c) => c.key === classLevel)) return "Pick one class or batch from the new list before showing it on the board.";
 
   const t = now();
   const postedAt = publish ? current.posted_at ?? t : current.posted_at;
@@ -149,11 +247,11 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE tuitions SET status = ?, is_public = ?, accepting_applications = ?, medium = ?, class_level = ?, subjects = ?, area = ?, days_per_week = ?,
-              session_minutes = ?, time_of_day = ?, salary_kind = ?, salary_amount = ?, tutor_gender_pref = ?, requirements_public = ?, start_note = ?, posted_at = ?,
+              session_minutes = ?, time_of_day = ?, salary_kind = ?, salary_amount = ?, tutor_gender_pref = ?, tutor_from = ?, requirements_public = ?, start_note = ?, posted_at = ?,
               closed_at = CASE WHEN ? IS NULL THEN NULL ELSE COALESCE(closed_at, ?) END
        WHERE code = ?`,
     ).bind(status, publish ? 1 : 0, publish && form.get("accepting") === "1" ? 1 : 0, medium, classLevel, subjects.join(","), area, days, sessionMinutes, timeOfDay, salaryKind, salaryKind === "fixed" ? amount : null,
-      genderPref, requirements, startNote, postedAt, closedAt, closedAt, code),
+      genderPref, tutorFrom.join(","), requirements, startNote, postedAt, closedAt, closedAt, code),
     audit(actorId, "tuition_updated", "tuition", String(code), { status, is_public: publish }),
   ]);
   return null;
@@ -167,7 +265,7 @@ function audit(actorId: number | null, action: string, entityType: string, entit
 /** One step along the ladder. Confirming also books the tuition and closes the other applications. */
 export async function moveApplication(id: number, to: string, reason: string, actorId: number | null): Promise<string | null> {
   const app = await env.DB.prepare(`SELECT id, tuition_code, tutor_id, status FROM applications WHERE id = ?`).bind(id).first<{ id: number; tuition_code: number; tutor_id: number | null; status: string }>();
-  if (!app) return "আবেদনটি পাওয়া যায়নি।";
+  if (!app) return "Application not found.";
   const t = now();
   const steps = [
     env.DB.prepare(`UPDATE applications SET status = ?, updated_at = ? WHERE id = ?`).bind(to, t, id),
@@ -175,7 +273,7 @@ export async function moveApplication(id: number, to: string, reason: string, ac
     audit(actorId, "application_moved", "application", String(id), { from: app.status, to }),
   ];
   if (to === "confirmed") {
-    if (app.tutor_id === null) return "কনফার্ম করার আগে আবেদনকারীকে একজন টিউটরের সাথে মেলাতে হবে।";
+    if (app.tutor_id === null) return "Match the applicant to a tutor before confirming.";
     steps.push(
       env.DB.prepare(
         `INSERT INTO application_events (application_id, from_status, to_status, reason, created_at)
@@ -194,7 +292,7 @@ export async function moveApplication(id: number, to: string, reason: string, ac
     await env.DB.batch(steps);
     return null;
   } catch {
-    return "এই ধাপে নেওয়া যাবে না।"; // the trigger refused the move
+    return "Can't move to that step."; // the trigger refused the move
   }
 }
 
@@ -361,12 +459,12 @@ export type TuitionToReview = {
 /** What still stops an open tuition from going on the board, in the editor's words. */
 export function tuitionGaps(t: TuitionToReview): string[] {
   const gaps = [];
-  if (!CLASS_CHOICES.some((c) => c.key === t.class_level)) gaps.push("ক্লাস");
-  if (!AREAS.some((a) => a.key === t.area)) gaps.push("এলাকা");
-  if (!t.medium) gaps.push("মাধ্যম");
-  if (!t.subjects) gaps.push("বিষয়");
-  if (!t.requirements_public) gaps.push("অভিভাবকের চাওয়া");
-  if (!t.session_minutes) gaps.push("সময়");
+  if (!CLASS_CHOICES.some((c) => c.key === t.class_level)) gaps.push("Class");
+  if (!AREAS.some((a) => a.key === t.area)) gaps.push("Area");
+  if (!t.medium) gaps.push("Medium");
+  if (!t.subjects) gaps.push("Subjects");
+  if (!t.requirements_public) gaps.push("Tutor requirement");
+  if (!t.session_minutes) gaps.push("Time");
   return gaps;
 }
 
@@ -387,14 +485,14 @@ export async function tuitionsToReview(page: number) {
 export async function resolveFlaggedTutor(rowId: number, email: string, actorId: number | null): Promise<string | null> {
   const row = await env.DB.prepare(`SELECT legacy_ref FROM import_rows WHERE id = ? AND tab = 'tutor_flag' AND status = 'needs_review'`)
     .bind(rowId).first<{ legacy_ref: string }>();
-  if (!row) return "এটি আর রিভিউ তালিকায় নেই।";
+  if (!row) return "No longer on the review list.";
   const code = Number(row.legacy_ref);
   const steps = [];
   const fixed = email.trim().toLowerCase();
   if (fixed) {
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fixed)) return "ইমেইল ঠিক নেই।";
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fixed)) return "Email not valid.";
     const taken = await count(`SELECT count(*) n FROM tutors WHERE email = ? AND code <> ? AND deleted_at IS NULL`, fixed, code);
-    if (taken) return "এই ইমেইল আরেকজন টিউটরের।";
+    if (taken) return "Another tutor has this email.";
     steps.push(env.DB.prepare(`UPDATE tutors SET email = ?, updated_at = ? WHERE code = ?`).bind(fixed, now(), code));
   }
   steps.push(

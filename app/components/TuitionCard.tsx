@@ -1,9 +1,10 @@
 import type { CSSProperties } from "react";
 import { Link } from "react-router";
 import { Icon } from "~/components/Icon";
-import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
+import { tutorFromLabel } from "~/lib/fit";
+import { AREAS, CLASS_LEVELS, MEDIUMS, STUDENT_GENDERS, SUBJECTS, labelOf } from "~/lib/options";
 import {
-  GENDER_CHIP, MEDIUM_EN, SUBJECT_TONE, SUBJECT_TONE_OTHER, bnDigits, isNew, perClass, scheduleNote, taka, timeAgo,
+  GENDER_CHIP, SUBJECT_TONE, SUBJECT_TONE_OTHER, isNew, perClass, scheduleNote, taka, timeAgo,
   type PublicTuition,
 } from "~/lib/tuition";
 
@@ -12,15 +13,15 @@ export function SalaryText({ t, unitClass }: { t: PublicTuition; unitClass: stri
     return (
       <>
         {taka(t.salary_amount)}
-        <span className={`ml-1.5 font-normal ${unitClass}`}>/ {t.salary_period === "per_month" ? "মাস" : "কোর্স"}</span>
+        <span className={`ml-1.5 font-normal ${unitClass}`}>/ {t.salary_period === "per_month" ? "month" : "course"}</span>
       </>
     );
   }
-  return <>{t.salary_kind === "negotiable" ? "৳ আলোচনা সাপেক্ষে" : "বেতন উল্লেখ নেই"}</>;
+  return <>{t.salary_kind === "negotiable" ? "Salary negotiable" : "Salary not given"}</>;
 }
 
 export const subjectList = (t: PublicTuition) => t.subjects.map((s) => labelOf(SUBJECTS, s)).join(", ");
-export const placeLabel = (t: PublicTuition) => (t.mode === "online" ? "অনলাইন" : labelOf(AREAS, t.area));
+export const placeLabel = (t: PublicTuition) => (t.mode === "online" ? "Online" : labelOf(AREAS, t.area));
 
 export function StatusBadges({ t, now }: { t: PublicTuition; now: number }) {
   return (
@@ -52,9 +53,34 @@ export function SubjectChips({ t }: { t: Pick<PublicTuition, "subjects"> }) {
   );
 }
 
-// The tear line: white on the left, the stub colour on the right, with half-circle holes at top and bottom.
-const HOLES = "radial-gradient(circle at 50% 0, transparent 10px, #000 10.5px) top / 100% 51% no-repeat, radial-gradient(circle at 50% 100%, transparent 10px, #000 10.5px) bottom / 100% 51% no-repeat";
-const tear = (stub: string): CSSProperties => ({ background: `linear-gradient(90deg, #fff 50%, ${stub} 50%)`, mask: HOLES, WebkitMask: HOLES });
+type IconName = Parameters<typeof Icon>[0]["name"];
+
+/** Days, student, time and medium as quiet chips (owner, 2026-11-04), so the coloured subject chips still lead. */
+export function FactChips({ t }: { t: PublicTuition }) {
+  const schedule = scheduleNote(t);
+  const facts: [IconName, string][] = [["calendar", `${t.days_per_week} days/week`]];
+  if (t.student_gender) facts.push(["user", labelOf(STUDENT_GENDERS, t.student_gender)]);
+  if (schedule) facts.push(["clock", schedule]);
+  if (t.medium) facts.push(["book", labelOf(MEDIUMS, t.medium)]);
+  return (
+    <ul className="flex flex-wrap gap-1.5">
+      {facts.map(([icon, text]) => (
+        <li key={text} className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-[12.5px] font-medium text-slate-700 ring-1 ring-slate-200">
+          <Icon name={icon} className="size-3.5 text-slate-500" />{text}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// The tear line: white on the left, the stub colour on the right, with a half-circle hole at the top, and one at the
+// bottom unless the requirement strip continues below.
+const HOLE_TOP = "radial-gradient(circle at 50% 0, transparent 10px, #000 10.5px)";
+const HOLES = `${HOLE_TOP} top / 100% 51% no-repeat, radial-gradient(circle at 50% 100%, transparent 10px, #000 10.5px) bottom / 100% 51% no-repeat`;
+const tear = (stub: string, bottomHole: boolean): CSSProperties => {
+  const mask = bottomHole ? HOLES : HOLE_TOP;
+  return { background: `linear-gradient(90deg, #fff 50%, ${stub} 50%)`, mask, WebkitMask: mask };
+};
 
 /** How many have applied, as a small stack of anonymous circles (no names or photos), with when it was posted. */
 function Applicants({ t, now }: { t: PublicTuition; now: number }) {
@@ -70,8 +96,8 @@ function Applicants({ t, now }: { t: PublicTuition; now: number }) {
         )}
       </span>
       <span className="min-w-0 leading-tight">
-        <span className="block text-[12px] font-semibold text-forest">{t.applicants ? `${bnDigits(t.applicants)} জন আবেদন করেছেন` : "এখনো কেউ আবেদন করেনি"}</span>
-        {ago && <span className="block text-[11px] text-slate-500">{ago} পোস্ট</span>}
+        <span className="block text-[12px] font-semibold text-forest">{t.applicants ? `${t.applicants} applied` : "No applicants yet"}</span>
+        {ago && <span className="block text-[11px] text-slate-500">Posted {ago}</span>}
       </span>
     </div>
   );
@@ -83,68 +109,61 @@ function StubPay({ t }: { t: PublicTuition }) {
     const rate = perClass(t);
     return (
       <>
-        <p className="mt-2.5 text-[11px] font-semibold">বেতন / {t.salary_period === "per_month" ? "মাস" : "কোর্স"}</p>
+        <p className="mt-2.5 text-[11px] font-semibold">Salary / {t.salary_period === "per_month" ? "month" : "course"}</p>
         <p className="mt-0.5 leading-none font-semibold">
           <span className="text-base">৳</span>
-          <span className="ml-0.5 text-[24px] tracking-tight">{taka(t.salary_amount).replace("৳ ", "")}</span>
+          <span className="ml-0.5 text-[24px] tracking-tight">{taka(t.salary_amount).replace("৳", "")}</span>
         </p>
-        {rate && <p className="mt-1 text-[11px]">ক্লাসপ্রতি ≈ {taka(rate)}</p>}
+        {rate && <p className="mt-1 text-[11px]">≈ {taka(rate)} / class</p>}
       </>
     );
   }
   return (
     <>
-      <p className="mt-2.5 text-[11px] font-semibold">বেতন</p>
-      <p className="mt-0.5 text-base leading-tight font-semibold">{t.salary_kind === "negotiable" ? "আলোচনা সাপেক্ষে" : "উল্লেখ নেই"}</p>
+      <p className="mt-2.5 text-[11px] font-semibold">Salary</p>
+      <p className="mt-0.5 text-base leading-tight font-semibold">{t.salary_kind === "negotiable" ? "Negotiable" : "Not given"}</p>
     </>
   );
 }
 
 /**
- * The board's ticket card (owner, 2026-11-02): what the tuition is and what the guardian wants on the left; pay,
- * schedule and Apply on the stub. The whole card opens the detail page; Apply sits above that link.
+ * The board's ticket card (owner, 2026-11-02): what the tuition is on the left; pay and Apply on the stub. Days, student
+ * and time sit as chips on the left, and the guardian's tutor requirement gets its own full-width strip below
+ * (owner, 2026-11-04). The whole card opens the detail page; Apply sits above that link.
  */
 export function TuitionCard({ t, now, index = 0 }: { t: PublicTuition; now: number; index?: number }) {
   const open = t.status === "available" && t.accepting_applications;
   const stubColour = open ? "#fed262" : "#e2e8f0";
   const line = open ? "border-forest/25" : "border-slate-400/50";
-  const schedule = scheduleNote(t);
   const href = `/tuitions/${t.code_label}`;
+  const need = t.requirements_public;
   return (
     <article className="animate-rise relative [filter:drop-shadow(0_8px_14px_rgb(9_51_42/0.13))]" style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}>
-      <div className="flex h-full">
-        <div className="flex min-w-0 flex-1 flex-col rounded-l-[22px] bg-white pt-4 pr-2 pb-3 pl-4">
+      <div className="flex">
+        <div className={`flex min-w-0 flex-1 flex-col bg-white pt-4 pr-2 pb-3 pl-4 ${need ? "rounded-tl-[22px]" : "rounded-l-[22px]"}`}>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="rounded-md bg-cream px-2 py-0.5 text-xs font-semibold text-forest ring-1 ring-forest/25">{labelOf(CLASS_LEVELS, t.class_level)}</span>
             <GenderChip t={t} />
+            {t.tutor_from.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700 ring-1 ring-brand-100">
+                <Icon name="cap" className="size-3.5" />{tutorFromLabel(t.tutor_from)}
+              </span>
+            )}
           </div>
           <h3 className="mt-2 text-[24px] leading-tight font-semibold text-forest">{placeLabel(t)}</h3>
           <div className="mt-2"><SubjectChips t={t} /></div>
-          {MEDIUM_EN[t.medium] && (
-            <p className="mt-2 inline-flex items-center gap-1 text-[13px] text-slate-600"><Icon name="book" className="size-3.5" />{MEDIUM_EN[t.medium]}</p>
-          )}
-          {t.requirements_public && (
-            <p className="mt-3 line-clamp-3 border-l-[3px] border-brand-600 pl-2.5 text-[13px] leading-snug font-semibold text-forest">
-              <span className="sr-only">গার্ডিয়ান যা চান: </span>
-              {t.requirements_public}
-            </p>
-          )}
+          <div className="mt-2"><FactChips t={t} /></div>
           <div className="mt-auto pt-3"><Applicants t={t} now={now} /></div>
         </div>
-        <div className="relative w-5 shrink-0" style={tear(stubColour)}>
-          <span className={`absolute inset-y-4 left-1/2 -translate-x-1/2 border-l-2 border-dashed ${line}`} />
+        <div className="relative w-5 shrink-0" style={tear(stubColour, !need)}>
+          <span className={`absolute top-4 left-1/2 -translate-x-1/2 border-l-2 border-dashed ${line} ${need ? "bottom-0" : "bottom-4"}`} />
         </div>
-        <div className={`flex w-[112px] shrink-0 flex-col rounded-r-[22px] pt-4 pr-3 pb-3 pl-1 ${open ? "bg-mango text-forest" : "bg-slate-200 text-slate-700"}`}>
+        <div className={`flex w-[112px] shrink-0 flex-col pt-4 pr-3 pb-3 pl-1 ${need ? "rounded-tr-[22px]" : "rounded-r-[22px]"} ${open ? "bg-mango text-forest" : "bg-slate-200 text-slate-700"}`}>
           <p className="flex items-center justify-between gap-1 text-[11px] font-semibold tracking-wide">
             {t.code_label}
             {t.is_available && isNew(t.posted_at, now) && <span className="rounded bg-forest px-1.5 py-px tracking-normal text-mango">New</span>}
           </p>
           <StubPay t={t} />
-          <div className={`mt-2.5 border-t border-dashed pt-2.5 ${line}`}>
-            <p className="text-[11px] font-semibold">সপ্তাহে</p>
-            <p className="text-lg leading-tight font-semibold">{bnDigits(t.days_per_week)} দিন</p>
-            {schedule && <p className="text-[11px]">{schedule}</p>}
-          </div>
           <div className="mt-auto pt-3">
             {open ? (
               // The apply sheet comes with sign-in for tutors; until then Apply opens the detail page.
@@ -155,7 +174,16 @@ export function TuitionCard({ t, now, index = 0 }: { t: PublicTuition; now: numb
           </div>
         </div>
       </div>
-      <Link to={href} aria-label={`${t.code_label}, ${placeLabel(t)}: বিস্তারিত`} className="absolute inset-0 rounded-[22px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600" />
+      {need && (
+        <div className="flex items-start gap-2.5 rounded-b-[22px] border-t-2 border-dashed border-brand-100 bg-white px-4 pt-2.5 pb-3.5">
+          <span aria-hidden className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700"><Icon name="cap" className="size-4" /></span>
+          <p className="min-w-0 text-[13px] leading-snug">
+            <span className="block text-[11px] font-semibold tracking-wide text-slate-500">Tutor requirement</span>
+            <span className="line-clamp-2 font-semibold text-forest">{need}</span>
+          </p>
+        </div>
+      )}
+      <Link to={href} aria-label={`${t.code_label}, ${placeLabel(t)}: details`} className="absolute inset-0 rounded-[22px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600" />
     </article>
   );
 }

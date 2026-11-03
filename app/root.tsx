@@ -31,17 +31,17 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let title = "কিছু একটা ভুল হয়েছে";
-  let details = "পাতাটি আবার খুলে দেখো।";
+  let title = "Something went wrong";
+  let details = "Try opening the page again.";
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
-      title = "পাতাটি পাওয়া যায়নি";
-      details = "ঠিকানাটি আবার দেখো।";
+      title = "Page not found";
+      details = "Check the address.";
     } else if (error.status === 401) {
-      title = "লগইন দরকার";
-      details = "এই পাতাটি শুধু অ্যাডমিনের জন্য।";
+      title = "Sign-in needed";
+      details = "This page is for the admin only.";
     } else if (typeof error.data === "string" && error.data) {
       details = error.data;
     }

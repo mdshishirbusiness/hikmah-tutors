@@ -64,13 +64,13 @@ export function parseLead(body: unknown): { lead: LeadInput; errors: null } | { 
   const class_level = oneOf(b.class_level, CLASS_KEYS);
   if (!class_level) errors.class_level = "শ্রেণি বেছে নাও";
 
-  const area = text(b.area, 60); // an area key, or free text typed under "অন্য এলাকা"
+  const area = text(b.area, 60); // an area key, or free text typed under "Other area"
   if (!area) errors.area = "এলাকা বেছে নাও বা লেখো";
 
   let salary: number | null = null;
   if (b.salary !== null && b.salary !== undefined && String(b.salary).trim() !== "") {
     const n = Math.round(Number(enDigits(String(b.salary)).replace(/,/g, "")));
-    if (!Number.isFinite(n) || n < 500 || n > 200000) errors.salary = "বেতন ৫০০ থেকে ২,০০,০০০ টাকার মধ্যে লেখো";
+    if (!Number.isFinite(n) || n < 500 || n > 200000) errors.salary = "বেতন ৳500 থেকে ৳2,00,000-এর মধ্যে লেখো";
     else salary = n;
   }
 

@@ -32,6 +32,104 @@ Fees and refunds are still built with the money features, after the core is live
 - **Requirement lines written from the tuition's fields** ("RU tutor · Science background · Female tutor"); the
   private qualification note stays.
 
+## 2026-11-04
+
+Context: a Q&A round on the whole admin and tutor workflow. Finding: the site cannot yet run a job end to end (leads
+cannot become tuitions, tutors cannot apply, a selected tutor has no next step). All by the owner, mostly on Claude's
+recommendation.
+
+- **Close the loop before more polish.** Build order: (1) admin side, (2) tutor first sign-in setup, apply sheet and
+  Applied tab, (3) Home and Profile tabs, (4) board chips and Recently booked. Each new screen gets one screenshot for
+  the owner's OK before it is wired up.
+- **Admin**
+  - Leads get statuses New → Called → Posted / Not now. "Post as tuition" opens the tuition editor filled in from the
+    lead as a hidden draft; one lead can make several tuitions (two children). The Leads page takes the admin design.
+  - The admin home becomes an ordered to-do list (uncalled leads, unseen applications on open tuitions, selected tutors
+    who have not ticked Called after 3 hours, demos ending, drafts, tutor-ticked Confirmed to check), with the counts as
+    a small strip on top.
+  - On the phone the admin gets a bottom bar: Today · Leads · Tuitions · Tutors · More, plus "+ Lead". Applications
+    live inside each tuition; Guardians and Review sit under More.
+  - The tuition page reads summary → applicants sorted by fit (gender, subject, area) → edit form, closed by default.
+  - A tuition gets a "Tutor from" choice: Any (default) / RU / RUET / Medical, more than one allowed, shown as a chip on
+    the card. The private qualification note stays.
+  - "Copy for WhatsApp" on each shortlisted tutor copies a summary for the guardian: code, first name, university,
+    department, session, SSC/HSC group and GPA, subjects that fit, experience, about line. No photo, Facebook or
+    address. The tutor's phone is included only for the Selected tutor.
+  - "Send on WhatsApp" opens WhatsApp to the tutor with a ready message when they are shortlisted or selected. Web Push
+    stays later.
+- **Tutor**
+  - Bottom bar: **Home · Tuitions · Applied · Profile** (owner), replacing the four tabs of 2026-10-19 and the five of
+    2026-11-03. No Saved and no Alerts tab. Applied carries a count badge for applications that need the tutor's
+    action. A signed-in tutor lands on Tuitions (`/`); a red dot on Home means something needs action.
+  - Home, top to bottom: Needs action now · Updates (shortlisted, not selected, profile changed by HTR; red dot while
+    unread) · For You (3 newest, "See all") · Profile setup progress. Empty sections hide.
+  - First sign-in: check details, confirm availability, accept the terms, then pick preferred areas (no limit, with
+    "Anywhere in Rajshahi"), minimum salary and the classes they want. These new fields drive For You and the fit check.
+  - Tutors edit areas, classes, subjects, minimum salary, pause, transport, demo willingness and their about text. Name,
+    phone, gender, university and results are locked and change through the admin.
+  - The university becomes a fixed key (RU / RUET / Medical / Other), mapped from the sheet's free text by the import;
+    unclear ones go to the review list.
+  - The apply sheet shows a fit check, an optional note and Confirm. Only a gender mismatch blocks; a class, subject,
+    area or university mismatch warns. **No limit on active applications** (owner).
+  - After selection the tutor sees the guardian's phone (see below) and ticks Called → Met → Demo done → **Confirmed**.
+    The tutor ticks Confirmed too (owner: confirming means they owe the fee). Before the tick a sheet says the media
+    fee becomes due under the terms. Confirmed marks the tuition Booked, closes the other applicants as Opportunity
+    closed, and shows on the admin's to-do list, where the admin can undo it.
+  - A selected tutor who has not ticked Called within 3 hours is only flagged to the admin, never dropped automatically.
+  - "Didn't work out" (tutor or admin, with a reason: guardian chose someone else / schedule / salary / tutor declined /
+    other) puts the tuition back to Processing; the admin picks the next tutor or re-posts it.
+- **Board**
+  - **Only open tuitions show** (owner: tuitions book within hours, so Processing cards would fill the board),
+    replacing the 2026-11-02 rule that Processing cards stay with a grey stub. A Processing tuition leaves the board at
+    once and returns if the match falls through.
+  - A chip row at the top: **All · For You · Female tutor · Male tutor · RU · RUET · Medical** (owner), All selected by
+    default. For You shows tuitions that pass gender, class, subject, area and university, newest first; signed out, it
+    opens sign-in. The filter sheet stays.
+  - A "সদ্য বুকড" (Recently booked) tab shows the last 7 days: applicant count, how fast it was booked ("৩ ঘণ্টায়
+    বুকড"), and the tutor as university and department only ("RU · Physics"), never by name. A name can come later as
+    an opt-in.
+- **Phone numbers** (owner, replacing two "Never" rules in CLAUDE.md for these cases only): the guardian's phone is
+  shown to the one tutor marked Selected, only while that status lasts, and each view is logged; the full address
+  never shows, the guardian gives it on the call. The Selected tutor's phone may go to that guardian in the WhatsApp
+  summary. Shortlist summaries never carry a phone, so a guardian cannot go round HTR.
+
+Context: the owner found the UI too Bangla-heavy ("স্ট্যাটাস: খসড়া" reads badly) and sent a tuition-detail screenshot
+(`design/inspiration/icon-fact-rows.png`).
+
+- **Short UI text is English on every page** (owner, on Claude's recommendation; replaces "Bangla or English, whichever
+  reads better" of 2026-11-02 for these): navigation, page titles, buttons, statuses, badges, field labels, filters,
+  option labels (classes, subjects, areas, mediums, times) and numbers and dates (৳5,000, 3 days/week, 2 h ago).
+  Option keys do not change; `alt` keeps the Bangla names so search still finds "গণিত" or "উপশহর". Labels decided
+  earlier in Bangla follow suit (the board's "সদ্য বুকড" tab becomes "Recently booked").
+- **Bangla stays where it reads better** (owner: "not everything"): longer helper and explanation sentences in the
+  admin, some tutor-facing notes, guardian-facing explanations and form errors, the brand slogan and the board's hero
+  line, and whatever people type (requirements, notes).
+- **A Bangla/English toggle is not built now** (owner: "if you think necessary"; Claude: no, it doubles every string to
+  maintain, and English labels with Bangla explanations already serve both readers). Revisit if guardians struggle.
+- **Area names: English labels for now, judged by look and feel** (owner). The screenshots show both; switching back
+  is a label change only.
+- **Board card:** days per week, student (Male/Female student), time and medium sit as quiet chips in the card's white
+  space (owner); the stub keeps code, salary, per-class pay and Apply. The guardian's tutor requirement moves to its own
+  full-width strip at the bottom of the card (owner: "a better place").
+- **Tuition page:** facts become icon rows (icon circle, bold label, value below) as in the owner's screenshot, and the
+  tutor requirement leads the details as a highlighted box.
+
+Context: building the admin tuition page from the plan above (owner approved the language pass and said continue).
+Choices Claude made inside the agreed plan:
+
+- **The application status `trial_arranged` now reads "Selected"** (key unchanged): it is the step where the tutor gets
+  the guardian's number and arranges the demo. Move buttons use verbs (Review, Shortlist, Select, Confirm).
+- **Applicant order:** the furthest step first (Confirmed, Selected, Shortlisted, In review, Applied), then the best fit.
+  Fit: subjects counted at the tuition's band only (an SSC tuition ignores a tutor's junior subjects); area = in the
+  tutor's chosen areas, or their address names it ("Lives nearby"); university read from the free-text institution
+  until the fixed key of step 2 exists. A gender mismatch sinks a card to the bottom; the rest only warn.
+- **"Tutor from" is stored as `tuitions.tutor_from`** (migration 0009) and shows as a chip on the board card.
+- **"Send to guardian" sits next to "Copy"** on shortlisted and selected tutors: it opens WhatsApp to the guardian with
+  the summary already written (a Bangla greeting line, facts in English). The tutor's phone is in it only once Selected.
+- **"Message tutor"** opens WhatsApp to the tutor with a ready shortlisted or selected message. It does not carry the
+  guardian's number: that view must be logged, so the tutor's app shows it in step 2.
+- **The edit form opens by itself for drafts**, since a tuition just posted from a lead needs its details filled in.
+
 ## 2026-11-03
 
 Context: planning the tutor journey from sign-up to getting the guardian's number; the owner showed Home Tutor

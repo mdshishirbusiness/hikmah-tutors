@@ -16,3 +16,13 @@ What we would do differently (Claude):
 - Tutor ticks are the tutor's own report; Confirmed should still be checked by HTR with the guardian.
 - The demo length should come from the tuition (not always 2 days), and there should be a "didn't work out" way out
   so a backup tutor can be moved up quickly.
+
+## icon-fact-rows.png — a tuition site's detail rows (owner, 2026-11-04)
+
+What the owner likes:
+- Each fact is an **icon in a soft circle, a bold label and the value below** ("Subjects / Physics, Chemistry",
+  "Location / Mirpur 10"): calm, scannable, nothing squeezed into a two-column table.
+- Short English labels.
+
+How we use it: the tuition page's facts (Subjects, Location, Days, Time, Student, Medium, Start), with our emerald
+circle (`brand-50` fill, `brand-700` icon) instead of the lavender.

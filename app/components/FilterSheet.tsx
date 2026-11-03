@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AREAS, AREAS_TOP, CLASS_CHOICES, DAYS_PER_WEEK, MEDIUMS, MODES, SALARY_PRESETS, SUBJECTS, TUTOR_GENDERS } from "~/lib/options";
-import { bnDigits, normalizeSearch, taka, type TuitionFilters } from "~/lib/tuition";
+import { normalizeSearch, taka, type TuitionFilters } from "~/lib/tuition";
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -67,43 +67,43 @@ export function FilterSheet({ open, onClose, filters, setParam, clearAll, result
     >
       <div className="flex max-h-[88dvh] flex-col">
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <h2 id="filter-title" className="text-lg font-semibold text-forest">সব ফিল্টার</h2>
-          <button type="button" onClick={onClose} className="min-h-11 rounded-full px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50">বন্ধ করুন</button>
+          <h2 id="filter-title" className="text-lg font-semibold text-forest">All filters</h2>
+          <button type="button" onClick={onClose} className="min-h-11 rounded-full px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50">Close</button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 pb-4">
-          <Group title="এলাকা">
+          <Group title="Area">
             <input
-              aria-label="এলাকা খুঁজুন"
+              aria-label="Search area"
               value={areaQ}
               onChange={(e) => setAreaQ(e.target.value)}
-              placeholder="এলাকা খুঁজুন…"
+              placeholder="Search area…"
               className="mb-1 min-h-11 w-full rounded-xl border border-brand-100 bg-white px-3 text-base outline-none focus:border-brand-500"
             />
             {options("area", filters.area, chosenArea ? [chosenArea, ...areas] : areas)}
           </Group>
-          <Group title="ক্লাস">{options("class", filters.class_level, CLASS_CHOICES)}</Group>
-          <Group title="বিষয়">{options("subject", filters.subject, SUBJECTS)}</Group>
-          <Group title="মাধ্যম">{options("medium", filters.medium, MEDIUMS)}</Group>
-          <Group title="টিউটর">{options("gender", filters.tutor_gender, TUTOR_GENDERS)}</Group>
-          <Group title="মোড">{options("mode", filters.mode, MODES)}</Group>
-          <Group title="বেতন" hint="শুধু মাসিক ফিক্সড বেতনের টিউশন দেখাবে">
+          <Group title="Class">{options("class", filters.class_level, CLASS_CHOICES)}</Group>
+          <Group title="Subject">{options("subject", filters.subject, SUBJECTS)}</Group>
+          <Group title="Medium">{options("medium", filters.medium, MEDIUMS)}</Group>
+          <Group title="Tutor">{options("gender", filters.tutor_gender, TUTOR_GENDERS)}</Group>
+          <Group title="Mode">{options("mode", filters.mode, MODES)}</Group>
+          <Group title="Salary" hint="Only tuitions with a fixed monthly salary">
             {SALARY_PRESETS.map((amt) => (
               <Chip key={amt} active={filters.salary_min === amt} onClick={() => setParam("salary_min", filters.salary_min === amt ? undefined : amt)}>
                 {taka(amt)}+
               </Chip>
             ))}
           </Group>
-          <Group title="দিন">
+          <Group title="Days">
             {DAYS_PER_WEEK.map((d) => (
               <Chip key={d} active={filters.days === d} onClick={() => setParam("days", filters.days === d ? undefined : d)}>
-                সপ্তাহে {bnDigits(d)} দিন
+                {d} days/week
               </Chip>
             ))}
           </Group>
         </div>
         <div className="flex gap-2 border-t border-brand-100 px-5 py-4">
-          <button type="button" onClick={clearAll} className="min-h-12 flex-1 rounded-xl border border-brand-100 bg-white text-sm font-semibold text-forest">ফিল্টার মুছুন</button>
-          <button type="button" onClick={onClose} className="min-h-12 flex-1 rounded-xl bg-forest text-sm font-semibold text-white">{bnDigits(resultCount)}টি টিউশন দেখুন</button>
+          <button type="button" onClick={clearAll} className="min-h-12 flex-1 rounded-xl border border-brand-100 bg-white text-sm font-semibold text-forest">Clear filters</button>
+          <button type="button" onClick={onClose} className="min-h-12 flex-1 rounded-xl bg-forest text-sm font-semibold text-white">Show {resultCount} tuitions</button>
         </div>
       </div>
     </dialog>

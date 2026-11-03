@@ -1,18 +1,19 @@
 import { data, Link } from "react-router";
 import type { Route } from "./+types/tuitions.$code";
 import { FeeBox } from "~/components/FeeBox";
+import { Icon } from "~/components/Icon";
 import { SiteFooter, SiteHeader, Toast, useShare } from "~/components/site";
 import { SalaryText, StatusBadges, TuitionCard, placeLabel, subjectList } from "~/components/TuitionCard";
-import { CLASS_LEVELS, MEDIUMS, MODES, STUDENT_GENDERS, TUTOR_GENDERS, labelOf } from "~/lib/options";
-import { GENDER_NEED, GENDER_STYLE, bnDigits, feeDisplay, formatDate, scheduleNote } from "~/lib/tuition";
+import { CLASS_LEVELS, MEDIUMS, MODES, STUDENT_GENDERS, labelOf } from "~/lib/options";
+import { GENDER_NEED, GENDER_STYLE, feeDisplay, formatDate, scheduleNote } from "~/lib/tuition";
 import { similarTuitions, visibleTuition } from "~/lib/tuitions.server";
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  if (!loaderData) return [{ title: "টিউশন পাওয়া যায়নি · Hikmah Tutors" }];
+  if (!loaderData) return [{ title: "Tuition not found · Hikmah Tutors" }];
   const { t } = loaderData;
   return [
     { title: `${labelOf(CLASS_LEVELS, t.class_level)}, ${placeLabel(t)} · ${t.code_label} · Hikmah Tutors` },
-    { name: "description", content: `${labelOf(CLASS_LEVELS, t.class_level)}: ${subjectList(t)}। ${placeLabel(t)}, রাজশাহী।` },
+    { name: "description", content: `${labelOf(CLASS_LEVELS, t.class_level)}: ${subjectList(t)}. ${placeLabel(t)}, Rajshahi.` },
   ];
 }
 
@@ -20,23 +21,36 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function loader({ params }: Route.LoaderArgs) {
   const m = /^(?:HTR-)?(\d{1,9})$/i.exec(params.code);
   const t = m && (await visibleTuition(Number(m[1])));
-  if (!t) throw data("টিউশনটি পাওয়া যায়নি", { status: 404 });
+  if (!t) throw data("Tuition not found", { status: 404 });
   return { t, similar: await similarTuitions(t), now: Math.floor(Date.now() / 1000) };
+}
+
+type Row = { icon: Parameters<typeof Icon>[0]["name"]; label: string; value: string };
+
+/** One fact as an icon circle, a bold label and the value below (owner's inspiration, 2026-11-04). */
+function Fact({ icon, label, value }: Row) {
+  return (
+    <div className="flex items-start gap-3 py-2.5">
+      <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700"><Icon name={icon} className="size-5" /></span>
+      <div className="min-w-0">
+        <dt className="font-semibold text-forest">{label}</dt>
+        <dd className="break-words text-slate-600">{value}</dd>
+      </div>
+    </div>
+  );
 }
 
 export default function TuitionDetail({ loaderData: { t, similar, now } }: Route.ComponentProps) {
   const { share, toast } = useShare();
-  const facts: [string, string][] = [
-    ["কোড", t.code_label],
-    ["মাধ্যম", labelOf(MEDIUMS, t.medium)],
-    ["মোড", labelOf(MODES, t.mode)],
-    ["দিন", `সপ্তাহে ${bnDigits(t.days_per_week)} দিন`],
-    ["সময়", scheduleNote(t) || "উল্লেখ নেই"],
-    ["কাঙ্ক্ষিত টিউটর", labelOf(TUTOR_GENDERS, t.tutor_gender_pref)],
+  const rows: Row[] = [
+    { icon: "tag", label: "Subjects", value: subjectList(t) },
+    { icon: "pin", label: "Location", value: t.mode === "online" ? "Online" : `${placeLabel(t)}, Rajshahi · ${labelOf(MODES, t.mode)}` },
+    { icon: "calendar", label: "Days", value: `${t.days_per_week} days/week` },
+    { icon: "clock", label: "Time", value: scheduleNote(t) || "To be discussed" },
   ];
-  if (t.student_gender) facts.push(["শিক্ষার্থী", labelOf(STUDENT_GENDERS, t.student_gender)]);
-  if (t.start_note) facts.push(["শুরু", t.start_note]);
-  if (t.posted_at) facts.push(["পোস্ট হয়েছে", formatDate(t.posted_at)]);
+  if (t.student_gender) rows.push({ icon: "user", label: "Student", value: labelOf(STUDENT_GENDERS, t.student_gender) });
+  if (t.medium) rows.push({ icon: "book", label: "Medium", value: labelOf(MEDIUMS, t.medium) });
+  if (t.start_note) rows.push({ icon: "arrow", label: "Start", value: t.start_note });
 
   return (
     <>
@@ -44,11 +58,11 @@ export default function TuitionDetail({ loaderData: { t, similar, now } }: Route
       <main>
         <section className="bg-forest text-cream">
           <div className="mx-auto max-w-3xl px-4 pt-4 pb-10">
-            <Link to="/" className="inline-flex min-h-11 items-center text-sm text-brand-200 hover:text-mango">← বোর্ডে ফিরুন</Link>
+            <Link to="/" className="inline-flex min-h-11 items-center text-sm text-brand-200 hover:text-mango">← Back to board</Link>
             {!t.is_available && (
               <div role="status" className="mt-2 rounded-2xl bg-slate-100 px-4 py-3 text-slate-800">
-                <p className="font-semibold">এই টিউশনটি আর খালি নেই</p>
-                <p className="text-sm">নিচে একই এলাকা বা ক্লাসের অন্য টিউশন দেখুন।</p>
+                <p className="font-semibold">This tuition is no longer open</p>
+                <p className="text-sm">See similar tuitions below.</p>
               </div>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -68,37 +82,32 @@ export default function TuitionDetail({ loaderData: { t, similar, now } }: Route
         </section>
 
         <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
-          <div>
-            <div className="grid grid-cols-[1fr_auto] gap-2">
-              {/* Applying needs a tutor account, which comes with Google login. */}
-              <button type="button" disabled className="min-h-12 rounded-xl bg-slate-200 text-sm font-semibold text-slate-600">
-                {t.is_available ? "আবেদন শিগগিরই চালু হবে" : "আবেদন বন্ধ"}
-              </button>
-              <button type="button" onClick={() => share(`/tuitions/${t.code_label}`, `${t.code_label} · Hikmah Tutors`)} className="min-h-12 rounded-xl border border-brand-100 bg-white px-5 text-sm font-semibold text-forest hover:bg-brand-50">শেয়ার</button>
-            </div>
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            {/* Applying needs a tutor account, which comes with Google login. */}
+            <button type="button" disabled className="min-h-12 rounded-xl bg-slate-200 text-sm font-semibold text-slate-600">
+              {t.is_available ? "Applying opens soon" : "Applications closed"}
+            </button>
+            <button type="button" onClick={() => share(`/tuitions/${t.code_label}`, `${t.code_label} · Hikmah Tutors`)} className="min-h-12 rounded-xl border border-brand-100 bg-white px-5 text-sm font-semibold text-forest hover:bg-brand-50">Share</button>
           </div>
 
-          <dl className="rounded-2xl border border-brand-100 bg-white px-5 py-2">
-            {facts.map(([label, value]) => (
-              <div key={label} className="flex justify-between gap-4 border-b border-brand-100 py-2 last:border-0">
-                <dt className="text-slate-600">{label}</dt>
-                <dd className="text-right font-semibold text-forest">{value}</dd>
-              </div>
-            ))}
-          </dl>
-
+          {/* The guardian's tutor requirement leads the details, since it decides who should apply (owner, 2026-11-04). */}
           {t.requirements_public && (
-            <section className="rounded-2xl border border-brand-100 bg-white p-5">
-              <h2 className="text-lg font-semibold text-forest">অভিভাবকের চাওয়া</h2>
-              <p className="mt-2 whitespace-pre-line">{t.requirements_public}</p>
+            <section className="rounded-2xl border-l-4 border-brand-600 bg-brand-50 px-5 py-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-brand-700"><Icon name="cap" className="size-4" />Tutor requirement</h2>
+              <p className="mt-1.5 text-lg leading-snug font-semibold whitespace-pre-line text-forest">{t.requirements_public}</p>
             </section>
           )}
+
+          <dl className="rounded-2xl border border-brand-100 bg-white px-5 py-2">
+            {rows.map((r) => <Fact key={r.label} {...r} />)}
+          </dl>
+          {t.posted_at && <p className="-mt-3 px-1 text-xs text-slate-500">Posted {formatDate(t.posted_at)}</p>}
 
           <FeeBox fees={feeDisplay(t)} />
 
           {similar.length > 0 && (
             <section>
-              <h2 className="mb-4 text-lg font-semibold text-forest">মিল থাকা টিউশন</h2>
+              <h2 className="mb-4 text-lg font-semibold text-forest">Similar tuitions</h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 {similar.map((s, i) => <TuitionCard key={s.code} t={s} now={now} index={i} />)}
               </div>

@@ -12,11 +12,11 @@ export async function action({ request }: Route.ActionArgs) {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "ভুল অনুরোধ" }, { status: 400 });
+    return Response.json({ error: "Bad request" }, { status: 400 });
   }
 
   const { lead, errors } = parseLead(body);
-  if (!lead) return Response.json({ error: "তথ্য ঠিক নেই", errors }, { status: 400 });
+  if (!lead) return Response.json({ error: "Invalid data", errors }, { status: 400 });
 
   const { duplicate } = await insertLead(lead);
   return Response.json({ ok: true, duplicate });

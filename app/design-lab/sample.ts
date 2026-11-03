@@ -1,6 +1,6 @@
 // Synthetic tuitions and a synthetic tutor for the design lab (/design). Never real people or posts.
 import { AREAS, MEDIUMS, SUBJECTS, labelOf } from "~/lib/options";
-import { MEDIUM_EN, feeDisplay, perClass as realPerClass, type PublicTuition } from "~/lib/tuition";
+import { feeDisplay, perClass as realPerClass, type PublicTuition } from "~/lib/tuition";
 
 export type Check = { ok: boolean; short: string; title: string; detail: string };
 /** A public tuition plus what the lab pretends to know: its real class label, the viewer's fit and distance. */
@@ -24,6 +24,7 @@ export const T1: LabTuition = {
   days_per_week: 4,
   student_gender: "girl",
   tutor_gender_pref: "female",
+  tutor_from: [],
   requirements_public: "RU science faculty, patient female tutor needed",
   start_note: "ডিসেম্বরের শুরু থেকে",
   fresh: true,
@@ -53,6 +54,7 @@ export const T2: LabTuition = {
   days_per_week: 3,
   student_gender: "boy",
   tutor_gender_pref: "any",
+  tutor_from: [],
   requirements_public: "Experienced tutor needed, good at English grammar",
   start_note: "যত দ্রুত সম্ভব",
   fresh: false,
@@ -83,6 +85,7 @@ export const T3: LabTuition = {
   days_per_week: 4,
   student_gender: "boy",
   tutor_gender_pref: "male",
+  tutor_from: [],
   requirements_public: "RUET/RU engineering student preferred",
   start_note: "এই মাসেই",
   fresh: false,
@@ -100,7 +103,7 @@ export const T3: LabTuition = {
 };
 
 export const area = (t: PublicTuition) => labelOf(AREAS, t.area);
-export const mediumEn = (t: PublicTuition) => MEDIUM_EN[t.medium] ?? t.medium;
+export const mediumEn = (t: PublicTuition) => labelOf(MEDIUMS, t.medium);
 export const cls = (t: LabTuition) => t.level;
 export const medium = (t: PublicTuition) => labelOf(MEDIUMS, t.medium);
 export const subjects = (t: PublicTuition, sep = ", ") => t.subjects.map((s) => labelOf(SUBJECTS, s)).join(sep);

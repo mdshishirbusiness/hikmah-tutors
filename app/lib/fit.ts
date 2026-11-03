@@ -1,0 +1,60 @@
+// How well a tutor fits a tuition (owner, 2026-11-04): only a gender mismatch blocks; subject, area and university only
+// warn. Shared by the admin's applicant list and, later, the tutor's apply sheet.
+import { AREAS, TUTOR_FROM } from "./options";
+import { normalizeSearch } from "./tuition";
+
+export type Band = "junior" | "ssc" | "hsc";
+
+/** The teaching band a class falls in, matching tutor_subjects.band; null when it has none (Other). */
+export function bandOf(classLevel: string): Band | null {
+  if (classLevel === "pre" || classLevel === "c1-5" || classLevel === "c6-8") return "junior";
+  const n = /^class-(\d+)$/.exec(classLevel)?.[1];
+  if (n) return Number(n) <= 8 ? "junior" : Number(n) <= 10 ? "ssc" : "hsc";
+  if (classLevel.startsWith("ssc") || classLevel === "olevel") return "ssc";
+  if (classLevel.startsWith("hsc") || classLevel === "alevel" || classLevel === "admission") return "hsc";
+  return null;
+}
+
+/** RU, RUET or Medical from the free-text institution the sheet holds, until tutors pick a fixed key. */
+export function universityOf(institution: string | null): string | null {
+  if (!institution) return null;
+  const s = institution.toLowerCase();
+  if (/\bruet\b|engineering|রুয়েট|প্রকৌশল/.test(s)) return "ruet";
+  if (/medical|\brmc\b|mbbs|dental|মেডিকেল/.test(s)) return "medical";
+  if (/\bru\b|rajshahi university|university of rajshahi|\brabi\b|রাজশাহী বিশ্ববিদ্যালয়|রাবি/.test(s)) return "ru";
+  return "other";
+}
+
+/** True when a free-text address names the area, in English or Bangla. */
+function mentionsArea(text: string, areaKey: string): boolean {
+  const area = AREAS.find((a) => a.key === areaKey);
+  if (!area || !text) return false;
+  const hay = normalizeSearch(text);
+  const names = [area.label, area.alt?.match(/^[ঀ-৿\s]+/)?.[0], ...(area.alt?.split(/\s+/).filter((w) => /^[A-Za-z]{5,}$/.test(w)) ?? [])];
+  return names.some((n) => n && hay.includes(normalizeSearch(n)));
+}
+
+export type Fit = {
+  gender: "ok" | "mismatch";
+  subjects: string[]; // the tuition's subjects this tutor teaches at its band
+  subjectTotal: number;
+  area: "listed" | "nearby" | "unknown"; // listed = in the tutor's chosen areas; nearby = their address names it
+  university: "ok" | "other" | "unknown" | null; // null when the tuition takes any university
+  score: number;
+};
+
+export function fitOf(
+  t: { tutor_gender_pref: string; subjects: string[]; area: string; tutor_from: string[] },
+  a: { gender: string | null; subject_fit: string | null; areas: string | null; location: string | null; institution: string | null },
+): Fit {
+  const gender = t.tutor_gender_pref !== "any" && a.gender && a.gender !== t.tutor_gender_pref ? "mismatch" : "ok";
+  const subjects = (a.subject_fit ?? "").split(",").filter(Boolean);
+  const area = (a.areas ?? "").split(",").includes(t.area) ? "listed" : mentionsArea(a.location ?? "", t.area) ? "nearby" : "unknown";
+  const uni = universityOf(a.institution);
+  const university = !t.tutor_from.length ? null : !uni ? "unknown" : t.tutor_from.includes(uni) ? "ok" : "other";
+  const score = (gender === "mismatch" ? -100 : 0) + (t.subjects.length ? (2 * subjects.length) / t.subjects.length : 0)
+    + (area === "listed" ? 1 : area === "nearby" ? 0.5 : 0) + (university === "ok" ? 1 : university === "other" ? -1 : 0);
+  return { gender, subjects, subjectTotal: t.subjects.length, area, university, score };
+}
+
+export const tutorFromLabel = (keys: string[]) => keys.map((k) => TUTOR_FROM.find((o) => o.key === k)?.label ?? k).join(" · ");

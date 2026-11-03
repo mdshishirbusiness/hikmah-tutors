@@ -1,12 +1,12 @@
 import { Form, Link } from "react-router";
 import type { Route } from "./+types/admin.guardians";
-import { Badge, Empty, PageHead, Pager, bn, inputClass, primaryButton } from "~/components/admin";
+import { Badge, Empty, PageHead, Pager, num, inputClass, primaryButton } from "~/components/admin";
 import { ADMIN_PAGE_SIZE } from "~/lib/admin-labels";
 import { listGuardians } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
 
 export function meta(_: Route.MetaArgs) {
-  return [{ title: "গার্ডিয়ান · অ্যাডমিন" }, { name: "robots", content: "noindex" }];
+  return [{ title: "Guardians · Admin" }, { name: "robots", content: "noindex" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -19,13 +19,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function AdminGuardians({ loaderData: { total, items, f } }: Route.ComponentProps) {
   return (
     <>
-      <PageHead title={`গার্ডিয়ান (${bn(total)})`} />
+      <PageHead title={`Guardians (${num(total)})`} />
       <main className="space-y-3">
         <Form method="get" className="flex gap-2">
-          <input name="q" defaultValue={f.q} aria-label="খুঁজুন" placeholder="ফোন নম্বর" inputMode="tel" className={inputClass} />
-          <button className={`${primaryButton} shrink-0`}>খুঁজুন</button>
+          <input name="q" defaultValue={f.q} aria-label="Search" placeholder="Phone number" inputMode="tel" className={inputClass} />
+          <button className={`${primaryButton} shrink-0`}>Search</button>
         </Form>
-        {items.length === 0 ? <Empty>কোনো গার্ডিয়ান পাওয়া যায়নি।</Empty> : (
+        {items.length === 0 ? <Empty>No guardians found.</Empty> : (
           <ul className="space-y-3">
             {items.map((g) => (
               <li key={g.id}>
@@ -34,7 +34,7 @@ export default function AdminGuardians({ loaderData: { total, items, f } }: Rout
                     <span className="block font-semibold text-forest">{g.phone}</span>
                     <span className="block text-sm break-words text-slate-600">{g.name || g.label}</span>
                   </span>
-                  {g.tuitions > 1 ? <Badge tone="mango">{bn(g.tuitions)}টি টিউশন</Badge> : <Badge>{bn(g.tuitions)}টি টিউশন</Badge>}
+                  {g.tuitions > 1 ? <Badge tone="mango">{num(g.tuitions)} tuitions</Badge> : <Badge>{num(g.tuitions)} tuition</Badge>}
                 </Link>
               </li>
             ))}

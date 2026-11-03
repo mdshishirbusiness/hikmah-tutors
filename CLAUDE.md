@@ -21,8 +21,11 @@ enforced with SQLite triggers. Roles: Owner only for now.
   separate wrangler login that can belong to another account. Check `npx wrangler whoami` there first.
 - Deploy before Google login has been tried with real Google credentials and `OWNER_EMAILS` is set on Cloudflare.
   `DEV_ADMIN` is for `npm run dev` only (`app/lib/auth.server.ts`).
-- Show a guardian's phone number or full address anywhere a tutor or the public can see it.
-- Show a tutor's phone number, NID or verification document to guardians or the public.
+- Show a guardian's phone number or full address anywhere a tutor or the public can see it. One exception: the tutor
+  marked Selected on that tuition sees the guardian's phone (never the address) while the status lasts, each view
+  logged (owner, 2026-11-04).
+- Show a tutor's phone number, NID or verification document to guardians or the public. One exception: the Selected
+  tutor's phone may go into the admin's WhatsApp summary for that guardian; shortlist summaries carry no phone.
 - Handle passwords, OAuth secrets or API keys. `.dev.vars` stays gitignored.
 - Read or paste real tutor, guardian or payment data into this session, except the owner's operations sheet, which
   Claude may read in full to understand the business and plan the import (owner, 2026-11-01). Don't repeat personal
@@ -45,7 +48,9 @@ enforced with SQLite triggers. Roles: Owner only for now.
 `npx tsc -b` (after `npx react-router typegen`) with 0 errors, then try it in the browser at phone width (375 px).
 
 ## Language and design
-- UI text in clear Bangla (চলিত) or English, whichever reads better (owner, 2026-11-02: tutors read English well).
+- Short UI text is English on every page: navigation, titles, buttons, statuses, field labels, option labels, numbers
+  and dates (English digits). Bangla (চলিত) only for longer helper sentences where it reads better, guardian-facing
+  explanations, and what people type (owner, 2026-11-04). Option keys never change; Bangla names live in `alt`.
 - Modern and bold, aimed at young tutors (university students), with stunning polish: the kind of site a student
   tells friends about (owner, 2026-10-16). NO claymorphism. Boldness comes from colour bands, large confident type
   (salary and area), crisp layout and short purposeful motion, not heavy effects. Palette from the logo

@@ -10,7 +10,7 @@ import { AREAS, CLASS_CHOICES, SUBJECTS, TUTOR_GENDERS } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
   return [
-    { title: "টিউটরের জন্য অনুরোধ · Hikmah Tutors" },
+    { title: "Request a tutor · Hikmah Tutors" },
     { name: "description", content: "রাজশাহীতে হোম টিউটর খুঁজছেন? ছোট ফর্মটি পূরণ করুন, Hikmah Tutors ফোন করে বাকিটা জেনে নেবে।" },
   ];
 }
@@ -31,7 +31,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const errors: Errors = {};
   const name = String(f.get("guardian_name") ?? "").trim();
-  if (name.length < 2) errors.name = "নাম লিখুন (কমপক্ষে ২ অক্ষর)।";
+  if (name.length < 2) errors.name = "নাম লিখুন (কমপক্ষে 2 অক্ষর)।";
   const areaKey = String(f.get("area") ?? "");
   const area = areaKey === "__other" ? String(f.get("area_other") ?? "").trim() : areaKey;
   const subjects = f.getAll("subjects").map(String);
@@ -50,7 +50,7 @@ export async function action({ request }: Route.ActionArgs) {
     notes: f.get("notes"),
     lead_source: "website",
   });
-  if (leadErrors?.phone) errors.phone = "সঠিক মোবাইল নম্বর দিন (013–019 দিয়ে শুরু, ১১ ডিজিট)।";
+  if (leadErrors?.phone) errors.phone = "সঠিক মোবাইল নম্বর দিন (013–019 দিয়ে শুরু, 11 ডিজিট)।";
   if (leadErrors?.area) errors.area = "এলাকা বেছে নিন বা লিখুন।";
   if (leadErrors?.class_level) errors.class_level = "ক্লাস বেছে নিন।";
   if (leadErrors?.form) errors.form = "ফর্মটি আবার খুলে চেষ্টা করুন।";
@@ -81,8 +81,8 @@ function SectionHead({ n, title, hint }: { n: string; title: string; hint?: stri
 function ContactRow() {
   return (
     <div className="flex flex-col gap-2 sm:flex-row">
-      <a href={waLink(CONTACT.whatsapp, GUARDIAN_WA_TEXT)} target="_blank" rel="noreferrer" className={buttonClass("secondary")}><MessageCircle size={18} aria-hidden /> WhatsApp-এ লিখুন</a>
-      <a href={telLink(CONTACT.call)} className={buttonClass("secondary")}><Phone size={18} aria-hidden /> কল করুন</a>
+      <a href={waLink(CONTACT.whatsapp, GUARDIAN_WA_TEXT)} target="_blank" rel="noreferrer" className={buttonClass("secondary")}><MessageCircle size={18} aria-hidden /> WhatsApp</a>
+      <a href={telLink(CONTACT.call)} className={buttonClass("secondary")}><Phone size={18} aria-hidden /> Call</a>
     </div>
   );
 }
@@ -94,50 +94,50 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
 
   if (actionData && "done" in actionData) {
     return (
-      <PageShell title="টিউটরের জন্য অনুরোধ">
+      <PageShell title="Request a tutor">
         <div role="status" className="animate-rise rounded-3xl border border-brand-100 bg-brand-50 p-8 text-center">
           <CheckCircle2 className="mx-auto text-brand-600" size={48} aria-hidden />
           <p className="mt-4 text-2xl font-bold text-forest">ধন্যবাদ! আমরা শীঘ্রই আপনাকে ফোন করব।</p>
           <p className="mt-2 text-slate-700">তাড়াতাড়ি দরকার হলে WhatsApp-এ লিখুন বা কল করুন।</p>
           <div className="mt-6 flex justify-center"><ContactRow /></div>
-          <Link to="/" className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 hover:underline">টিউশন বোর্ডে ফিরুন</Link>
+          <Link to="/" className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 hover:underline">Back to board</Link>
         </div>
       </PageShell>
     );
   }
 
   return (
-    <PageShell title="টিউটরের জন্য অনুরোধ" sub="ছোট ফর্মটি পূরণ করুন, আমরা ফোন করে বাকিটা জেনে নেব। পূর্ণ ঠিকানা এখানে লাগবে না।">
+    <PageShell title="Request a tutor" sub="ছোট ফর্মটি পূরণ করুন, আমরা ফোন করে বাকিটা জেনে নেব। পূর্ণ ঠিকানা এখানে লাগবে না।">
       <Form method="post" noValidate className="space-y-6">
         <input type="hidden" name="client_id" value={clientId} />
         <section className="space-y-5 rounded-2xl border border-brand-100 bg-white p-5 sm:p-7">
-          <SectionHead n="০১" title="আপনার যোগাযোগের তথ্য" hint="আপনার অনুরোধ নিয়ে কথা বলতে এই তথ্য লাগবে।" />
+          <SectionHead n="01" title="Your contact details" hint="আপনার অনুরোধ নিয়ে কথা বলতে এই তথ্য লাগবে।" />
           <div>
-            <label htmlFor="rq-name" className="mb-1 block font-semibold text-forest">আপনার নাম</label>
+            <label htmlFor="rq-name" className="mb-1 block font-semibold text-forest">Your name</label>
             <input id="rq-name" name="guardian_name" className={field} autoComplete="name" maxLength={60} aria-invalid={!!errors.name} />
             {err("name")}
           </div>
           <div>
-            <label htmlFor="rq-phone" className="mb-1 block font-semibold text-forest">মোবাইল নম্বর</label>
-            <input id="rq-phone" name="phone" className={field} inputMode="tel" autoComplete="tel" placeholder="যেমন 017XXXXXXXX" aria-invalid={!!errors.phone} />
+            <label htmlFor="rq-phone" className="mb-1 block font-semibold text-forest">Mobile number</label>
+            <input id="rq-phone" name="phone" className={field} inputMode="tel" autoComplete="tel" placeholder="e.g. 017XXXXXXXX" aria-invalid={!!errors.phone} />
             {err("phone")}
           </div>
           <div>
-            <label htmlFor="rq-area" className="mb-1 block font-semibold text-forest">এলাকা</label>
+            <label htmlFor="rq-area" className="mb-1 block font-semibold text-forest">Area</label>
             <select id="rq-area" name="area" defaultValue="" className={field} aria-invalid={!!errors.area}>
-              <option value="">এলাকা বেছে নিন</option>
+              <option value="">Choose an area</option>
               {AREAS.filter((a) => a.key !== "online").map((a) => <option key={a.key} value={a.key}>{a.label}</option>)}
-              <option value="__other">অন্য এলাকা</option>
+              <option value="__other">Other area</option>
             </select>
-            <input name="area_other" className={`${field} mt-2`} placeholder="অন্য এলাকা হলে নাম লিখুন" aria-label="অন্য এলাকার নাম" maxLength={60} />
+            <input name="area_other" className={`${field} mt-2`} placeholder="অন্য এলাকা হলে নাম লিখুন" aria-label="Other area name" maxLength={60} />
             {err("area")}
           </div>
         </section>
 
         <section className="space-y-5 rounded-2xl border border-brand-100 bg-white p-5 sm:p-7">
-          <SectionHead n="০২" title="কোন বিষয়ে সাহায্য চান?" hint="নির্দিষ্ট ক্লাস, বিষয় ও টিউটরের পছন্দ বেছে নিন।" />
+          <SectionHead n="02" title="What does your child need?" hint="নির্দিষ্ট ক্লাস, বিষয় ও টিউটরের পছন্দ বেছে নিন।" />
           <fieldset>
-            <legend className="mb-2 font-semibold text-forest">ক্লাস</legend>
+            <legend className="mb-2 font-semibold text-forest">Class</legend>
             <div className="flex flex-wrap gap-2">
               {CLASS_CHOICES.map((c) => (
                 <label key={c.key} className={chip}><input type="radio" name="class_level" value={c.key} className="sr-only" />{c.label}</label>
@@ -146,7 +146,7 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
             {err("class_level")}
           </fieldset>
           <fieldset>
-            <legend className="mb-2 font-semibold text-forest">কেমন টিউটর চান</legend>
+            <legend className="mb-2 font-semibold text-forest">Tutor preference</legend>
             <div className="grid grid-cols-3 gap-2">
               {TUTOR_GENDERS.map((g) => (
                 <label key={g.key} className={`${chip} justify-center rounded-xl`}>
@@ -156,7 +156,7 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
             </div>
           </fieldset>
           <fieldset>
-            <legend className="mb-2 font-semibold text-forest">বিষয় <span className="text-sm font-normal text-slate-500">— এক বা একাধিক</span></legend>
+            <legend className="mb-2 font-semibold text-forest">Subjects <span className="text-sm font-normal text-slate-500">— one or more</span></legend>
             <div className="flex flex-wrap gap-2">
               {SUBJECTS.map((s) => (
                 <label key={s.key} className={chip}><input type="checkbox" name="subjects" value={s.key} className="sr-only" />{s.label}</label>
@@ -167,10 +167,10 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
         </section>
 
         <section className="space-y-5 rounded-2xl border border-brand-100 bg-white p-5 sm:p-7">
-          <SectionHead n="০৩" title="আর কিছু জানাতে চান?" />
+          <SectionHead n="03" title="Anything else?" />
           <div>
-            <label htmlFor="rq-note" className="mb-1 block font-semibold text-forest">অতিরিক্ত কিছু (ঐচ্ছিক)</label>
-            <textarea id="rq-note" name="notes" rows={3} maxLength={300} className={`${field} py-3`} placeholder="যেমন: সপ্তাহে ৩ দিন, সন্ধ্যায়" />
+            <label htmlFor="rq-note" className="mb-1 block font-semibold text-forest">Notes (optional)</label>
+            <textarea id="rq-note" name="notes" rows={3} maxLength={300} className={`${field} py-3`} placeholder="যেমন: সপ্তাহে 3 দিন, সন্ধ্যায়" />
           </div>
           <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
           <div>
@@ -183,11 +183,11 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
             {err("consent")}
           </div>
           {errors.form && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{errors.form}</p>}
-          <button type="submit" disabled={busy} className={buttonClass("forest", "w-full rounded-xl")}>{busy ? "পাঠানো হচ্ছে…" : "অনুরোধ পাঠান"}</button>
+          <button type="submit" disabled={busy} className={buttonClass("forest", "w-full rounded-xl")}>{busy ? "Sending…" : "Send request"}</button>
         </section>
       </Form>
       <div>
-        <p className="mb-2 text-sm text-slate-600">অথবা সরাসরি</p>
+        <p className="mb-2 text-sm text-slate-600">Or reach us directly</p>
         <ContactRow />
       </div>
     </PageShell>

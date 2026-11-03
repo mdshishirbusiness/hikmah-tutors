@@ -31,7 +31,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return null;
 }
 
-const bn = (n: number) => n.toLocaleString("bn-BD");
+const num = (n: number) => n.toLocaleString("en-IN");
 const OTHER_AREA = "__other";
 
 type Form = {
@@ -158,14 +158,14 @@ export default function QuickPad() {
     setForm(EMPTY);
     setErrors({});
     topRef.current?.scrollIntoView({ behavior: "smooth" });
-    if (result.kind === "ok") setToast({ tone: "ok", text: "সেভ হয়েছে ✓" });
+    if (result.kind === "ok") setToast({ tone: "ok", text: "Saved ✓" });
     else if (result.kind === "queued") setToast({ tone: "wait", text: "নেট নেই। ফোনে রাখা হলো, নেট এলে নিজে থেকে যাবে।" });
     else setToast({ tone: "wait", text: "ফোনে রাখা হলো। লগইন করলে সার্ভারে যাবে।" });
   }
 
   function showErrors(errs: LeadErrors) {
     setErrors(errs);
-    setToast({ tone: "error", text: errs.form ?? "লাল চিহ্নিত ঘরগুলো দেখো" });
+    setToast({ tone: "error", text: errs.form ?? "Check the fields marked red" });
     const first = (["phone", "class_level", "area", "salary"] as const).find((k) => errs[k]);
     if (first) document.getElementById(`f-${first}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -175,7 +175,7 @@ export default function QuickPad() {
       <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
         <div>
           <p className="text-xs font-semibold text-brand-600">Hikmah Tutors</p>
-          <h1 className="text-lg leading-tight font-semibold text-slate-900">নতুন গার্ডিয়ান</h1>
+          <h1 className="text-lg leading-tight font-semibold text-slate-900">New lead</h1>
         </div>
         <div className="flex items-center gap-2">
           {pending > 0 && (
@@ -183,19 +183,19 @@ export default function QuickPad() {
               type="button"
               onClick={() => flushPending()}
               className="rounded-full bg-amber-100 px-3 py-1.5 text-sm font-semibold text-amber-800"
-              title="এখনই পাঠানোর চেষ্টা করো"
+              title="Try sending now"
             >
-              ⏳ {bn(pending)}টি বাকি
+              ⏳ {num(pending)} waiting
             </button>
           )}
           <Link to="/admin/leads" className="rounded-full px-3 py-1.5 text-sm font-semibold text-brand-700 hover:bg-brand-50">
-            সব লিড →
+            All leads →
           </Link>
         </div>
       </header>
 
       <form onSubmit={submit} noValidate className="space-y-6 px-4 pt-5">
-        <Section id="f-phone" title="ফোন নম্বর" required error={errors.phone}>
+        <Section id="f-phone" title="Phone number" required error={errors.phone}>
           <div className="flex gap-2">
             <input
               type="tel"
@@ -214,45 +214,45 @@ export default function QuickPad() {
               onClick={paste}
               className="h-14 shrink-0 rounded-xl border border-slate-300 bg-white px-4 font-semibold text-brand-700 hover:bg-brand-50"
             >
-              📋 পেস্ট
+              📋 Paste
             </button>
           </div>
           <input
             type="text"
-            placeholder="গার্ডিয়ানের নাম (ঐচ্ছিক)"
+            placeholder="Guardian's name (optional)"
             value={form.guardian_name}
             onChange={(e) => set("guardian_name", e.target.value)}
             className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-4 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
           />
         </Section>
 
-        <Section id="f-class_level" title="শ্রেণি" required error={errors.class_level}>
+        <Section id="f-class_level" title="Class" required error={errors.class_level}>
           <Chips options={CLASS_CHOICES} isOn={(k) => form.class_level === k} onTap={(k) => toggle("class_level", k)} />
         </Section>
 
-        <Section title="শিক্ষার্থী">
+        <Section title="Student">
           <Chips options={STUDENT_GENDERS} isOn={(k) => form.student_gender === k} onTap={(k) => toggle("student_gender", k)} />
         </Section>
 
-        <Section title="মাধ্যম">
+        <Section title="Medium">
           <Chips options={MEDIUMS} isOn={(k) => form.medium === k} onTap={(k) => toggle("medium", k)} />
         </Section>
 
-        <Section title="বিষয়" hint="একাধিক বেছে নেওয়া যায়">
+        <Section title="Subjects" hint="Pick one or more">
           <Chips options={SUBJECTS} isOn={(k) => form.subjects.includes(k)} onTap={toggleSubject} />
         </Section>
 
-        <Section title="টিউটর">
+        <Section title="Tutor">
           <Chips options={TUTOR_GENDERS} isOn={(k) => form.tutor_gender === k} onTap={(k) => toggle("tutor_gender", k)} />
         </Section>
 
-        <Section id="f-area" title="এলাকা" required error={errors.area}>
+        <Section id="f-area" title="Area" required error={errors.area}>
           <AreaPicker value={form.area} onChange={(k) => set("area", k)} />
           {form.area === OTHER_AREA && (
             <input
               type="text"
               autoFocus
-              placeholder="এলাকার নাম লেখো"
+              placeholder="Type the area name"
               value={form.areaOther}
               onChange={(e) => set("areaOther", e.target.value)}
               className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-4 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
@@ -260,31 +260,31 @@ export default function QuickPad() {
           )}
           <input
             type="text"
-            placeholder="পুরো ঠিকানা / চেনার জায়গা (ঐচ্ছিক)"
+            placeholder="Full address / landmark (optional)"
             value={form.address}
             onChange={(e) => set("address", e.target.value)}
             className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-4 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
           />
         </Section>
 
-        <Section title="সপ্তাহে কত দিন">
+        <Section title="Days per week">
           <Chips
-            options={DAYS_PER_WEEK.map((d) => ({ key: String(d), label: `${bn(d)} দিন` }))}
+            options={DAYS_PER_WEEK.map((d) => ({ key: String(d), label: `${d} days` }))}
             isOn={(k) => form.days_per_week === k}
             onTap={(k) => toggle("days_per_week", k)}
           />
         </Section>
 
-        <Section id="f-salary" title="বেতন (মাসে)" error={errors.salary}>
+        <Section id="f-salary" title="Salary (per month)" error={errors.salary}>
           <Chips
-            options={SALARY_PRESETS.map((s) => ({ key: String(s), label: `৳${bn(s)}` }))}
+            options={SALARY_PRESETS.map((s) => ({ key: String(s), label: `৳${num(s)}` }))}
             isOn={(k) => form.salary === k}
             onTap={(k) => set("salary", form.salary === k ? "" : k)}
           />
           <input
             type="text"
             inputMode="numeric"
-            placeholder="অন্য পরিমাণ লেখো"
+            placeholder="Other amount"
             value={SALARY_PRESETS.some((s) => String(s) === form.salary) ? "" : form.salary}
             onChange={(e) => set("salary", e.target.value)}
             aria-invalid={!!errors.salary}
@@ -294,17 +294,17 @@ export default function QuickPad() {
           />
         </Section>
 
-        <Section title="নোট">
+        <Section title="Notes">
           <textarea
             rows={3}
-            placeholder="যেমন: বিকেলে পড়াবে, RU/RUET-এর টিউটর চায়"
+            placeholder="e.g. afternoons, wants an RU/RUET tutor"
             value={form.notes}
             onChange={(e) => set("notes", e.target.value)}
             className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
           />
         </Section>
 
-        <Section title="কোথা থেকে এসেছে">
+        <Section title="Source">
           <Chips options={LEAD_SOURCES} isOn={(k) => form.lead_source === k} onTap={(k) => toggle("lead_source", k)} />
         </Section>
 
@@ -315,7 +315,7 @@ export default function QuickPad() {
               disabled={saving}
               className="h-14 w-full rounded-xl bg-brand-600 text-lg font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
             >
-              {saving ? "সেভ হচ্ছে…" : "সেভ করো"}
+              {saving ? "Saving…" : "Save"}
             </button>
           </div>
         </div>
@@ -358,24 +358,24 @@ function AreaPicker({ value, onChange }: { value: string; onChange: (key: string
     <>
       <input
         type="search"
-        placeholder="এলাকা খোঁজো (বাংলা বা English)"
+        placeholder="Search area (English or বাংলা)"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="mb-2 h-11 w-full rounded-xl border border-slate-300 bg-white px-4 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
       />
       <Chips
-        options={[...shown, { key: OTHER_AREA, label: "অন্য এলাকা…" }]}
+        options={[...shown, { key: OTHER_AREA, label: "Other area…" }]}
         isOn={(k) => value === k}
         onTap={(k) => onChange(value === k ? "" : k)}
       />
-      {q && shown.length === 0 && <p className="mt-2 text-sm text-slate-500">পাওয়া যায়নি। "অন্য এলাকা…" চেপে নাম লেখো।</p>}
+      {q && shown.length === 0 && <p className="mt-2 text-sm text-slate-500">Not found. Tap "Other area…" and type the name.</p>}
       {!q && (
         <button
           type="button"
           onClick={() => setShowAll((v) => !v)}
           className="mt-2 text-sm font-semibold text-brand-700 underline underline-offset-4"
         >
-          {showAll ? "কম দেখাও" : `সব এলাকা দেখাও (${bn(AREAS.length)}টি)`}
+          {showAll ? "Show fewer" : `Show all areas (${AREAS.length})`}
         </button>
       )}
     </>

@@ -3,12 +3,12 @@
 export const ADMIN_PAGE_SIZE = 30;
 
 export const TUITION_STATUS: Record<string, string> = {
-  draft: "খসড়া",
-  available: "খালি আছে",
-  processing: "প্রক্রিয়াধীন",
-  booked: "বুকড",
-  cancelled: "বাতিল",
-  closed: "বন্ধ",
+  draft: "Draft",
+  available: "Available",
+  processing: "Processing",
+  booked: "Booked",
+  cancelled: "Cancelled",
+  closed: "Closed",
 };
 
 export const TUITION_MOVES: Record<string, string[]> = {
@@ -21,14 +21,23 @@ export const TUITION_MOVES: Record<string, string[]> = {
 };
 
 export const APPLICATION_STATUS: Record<string, string> = {
-  submitted: "নতুন আবেদন",
-  under_review: "দেখা হচ্ছে",
-  shortlisted: "শর্টলিস্ট",
-  trial_arranged: "ট্রায়াল ঠিক হয়েছে",
-  confirmed: "কনফার্ম",
-  not_selected: "বাছাই হয়নি",
-  withdrawn: "প্রত্যাহার",
-  opportunity_closed: "টিউশন বন্ধ",
+  submitted: "Applied",
+  under_review: "In review",
+  shortlisted: "Shortlisted",
+  trial_arranged: "Selected", // the tutor who gets the guardian's number and arranges the demo (owner, 2026-11-04)
+  confirmed: "Confirmed",
+  not_selected: "Not selected",
+  withdrawn: "Withdrawn",
+  opportunity_closed: "Tuition closed",
+};
+
+// The button that moves an application to each status.
+export const APPLICATION_ACTION: Record<string, string> = {
+  under_review: "Review",
+  shortlisted: "Shortlist",
+  trial_arranged: "Select",
+  confirmed: "Confirm",
+  not_selected: "Not selected",
 };
 
 // The admin never picks withdrawn (the tutor does) or opportunity_closed (the system does).
@@ -40,28 +49,28 @@ export const APPLICATION_MOVES: Record<string, string[]> = {
 };
 
 export const REVIEW_ISSUE: Record<string, string> = {
-  email_invalid: "ইমেইল ঠিক নেই",
-  phone_invalid: "ফোন নম্বর ঠিক নেই",
-  tutor_code_repeated: "টিউটর কোড দুইবার আছে",
-  tutor_phone_repeated: "একই ফোন অন্য টিউটরেরও",
-  tutor_email_repeated: "একই ইমেইল অন্য টিউটরেরও",
-  tutor_name_missing: "নাম নেই",
-  tutor_changed_fee_terms: "ফি-শর্ত নিজের মতো লিখেছেন",
-  subject_unknown: "বিষয় চেনা যায়নি",
-  tuition_code_repeated: "টিউশন কোড দুইবার আছে",
-  class_missing: "ক্লাস নেই",
-  class_unknown: "ক্লাস চেনা যায়নি",
-  tuition_closed_as_old: "শিটে খালি ছিল, পুরোনো বলে বন্ধ করা হয়েছে",
-  class_batch_missing: "SSC/HSC-এর বছর নেই",
-  class_batch_unknown: "এই SSC/HSC ব্যাচ তালিকায় নেই",
-  area_missing: "এলাকা নেই",
-  area_unknown: "এলাকা চেনা যায়নি",
-  days_missing: "সপ্তাহে কত দিন লেখা নেই",
-  days_unclear: "দিনের সংখ্যা পরিষ্কার নয়",
-  salary_missing: "বেতন নেই",
-  salary_unclear: "বেতন পরিষ্কার নয়",
-  salary_unreadable: "বেতন পড়া যায়নি",
-  salary_under_2000: "বেতন ৳২,০০০-এর কম",
-  guardian_phone_missing: "গার্ডিয়ানের নম্বর নেই",
-  tuition_status_blank: "স্ট্যাটাস নেই",
+  email_invalid: "Email not valid",
+  phone_invalid: "Phone number not valid",
+  tutor_code_repeated: "Tutor code appears twice",
+  tutor_phone_repeated: "Phone shared with another tutor",
+  tutor_email_repeated: "Email shared with another tutor",
+  tutor_name_missing: "No name",
+  tutor_changed_fee_terms: "Wrote own fee terms",
+  subject_unknown: "Subject not recognised",
+  tuition_code_repeated: "Tuition code appears twice",
+  class_missing: "No class",
+  class_unknown: "Class not recognised",
+  tuition_closed_as_old: "Open in the sheet, closed as old",
+  class_batch_missing: "No SSC/HSC year",
+  class_batch_unknown: "SSC/HSC batch not in the list",
+  area_missing: "No area",
+  area_unknown: "Area not recognised",
+  days_missing: "Days per week missing",
+  days_unclear: "Days per week unclear",
+  salary_missing: "No salary",
+  salary_unclear: "Salary unclear",
+  salary_unreadable: "Salary unreadable",
+  salary_under_2000: "Salary under ৳2,000",
+  guardian_phone_missing: "No guardian number",
+  tuition_status_blank: "No status",
 };
