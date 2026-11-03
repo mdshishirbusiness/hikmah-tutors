@@ -33,13 +33,14 @@ Set up on 2026-11-03: both owner emails are test users (Testing mode), the live 
 data. Before tutors are invited, make a fresh client secret (the first one was shown in a chat) and run the same
 command again.
 
-## 2. Photos
+## 2. Photos: done
 
-1. Running (you allowed it on 2026-11-03): the Apps Script copies photos into the Drive folder "Hikmah tutor photos"
-   as `T1234.jpg` and documents into a separate private folder, restarting itself every few minutes until done (about
-   two hours; Apps Script → Executions shows "Done"). Some tutors uploaded a PDF as their photo; those are skipped.
-2. Download the "Hikmah tutor photos" folder, unzip it into `imports/photos/`.
-3. `npm run photos:upload-real` (safe to run again; it skips photos already up).
+Done on 2026-11-03: the Apps Script copied photos and documents into the two private Drive folders, and 1,421 of
+1,422 photos are in the `hikmah-photos` bucket and linked to their tutor (iPhone HEIC photos converted). One tutor
+sent a PDF as their photo and has none. Documents stay in Drive until the verification feature.
+
+For new photos later: put them in `imports/photos/` as `T1234.jpg` and run `npm run photos:upload-real` (safe to run
+again; it skips photos already up and finishes ones that failed).
 
 ## 3. Review
 
