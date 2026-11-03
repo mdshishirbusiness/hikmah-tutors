@@ -5,6 +5,15 @@ Newest first. Each entry: what was decided, by whom, and why.
 
 ## 2026-11-03
 
+Context: planning the tutor journey from sign-up to getting the guardian's number; the owner showed Home Tutor
+Service's "Applied" tab (`design/inspiration/`).
+
+- **The signed-in tutor's bottom bar has five tabs, each with an icon and a written label** (owner), replacing the
+  four of 2026-10-19. Applications sit in the middle, raised. The fifth tab is not decided yet.
+- **A tuition's demo is 2 days by default** (owner: most are), changeable per tuition.
+- **A selected tutor must call the guardian as soon as possible, within 2–3 hours** (owner).
+- **After selection the tutor ticks Called → Met → Demo done → Confirmed** (owner liked this from Home Tutor Service).
+
 Context: a Q&A round on moving the sheet's tutors, tuitions and applications into D1.
 
 - **Release labels no longer bind the order of work** (owner). Claude proposes each next step and the owner approves
