@@ -21,7 +21,7 @@ export default function AdminTutors({ loaderData: { total, items, f } }: Route.C
   return (
     <>
       <PageHead title={`টিউটর (${bn(total)})`} />
-      <main className="mx-auto max-w-3xl space-y-3 px-4 py-4">
+      <main className="space-y-3">
         <Form method="get" className="grid grid-cols-2 gap-2">
           <input name="q" defaultValue={f.q} aria-label="খুঁজুন" placeholder="নাম, ফোন, ইমেইল, কোড, প্রতিষ্ঠান, বিভাগ" className={`${inputClass} col-span-2`} />
           <select name="subject" defaultValue={f.subject} aria-label="বিষয়" className={inputClass}>
@@ -45,7 +45,7 @@ export default function AdminTutors({ loaderData: { total, items, f } }: Route.C
           <ul className="space-y-3">
             {items.map((t) => (
               <li key={t.id}>
-                <Link to={`/admin/tutors/${t.code}`} className="block rounded-2xl border border-brand-100 bg-white p-4 transition-shadow duration-150 hover:shadow-card">
+                <Link to={`/admin/tutors/${t.code}`} className="block rounded-2xl border border-brand-100 bg-white p-5 shadow-card transition-[border-color,box-shadow] duration-150 hover:border-brand-200 hover:shadow-md">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <p className="min-w-0 font-semibold break-words text-forest">{t.full_name}</p>
                     <span className="flex gap-1.5">

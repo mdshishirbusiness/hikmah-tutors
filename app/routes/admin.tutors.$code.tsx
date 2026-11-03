@@ -1,6 +1,6 @@
 import { Link, data } from "react-router";
 import type { Route } from "./+types/admin.tutors.$code";
-import { Badge, Card, ContactButtons, Facts, PageHead, bn, safeUrl, when } from "~/components/admin";
+import { Badge, Card, ContactButtons, Facts, PageHead, bn, safeUrl, when, APPLICATION_TONE } from "~/components/admin";
 import { APPLICATION_STATUS } from "~/lib/admin-labels";
 import { getTutor } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
@@ -31,7 +31,7 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
   return (
     <>
       <PageHead title={t.full_name} back={{ to: "/admin/tutors", label: "সব টিউটর" }} />
-      <main className="mx-auto max-w-3xl space-y-4 px-4 py-4">
+      <main className="space-y-4">
         <p className="text-sm text-slate-600">এই প্রোফাইল পাবলিক নয়। শুধু অ্যাডমিন ও টিউটর নিজে দেখতে পারবেন।</p>
         <Card>
           {t.photo_key && <img src={`/photos/tutor/${t.code}`} alt={`${t.full_name}-এর ছবি`} width={96} height={96} className="mb-3 size-24 rounded-2xl object-cover" />}
@@ -87,7 +87,7 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
               <li key={a.id}>
                 <Link to={`/admin/tuitions/${a.tuition_code}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm">
                   <span>HTR-{a.tuition_code} · {labelOf(CLASS_LEVELS, a.class_level)} · {labelOf(AREAS, a.area)}</span>
-                  <Badge>{APPLICATION_STATUS[a.status]}</Badge>
+                  <Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge>
                 </Link>
               </li>
             ))}

@@ -1,6 +1,6 @@
 import { Form, Link } from "react-router";
 import type { Route } from "./+types/admin.tuitions";
-import { Badge, Empty, PageHead, Pager, bn, inputClass, primaryButton } from "~/components/admin";
+import { Badge, Empty, PageHead, Pager, bn, inputClass, primaryButton, TUITION_TONE } from "~/components/admin";
 import { ADMIN_PAGE_SIZE, TUITION_STATUS } from "~/lib/admin-labels";
 import { listTuitions } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
@@ -22,7 +22,7 @@ export default function AdminTuitions({ loaderData: { total, items, f } }: Route
   return (
     <>
       <PageHead title={`টিউশন (${bn(total)})`} />
-      <main className="mx-auto max-w-3xl space-y-3 px-4 py-4">
+      <main className="space-y-3">
         <Form method="get" className="grid grid-cols-2 gap-2">
           <input name="q" defaultValue={f.q} aria-label="খুঁজুন" placeholder="কোড, এলাকা বা গার্ডিয়ানের নম্বর" className={`${inputClass} col-span-2`} />
           <select name="status" defaultValue={f.status} aria-label="স্ট্যাটাস" className={inputClass}>
@@ -40,12 +40,12 @@ export default function AdminTuitions({ loaderData: { total, items, f } }: Route
           <ul className="space-y-3">
             {items.map((t) => (
               <li key={t.code}>
-                <Link to={`/admin/tuitions/${t.code}`} className="block rounded-2xl border border-brand-100 bg-white p-4 transition-shadow duration-150 hover:shadow-card">
+                <Link to={`/admin/tuitions/${t.code}`} className="block rounded-2xl border border-brand-100 bg-white p-5 shadow-card transition-[border-color,box-shadow] duration-150 hover:border-brand-200 hover:shadow-md">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-sm font-semibold text-slate-600">HTR-{t.code}</span>
                     <span className="flex gap-1.5">
                       {t.is_public === 1 && <Badge tone="mango">পাবলিক</Badge>}
-                      <Badge tone={t.status === "available" ? "green" : "grey"}>{TUITION_STATUS[t.status]}</Badge>
+                      <Badge tone={TUITION_TONE[t.status]}>{TUITION_STATUS[t.status]}</Badge>
                     </span>
                   </div>
                   <p className="mt-1 text-lg font-semibold text-forest">

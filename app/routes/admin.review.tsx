@@ -45,7 +45,7 @@ export default function AdminReview({ loaderData: d, actionData }: Route.Compone
   return (
     <>
       <PageHead title={left ? `রিভিউ বাকি (${bn(left)})` : "রিভিউ শেষ"} back={{ to: "/admin", label: "হোম" }} />
-      <main className="mx-auto max-w-3xl space-y-3 px-4 py-4">
+      <main className="space-y-3">
         <nav aria-label="রিভিউয়ের তালিকা" className="grid grid-cols-3 gap-2">
           {TABS.map((t) => {
             const n = t.count(d.counts);

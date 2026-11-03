@@ -20,7 +20,7 @@ export default function AdminGuardians({ loaderData: { total, items, f } }: Rout
   return (
     <>
       <PageHead title={`গার্ডিয়ান (${bn(total)})`} />
-      <main className="mx-auto max-w-3xl space-y-3 px-4 py-4">
+      <main className="space-y-3">
         <Form method="get" className="flex gap-2">
           <input name="q" defaultValue={f.q} aria-label="খুঁজুন" placeholder="ফোন নম্বর" inputMode="tel" className={inputClass} />
           <button className={`${primaryButton} shrink-0`}>খুঁজুন</button>
@@ -29,7 +29,7 @@ export default function AdminGuardians({ loaderData: { total, items, f } }: Rout
           <ul className="space-y-3">
             {items.map((g) => (
               <li key={g.id}>
-                <Link to={`/admin/guardians/${g.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-brand-100 bg-white p-4 transition-shadow duration-150 hover:shadow-card">
+                <Link to={`/admin/guardians/${g.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-brand-100 bg-white p-5 shadow-card transition-[border-color,box-shadow] duration-150 hover:border-brand-200 hover:shadow-md">
                   <span className="min-w-0">
                     <span className="block font-semibold text-forest">{g.phone}</span>
                     <span className="block text-sm break-words text-slate-600">{g.name || g.label}</span>

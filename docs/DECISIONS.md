@@ -139,6 +139,24 @@ Context: a Q&A round on moving the sheet's tutors, tuitions and applications int
   reply whether or not a record exists. On first sign-in the tutor checks their details, confirms availability and
   accepts the privacy notice and terms. The profile stays private to the tutor and staff.
 
+## 2026-11-03
+
+- **Every page except the board and the tuition detail page takes the 21 Oct Emergent design** (owner: "the tuition
+  job post page is fine, all other pages' design is useless"). Ported from `reference/emergent/`: the sticky site
+  header and full footer, the forest title band for text pages, the admin panel (sidebar on desktop, scrolling tabs on
+  the phone, big titles on cream, white cards, toned status pills), the tutor panel look on `/me`, and the login page.
+  The 20 Oct export in `imports/emergent` is older and adds nothing.
+- **New public pages from the Emergent build** (owner): How it works, Fees, Request a tutor, Contact, Privacy and
+  Terms (both marked as drafts), and a 404 page. The how-it-works text was rewritten for the real site (Google login,
+  applying coming soon), not the Emergent demo.
+- **The Request a tutor form saves a lead with source "website"** (Claude), through the same `parseLead`/`insertLead`
+  as the Quick Pad, with a honeypot field and at most 3 requests per phone number per day.
+- **Public contact number = the admin WhatsApp 01522136687** for WhatsApp and call buttons (Claude, from the
+  2026-10-29 decision; owner to confirm). One place to change it: `app/lib/contact.ts`.
+- **Icons from `lucide-react`** (Claude), as in the Emergent build; only the icons used are bundled.
+- Left out from Emergent for now: the English/Bangla toggle (the site is Bangla only), the public admin link, the
+  code download, the tutor demo picker, saved tuitions and the Premium planning card.
+
 ## 2026-11-01
 
 - **Port the Emergent screens into the Cloudflare app, starting with the public board** (owner). `/` is now the board

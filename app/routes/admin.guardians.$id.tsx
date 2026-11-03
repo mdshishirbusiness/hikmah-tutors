@@ -1,6 +1,6 @@
 import { Link, data } from "react-router";
 import type { Route } from "./+types/admin.guardians.$id";
-import { Badge, Card, ContactButtons, PageHead, bn } from "~/components/admin";
+import { Badge, Card, ContactButtons, PageHead, bn, TUITION_TONE } from "~/components/admin";
 import { TUITION_STATUS } from "~/lib/admin-labels";
 import { getGuardian } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
@@ -21,7 +21,7 @@ export default function AdminGuardian({ loaderData: { guardian: g, tuitions } }:
   return (
     <>
       <PageHead title={g.name || tuitions[0]?.label || g.phone} back={{ to: "/admin/guardians", label: "সব গার্ডিয়ান" }} />
-      <main className="mx-auto max-w-3xl space-y-4 px-4 py-4">
+      <main className="space-y-4">
         <Card>
           <ContactButtons phone={g.phone} />
           {g.notes && <p className="mt-2 text-sm whitespace-pre-line text-slate-700">{g.notes}</p>}
@@ -34,7 +34,7 @@ export default function AdminGuardian({ loaderData: { guardian: g, tuitions } }:
                 <Link to={`/admin/tuitions/${t.code}`} className="block rounded-xl border border-brand-100 bg-white px-3 py-3 text-sm">
                   <span className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-semibold text-forest">HTR-{t.code} · {labelOf(CLASS_LEVELS, t.class_level)} · {labelOf(AREAS, t.area)}</span>
-                    <Badge>{TUITION_STATUS[t.status]}</Badge>
+                    <Badge tone={TUITION_TONE[t.status]}>{TUITION_STATUS[t.status]}</Badge>
                   </span>
                   {t.exact_address && <span className="mt-1 block break-words text-slate-600">{t.exact_address}</span>}
                 </Link>

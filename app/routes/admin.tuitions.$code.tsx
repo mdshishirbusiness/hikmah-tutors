@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Form, Link, data, useNavigation } from "react-router";
 import type { Route } from "./+types/admin.tuitions.$code";
-import { Badge, Card, ContactButtons, Facts, PageHead, bn, inputClass, primaryButton, when } from "~/components/admin";
+import { Badge, Card, ContactButtons, Facts, PageHead, bn, inputClass, primaryButton, when, TUITION_TONE, APPLICATION_TONE } from "~/components/admin";
 import { APPLICATION_MOVES, APPLICATION_STATUS, TUITION_MOVES, TUITION_STATUS } from "~/lib/admin-labels";
 import { type Applicant, getTuition, moveApplication, updateTuition } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
@@ -51,7 +51,7 @@ function ApplicantCard({ a, tuitionSubjects, wanted }: { a: Applicant; tuitionSu
           ) : <p className="font-semibold text-slate-900">{a.name || "নাম নেই"}</p>}
           <p className="text-sm break-words text-slate-600">{a.shortcode}</p>
         </div>
-        <Badge tone={a.status === "submitted" ? "mango" : a.status === "shortlisted" || a.status === "confirmed" ? "green" : "grey"}>{APPLICATION_STATUS[a.status]}</Badge>
+        <Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge>
       </div>
       <p className="mt-2 flex flex-wrap gap-1.5">
         {!a.tutor_id && <Badge tone="red">টিউটর মেলেনি</Badge>}
@@ -89,8 +89,8 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
 
   return (
     <>
-      <PageHead title={`HTR-${t.code}`} back={{ to: "/admin/tuitions", label: "সব টিউশন" }} action={<span className="flex flex-col items-end gap-1">{t.is_public === 1 && <Badge tone="mango">পাবলিক</Badge>}<Badge>{TUITION_STATUS[t.status]}</Badge></span>} />
-      <main className="mx-auto max-w-3xl space-y-4 px-4 py-4">
+      <PageHead title={`HTR-${t.code}`} back={{ to: "/admin/tuitions", label: "সব টিউশন" }} action={<span className="flex flex-col items-end gap-1">{t.is_public === 1 && <Badge tone="mango">পাবলিক</Badge>}<Badge tone={TUITION_TONE[t.status]}>{TUITION_STATUS[t.status]}</Badge></span>} />
+      <main className="space-y-4">
         {actionData?.error && <p role="alert" className="rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
         {actionData?.saved && <p role="status" className="rounded-xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700">সেভ হয়েছে।</p>}
 

@@ -20,6 +20,15 @@ export type LeadRow = {
   created_at: number;
 };
 
+/** How many website requests this phone number sent in the last day (the public form allows a few). */
+export async function recentWebsiteLeads(phone: string): Promise<number> {
+  const since = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
+  const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM leads WHERE phone = ? AND lead_source = 'website' AND synced_at > ?`)
+    .bind(phone, since)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
 /** Stores a lead. Saving the same client_id twice (a retry after a weak connection) is a no-op, not a duplicate. */
 export async function insertLead(lead: LeadInput): Promise<{ duplicate: boolean }> {
   const r = await env.DB.prepare(
