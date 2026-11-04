@@ -39,7 +39,7 @@ export function ColumnChart({ title, data, series, height = 176, unit = "" }: {
   const values = data.flatMap((d) => series.map((s) => Number(d[s.key] ?? 0)));
   const scale = ticks(Math.max(1, ...values));
   const top = scale.at(-1) || 1;
-  const every = data.length > 8 ? 2 : 1;
+  const every = data.length > 16 ? 4 : data.length > 8 ? 2 : 1;
   return (
     <figure className="min-w-0">
       <figcaption className="mb-3 flex flex-wrap items-center justify-between gap-2">

@@ -33,7 +33,7 @@ export async function dashboard() {
 
 /** The admin's to-do list, most urgent first. Steps that come with the tutor's own ticks (3-hour call, demo, confirm) join later. */
 export async function todayList() {
-  const [leads, applications, drafts, selected, tutorConfirmed] = await Promise.all([
+  const [leads, applications, drafts, selected, tutorConfirmed, checkins] = await Promise.all([
     all<{ id: number; status: string; class_level: string; area: string; guardian_name: string | null; created_at: number }>(
       `SELECT id, status, class_level, area, guardian_name, created_at FROM leads WHERE status IN ('new', 'called') ORDER BY status = 'new' DESC, created_at LIMIT 20`,
     ),
@@ -62,8 +62,16 @@ export async function todayList() {
        WHERE e.to_status = 'confirmed' AND u.role = 'tutor' AND a.status = 'confirmed' AND e.created_at > unixepoch() - 7 * 86400
        ORDER BY e.created_at DESC LIMIT 20`,
     ),
+    // Check-in calls due (owner, 2026-11-04): day 7 and day 30 after Confirmed.
+    all<{ id: number; code: number; class_level: string; area: string; day: number; confirmed_at: number }>(
+      `SELECT pl.id, pl.tuition_code code, t.class_level, t.area, CASE WHEN pl.checkin7_at IS NULL THEN 7 ELSE 30 END day, pl.confirmed_at
+       FROM placements pl JOIN tuitions t ON t.code = pl.tuition_code
+       WHERE pl.status IN ('confirmed', 'joined') AND pl.confirmed_at > unixepoch() - 75 * 86400
+         AND ((pl.checkin7_at IS NULL AND pl.confirmed_at <= unixepoch() - 7 * 86400) OR (pl.checkin30_at IS NULL AND pl.confirmed_at <= unixepoch() - 30 * 86400))
+       ORDER BY pl.confirmed_at LIMIT 20`,
+    ),
   ]);
-  return { leads, applications, drafts, selected, tutorConfirmed };
+  return { leads, applications, drafts, selected, tutorConfirmed, checkins };
 }
 
 // ---------- Leads ----------
@@ -136,6 +144,7 @@ export async function postLeadAsTuition(id: number, actorId: number | null): Pro
 export type AdminTuitionRow = {
   code: number; status: string; is_public: number; class_level: string; subjects: string; area: string; salary_kind: string;
   salary_amount: number | null; tutor_gender_pref: string; posted_at: number | null; applications: number;
+  fresh?: number; review?: number; short?: number; selected?: number; accepting_applications?: number; guardian?: string | null;
 };
 
 export async function listTuitions(f: { q: string; status: string; visibility: string; page: number }) {
@@ -154,16 +163,22 @@ export async function listTuitions(f: { q: string; status: string; visibility: s
   }
   const from = `FROM tuitions t LEFT JOIN tuition_private p ON p.tuition_code = t.code LEFT JOIN guardians g ON g.id = p.guardian_id
                 WHERE ${where.join(" AND ")}`;
-  const [total, items] = await Promise.all([
+  const [total, items, statuses] = await Promise.all([
     count(`SELECT count(*) n ${from}`, ...args),
     all<AdminTuitionRow>(
-      `SELECT t.code, t.status, t.is_public, t.class_level, t.subjects, t.area, t.salary_kind, t.salary_amount, t.tutor_gender_pref, t.posted_at,
-              (SELECT count(*) FROM applications a WHERE a.tuition_code = t.code) applications
+      `SELECT t.code, t.status, t.is_public, t.accepting_applications, t.class_level, t.subjects, t.area, t.salary_kind, t.salary_amount, t.tutor_gender_pref, t.posted_at,
+              COALESCE(p.guardian_label, g.name) guardian,
+              (SELECT count(*) FROM applications a WHERE a.tuition_code = t.code) applications,
+              (SELECT count(*) FROM applications a WHERE a.tuition_code = t.code AND a.status = 'submitted') fresh,
+              (SELECT count(*) FROM applications a WHERE a.tuition_code = t.code AND a.status = 'under_review') review,
+              (SELECT count(*) FROM applications a WHERE a.tuition_code = t.code AND a.status = 'shortlisted') short,
+              (SELECT count(*) FROM applications a WHERE a.tuition_code = t.code AND a.status IN ('trial_arranged', 'confirmed')) selected
        ${from} ORDER BY t.code DESC LIMIT ? OFFSET ?`,
       ...args, PAGE_SIZE, pageOffset(f.page),
     ),
+    all<{ status: string; n: number }>(`SELECT status, count(*) n FROM tuitions GROUP BY status`),
   ]);
-  return { total, items };
+  return { total, items, statuses: Object.fromEntries(statuses.map((s) => [s.status, s.n])) as Record<string, number> };
 }
 
 export type TuitionFull = AdminTuitionRow & {
@@ -187,6 +202,7 @@ export type Applicant = {
   photo_key: string | null; about: string | null; demo_willing: number | null; paused: number | null; updated_at: number;
   called_at: number | null; met_at: number | null; demo_done_at: number | null;
   total_apps: number; placed: number; // this tutor's whole record with HTR, for the admin's judgement
+  flag_reason: string | null;
 };
 
 export async function getTuition(code: number) {
@@ -208,7 +224,7 @@ export async function getTuition(code: number) {
                  AND instr(',' || ? || ',', ',' || s.subject || ',') > 0) subject_fit,
               (SELECT group_concat(ar.area) FROM tutor_areas ar WHERE ar.tutor_id = a.tutor_id) areas,
               (SELECT body FROM tutor_statements st WHERE st.tutor_id = a.tutor_id AND st.kind = ?) experience,
-              t.photo_key, t.about, t.demo_willing, t.availability_paused paused, a.updated_at, a.called_at, a.met_at, a.demo_done_at,
+              t.photo_key, t.about, t.demo_willing, t.availability_paused paused, t.flag_reason, a.updated_at, a.called_at, a.met_at, a.demo_done_at,
               (SELECT count(*) FROM applications x WHERE x.tutor_id = a.tutor_id) total_apps,
               (SELECT count(*) FROM placements pl WHERE pl.tutor_id = a.tutor_id AND pl.status IN ('confirmed', 'joined', 'ended')) placed
        FROM applications a LEFT JOIN tutors t ON t.id = a.tutor_id WHERE a.tuition_code = ? ORDER BY a.created_at`,
@@ -465,12 +481,20 @@ export async function moveApplication(id: number, to: string, reason: string, ac
 export type AdminTutorRow = {
   id: number; code: number; full_name: string; gender: string | null; phone: string; institution: string | null; department: string | null; session_year: string | null;
   current_location: string | null; priority: string | null; claim_status: string; applications: number; placements: number;
+  photo_key?: string | null; university?: string | null; setup_done_at?: number | null; availability_paused?: number; last_applied?: number | null; flag_reason?: string | null;
 };
 
-export async function listTutors(f: { q: string; gender: string; subject: string; band: string; page: number }) {
+export async function listTutors(f: { q: string; gender: string; subject: string; band: string; page: number; university?: string; state?: string; area?: string; sort?: string }) {
   const where = ["t.deleted_at IS NULL"];
   const args: unknown[] = [];
   if (f.gender) { where.push("t.gender = ?"); args.push(f.gender); }
+  if (f.university) { where.push("t.university = ?"); args.push(f.university); }
+  if (f.state === "setup") where.push("t.setup_done_at IS NOT NULL");
+  if (f.state === "paused") where.push("t.availability_paused = 1");
+  if (f.state === "placed") where.push("EXISTS (SELECT 1 FROM placements p WHERE p.tutor_id = t.id AND p.status IN ('confirmed', 'joined'))");
+  if (f.state === "active") where.push("EXISTS (SELECT 1 FROM applications a WHERE a.tutor_id = t.id AND a.created_at > unixepoch() - 30 * 86400)");
+  if (f.state === "flagged") where.push("t.flag_reason IS NOT NULL");
+  if (f.area) { where.push("(t.anywhere = 1 OR EXISTS (SELECT 1 FROM tutor_areas ar WHERE ar.tutor_id = t.id AND ar.area = ?))"); args.push(f.area); }
   if (f.subject) {
     where.push(`EXISTS (SELECT 1 FROM tutor_subjects s WHERE s.tutor_id = t.id AND s.subject = ?${f.band ? " AND s.band = ?" : ""})`);
     args.push(f.subject);
@@ -486,9 +510,11 @@ export async function listTutors(f: { q: string; gender: string; subject: string
     count(`SELECT count(*) n ${from}`, ...args),
     all<AdminTutorRow>(
       `SELECT t.id, t.code, t.full_name, t.gender, t.phone, t.institution, t.department, t.session_year, t.current_location, t.priority, t.claim_status,
+              t.photo_key, t.university, t.setup_done_at, t.availability_paused, t.flag_reason,
               (SELECT count(*) FROM applications a WHERE a.tutor_id = t.id) applications,
-              (SELECT count(*) FROM placements p WHERE p.tutor_id = t.id) placements
-       ${from} ORDER BY t.code DESC LIMIT ? OFFSET ?`,
+              (SELECT max(a.created_at) FROM applications a WHERE a.tutor_id = t.id) last_applied,
+              (SELECT count(*) FROM placements p WHERE p.tutor_id = t.id AND p.status IN ('confirmed', 'joined', 'ended')) placements
+       ${from} ORDER BY ${f.sort === "active" ? "last_applied DESC NULLS LAST" : f.sort === "placed" ? "placements DESC, t.code DESC" : "t.code DESC"} LIMIT ? OFFSET ?`,
       ...args, PAGE_SIZE, pageOffset(f.page),
     ),
   ]);
@@ -499,21 +525,25 @@ export type TutorFull = AdminTutorRow & {
   email: string | null; alt_phone: string | null; facebook_url: string | null; photo_source_url: string | null; photo_key: string | null; ssc_school: string | null; ssc_year: number | null; ssc_result: string | null;
   ssc_group: string | null; hsc_college: string | null; hsc_year: number | null; hsc_result: string | null; hsc_group: string | null; mediums: string | null; home_division: string | null;
   home_district: string | null; demo_willing: number | null; transport: string | null; referral_code: string | null; registered_at: number | null;
+  university: string | null; min_salary: number | null; anywhere: number; setup_done_at: number | null; availability_paused: number; about: string | null;
+  flag_reason: string | null; user_id: number | null;
 };
 
 export async function getTutor(code: number) {
   const tutor = await env.DB.prepare(`SELECT t.*, 0 applications, 0 placements FROM tutors t WHERE t.code = ? AND t.deleted_at IS NULL`).bind(code).first<TutorFull>();
   if (!tutor) return null;
-  const [subjects, statements, applications, placements] = await Promise.all([
+  const [subjects, statements, applications, placements, areas, classes] = await Promise.all([
     all<{ band: string; subject: string }>(`SELECT band, subject FROM tutor_subjects WHERE tutor_id = ?`, tutor.id),
     all<{ kind: string; body: string }>(`SELECT kind, body FROM tutor_statements WHERE tutor_id = ?`, tutor.id),
-    all<{ id: number; tuition_code: number; status: string; created_at: number; class_level: string; area: string }>(
-      `SELECT a.id, a.tuition_code, a.status, a.created_at, t.class_level, t.area FROM applications a JOIN tuitions t ON t.code = a.tuition_code
+    all<{ id: number; tuition_code: number; status: string; created_at: number; updated_at: number; class_level: string; area: string; salary_amount: number | null; salary_kind: string }>(
+      `SELECT a.id, a.tuition_code, a.status, a.created_at, a.updated_at, t.class_level, t.area, t.salary_amount, t.salary_kind FROM applications a JOIN tuitions t ON t.code = a.tuition_code
        WHERE a.tutor_id = ? ORDER BY a.created_at DESC LIMIT 100`, tutor.id,
     ),
-    all<{ tuition_code: number; status: string }>(`SELECT tuition_code, status FROM placements WHERE tutor_id = ? ORDER BY id DESC`, tutor.id),
+    all<{ tuition_code: number; status: string; confirmed_at: number | null; agreed_salary: number | null }>(`SELECT tuition_code, status, confirmed_at, agreed_salary FROM placements WHERE tutor_id = ? ORDER BY id DESC`, tutor.id),
+    all<{ area: string }>(`SELECT area FROM tutor_areas WHERE tutor_id = ?`, tutor.id),
+    all<{ class_level: string }>(`SELECT class_level FROM tutor_classes WHERE tutor_id = ?`, tutor.id),
   ]);
-  return { tutor, subjects, statements, applications, placements };
+  return { tutor, subjects, statements, applications, placements, areas: areas.map((a) => a.area), classes: classes.map((c) => c.class_level) };
 }
 
 // ---------- Guardians ----------
@@ -785,4 +815,70 @@ export async function insights() {
     count(`SELECT count(DISTINCT tutor_id) n FROM applications WHERE created_at > ? AND tutor_id IS NOT NULL`, now() - 30 * 86400),
   ]);
   return { ...base, classes, sources, universities, salary, active };
+}
+
+/** The do-not-place flag (owner, 2026-11-04): a private reason, warning only. An empty reason clears it. */
+export async function setFlag(kind: "tutor" | "guardian", id: number, reason: string, actorId: number | null): Promise<string | null> {
+  const text = reason.trim().slice(0, 300) || null;
+  const table = kind === "tutor" ? "tutors" : "guardians";
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE ${table} SET flag_reason = ? WHERE id = ?`).bind(text, id),
+    // Its own entity type: a flag must never show up as a "profile changed" update on the tutor's Home.
+    audit(actorId, text ? "flag_set" : "flag_cleared", `${kind}_flag`, String(id), {}),
+  ]);
+  return null;
+}
+
+// ---------- Placements: tracking selected tutors and the check-in calls ----------
+
+export type InProgress = {
+  application_id: number; tuition_code: number; class_level: string; area: string; salary_amount: number | null; salary_kind: string;
+  tutor_code: number | null; name: string | null; photo_key: string | null; phone: string | null; selected_at: number | null;
+  called_at: number | null; met_at: number | null; demo_done_at: number | null; guardian_phone: string | null;
+};
+export type Placed = {
+  id: number; tuition_code: number; class_level: string; area: string; agreed_salary: number | null; salary_amount: number | null; confirmed_at: number;
+  checkin7_at: number | null; checkin30_at: number | null; first_salary_at: number | null; checkin_note: string | null;
+  tutor_code: number | null; name: string | null; photo_key: string | null; guardian_phone: string | null; guardian: string | null;
+};
+
+/** Check-in calls after Confirmed (owner, 2026-11-04): day 7 and day 30, each due until it is ticked. */
+export async function placementsBoard() {
+  const [inProgress, placed] = await Promise.all([
+    all<InProgress>(
+      `SELECT a.id application_id, a.tuition_code, t.class_level, t.area, t.salary_amount, t.salary_kind, u.code tutor_code, u.full_name name, u.photo_key,
+              COALESCE(a.applicant_phone, u.phone) phone, a.called_at, a.met_at, a.demo_done_at, g.phone guardian_phone,
+              (SELECT max(e.created_at) FROM application_events e WHERE e.application_id = a.id AND e.to_status = 'trial_arranged') selected_at
+       FROM applications a JOIN tuitions t ON t.code = a.tuition_code LEFT JOIN tutors u ON u.id = a.tutor_id
+       LEFT JOIN tuition_private p ON p.tuition_code = t.code LEFT JOIN guardians g ON g.id = p.guardian_id
+       WHERE a.status = 'trial_arranged' ORDER BY selected_at DESC LIMIT 100`,
+    ),
+    all<Placed>(
+      `SELECT pl.id, pl.tuition_code, t.class_level, t.area, pl.agreed_salary, t.salary_amount, pl.confirmed_at, pl.checkin7_at, pl.checkin30_at, pl.first_salary_at, pl.checkin_note,
+              u.code tutor_code, u.full_name name, u.photo_key, g.phone guardian_phone, COALESCE(p.guardian_label, g.name) guardian
+       FROM placements pl JOIN tuitions t ON t.code = pl.tuition_code LEFT JOIN tutors u ON u.id = pl.tutor_id
+       LEFT JOIN tuition_private p ON p.tuition_code = t.code LEFT JOIN guardians g ON g.id = p.guardian_id
+       WHERE pl.status IN ('confirmed', 'joined') AND pl.confirmed_at > ? ORDER BY pl.confirmed_at DESC LIMIT 200`,
+      now() - 75 * 86400,
+    ),
+  ]);
+  const t = now();
+  const due7 = placed.filter((p) => !p.checkin7_at && t - p.confirmed_at >= 7 * 86400);
+  const due30 = placed.filter((p) => !p.checkin30_at && t - p.confirmed_at >= 30 * 86400);
+  return { inProgress, placed, due7, due30 };
+}
+
+/** Ticks a check-in call. Day 30 with "salary paid" also records the first salary (PRD BR-SAL-001). */
+export async function checkIn(id: number, day: string, salaryPaid: boolean, note: string, actorId: number | null): Promise<string | null> {
+  if (day !== "7" && day !== "30") return "Unknown check-in.";
+  const column = day === "7" ? "checkin7_at" : "checkin30_at";
+  const t = now();
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE placements SET ${column} = COALESCE(${column}, ?), first_salary_at = CASE WHEN ? THEN COALESCE(first_salary_at, ?) ELSE first_salary_at END,
+              checkin_note = COALESCE(NULLIF(?, ''), checkin_note), updated_at = ? WHERE id = ?`,
+    ).bind(t, salaryPaid ? 1 : 0, t, note.trim().slice(0, 500), t, id),
+    audit(actorId, `checkin_${day}`, "placement", String(id), { salary_paid: salaryPaid }),
+  ]);
+  return null;
 }

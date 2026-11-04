@@ -178,6 +178,7 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
           </div>
         </div>
 
+        {a.flag_reason && <p role="alert" className="rounded-xl bg-rose-100 px-3 py-2 text-sm text-rose-900"><b>Flagged:</b> {a.flag_reason}</p>}
         {a.paused === 1 && <p className="rounded-xl bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-900">This tutor has paused new tuitions.</p>}
 
         <section aria-label="Fit" className="rounded-2xl bg-cream p-4 ring-1 ring-brand-100">
@@ -292,6 +293,7 @@ function RowButton({ row, active, onPick, compact }: { row: Row; active: boolean
         <span className="flex items-center gap-1.5">
           <span className="truncate font-bold text-forest">{a.name || "No name"}</span>
           {a.priority === "urgent" && <span className="shrink-0 rounded bg-forest px-1 text-[10px] font-bold text-mango">URGENT</span>}
+          {a.flag_reason && <span title={`Flagged: ${a.flag_reason}`} className="shrink-0 rounded bg-rose-600 px-1 text-[10px] font-bold text-white">FLAG</span>}
           {a.note && <span title="Wrote a note" className="size-1.5 shrink-0 rounded-full bg-brand-600" />}
         </span>
         <span className="block truncate text-xs text-slate-500">{who(a)}</span>

@@ -1,10 +1,17 @@
-import { Link, data } from "react-router";
+// One tutor for the admin (owner, 2026-11-04: track tutors). Photo and contact on top, their record with HTR as
+// numbers, every application as a timeline, what they picked on the site, their education and statements, and a
+// private do-not-place flag (warning only). This page is never public.
+import { Form, Link, data, useNavigation } from "react-router";
+import { Flag, Mail, MessageCircle, Phone } from "lucide-react";
 import type { Route } from "./+types/admin.tutors.$code";
-import { Badge, Card, ContactButtons, Facts, PageHead, num, safeUrl, when, APPLICATION_TONE } from "~/components/admin";
+import { Avatar } from "~/components/Avatar";
+import { APPLICATION_TONE, Badge, Card, Facts, PageHead, ago, inputClass, num, safeUrl, when } from "~/components/admin";
 import { APPLICATION_STATUS } from "~/lib/admin-labels";
-import { getTutor } from "~/lib/admin.server";
+import { getTutor, setFlag } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
-import { AREAS, CLASS_LEVELS, MEDIUMS, SUBJECTS, labelOf } from "~/lib/options";
+import { waLink } from "~/lib/contact";
+import { AREAS, BANDS, CLASS_LEVELS, MEDIUMS, SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
+import { taka } from "~/lib/tuition";
 
 export function meta({ params }: Route.MetaArgs) {
   return [{ title: `Tutor ${params.code} · Admin` }, { name: "robots", content: "noindex" }];
@@ -17,83 +24,162 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   return found;
 }
 
-const BANDS: Record<string, string> = { junior: "Class 1–8", ssc: "Class 9–10", hsc: "Class 11–12" };
+export async function action({ request, params }: Route.ActionArgs) {
+  const viewer = await requireAdmin(request);
+  const found = await getTutor(Number(params.code) || -1);
+  if (!found) throw data("Tutor not found", { status: 404 });
+  const form = await request.formData();
+  return { error: await setFlag("tutor", found.tutor.id, form.get("intent") === "clear" ? "" : String(form.get("reason") ?? ""), viewer?.id ?? null) };
+}
+
 const STATEMENTS: Record<string, string> = {
   junior_strategy: "Junior: teaching approach", junior_experience: "Junior: experience", ssc_strategy: "SSC: skills and approach", ssc_experience: "SSC: experience",
   hsc_strategy: "HSC: skills and approach", hsc_experience: "HSC: experience", english_experience: "English medium / version experience", special_skills: "Special skills",
   skills_detail: "Skills in detail", demo_video: "Demo video",
 };
-const TRANSPORT: Record<string, string> = { none: "None", bicycle: "Bicycle", motorbike: "Motorbike", other: "Other" };
-const linkClass = "inline-flex min-h-11 items-center rounded-xl border border-brand-100 bg-white px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50";
+const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical", other: "Other" };
+const ghost = "inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring hover:bg-brand-50";
 
-export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements } }: Route.ComponentProps) {
-  const photo = safeUrl(t.photo_source_url), facebook = safeUrl(t.facebook_url);
+export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, areas, classes } }: Route.ComponentProps) {
+  const busy = useNavigation().state !== "idle";
+  const facebook = safeUrl(t.facebook_url);
+  const reached = (s: string[]) => applications.filter((a) => s.includes(a.status)).length;
+  const stats = [
+    ["Applied", applications.length],
+    ["Shortlisted", reached(["shortlisted", "trial_arranged", "confirmed"])],
+    ["Selected", reached(["trial_arranged", "confirmed"])],
+    ["Placed", placements.filter((p) => ["confirmed", "joined", "ended"].includes(p.status)).length],
+  ] as const;
+  const live = applications.filter((a) => ["submitted", "under_review", "shortlisted", "trial_arranged"].includes(a.status));
+
   return (
     <>
-      <PageHead title={t.full_name} back={{ to: "/admin/tutors", label: "All tutors" }} />
-      <main className="space-y-4">
-        <p className="text-sm text-slate-600">এই প্রোফাইল পাবলিক নয়। শুধু অ্যাডমিন ও টিউটর নিজে দেখতে পারবেন।</p>
-        <Card>
-          {t.photo_key && <img src={`/photos/tutor/${t.code}`} alt={`Photo of ${t.full_name}`} width={96} height={96} className="mb-3 size-24 rounded-2xl object-cover" />}
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            <Badge tone={t.claim_status === "claimed" ? "green" : "grey"}>{t.claim_status === "claimed" ? "Signed in" : "Not signed in yet"}</Badge>
-            {t.priority === "urgent" && <Badge tone="dark">Urgent</Badge>}
-          </div>
-          <ContactButtons phone={t.phone} />
-          {t.alt_phone && <div className="mt-2"><ContactButtons phone={t.alt_phone} /></div>}
-          <div className="mt-2 flex flex-wrap gap-2">
-            {photo && !t.photo_key && <a href={photo} target="_blank" rel="noreferrer" className={linkClass}>Photo</a>}
-            {facebook && <a href={facebook} target="_blank" rel="noreferrer" className={linkClass}>Facebook</a>}
-          </div>
-          <div className="mt-2">
-            <Facts rows={[
-              ["Code", t.code], ["Email", t.email], ["Gender", t.gender === "female" ? "Female" : t.gender === "male" ? "Male" : ""],
-              ["Institution", t.institution], ["Department", t.department], ["Session", t.session_year],
-              ["Medium", (t.mediums ?? "").split(",").filter(Boolean).map((m) => labelOf(MEDIUMS, m)).join(", ")],
-              ["Lives in", t.current_location], ["Home", [t.home_district, t.home_division].filter(Boolean).join(", ")],
-              ["Demo class", t.demo_willing === null ? "" : t.demo_willing ? "Willing" : "Not willing"], ["Transport", t.transport ? TRANSPORT[t.transport] : ""],
-              ["Referral", t.referral_code], ["Registered", when(t.registered_at)],
-            ]} />
-          </div>
-        </Card>
+      <PageHead back={{ to: "/admin/tutors", label: "Tutors" }} eyebrow={`T-${t.code}`} title={t.full_name} />
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 space-y-5">
+          <section className="rounded-2xl bg-white p-5 shadow-ring sm:p-6">
+            <div className="flex flex-wrap items-start gap-5">
+              <Avatar code={t.code} name={t.full_name} hasPhoto={!!t.photo_key} size="xl" className="shadow-card" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap gap-1.5">
+                  {t.flag_reason && <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-900"><Flag size={12} aria-hidden />Flagged</span>}
+                  <Badge tone={t.setup_done_at ? "green" : "grey"}>{t.setup_done_at ? `Signed in · set up ${when(t.setup_done_at)}` : "Not signed in yet"}</Badge>
+                  {t.availability_paused === 1 && <Badge tone="amber">Paused</Badge>}
+                  {t.priority === "urgent" && <Badge tone="dark">Urgent</Badge>}
+                </div>
+                <p className="mt-2 text-lg font-bold text-forest">{[t.university && t.university !== "other" ? UNI[t.university] : t.institution, t.department].filter(Boolean).join(" · ")}</p>
+                <p className="text-sm text-slate-600">{[t.university && t.university !== "other" && t.institution !== UNI[t.university] ? t.institution : null, t.session_year && `Session ${t.session_year}`, t.gender === "female" ? "Female" : t.gender === "male" ? "Male" : null].filter(Boolean).join(" · ")}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a href={`tel:${t.phone}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-forest px-3 text-sm font-bold text-cream hover:bg-brand-700"><Phone size={16} aria-hidden />{t.phone}</a>
+                  <a href={waLink(t.phone, "")} target="_blank" rel="noreferrer" className={ghost}><MessageCircle size={16} aria-hidden />WhatsApp</a>
+                  {t.alt_phone && <a href={`tel:${t.alt_phone}`} className={ghost}><Phone size={16} aria-hidden />{t.alt_phone}</a>}
+                  {t.email && <a href={`mailto:${t.email}`} className={ghost}><Mail size={16} aria-hidden />Email</a>}
+                  {facebook && <a href={facebook} target="_blank" rel="noreferrer" className={ghost}>Facebook</a>}
+                </div>
+              </div>
+            </div>
+            <dl className="mt-5 grid grid-cols-4 gap-2 border-t border-brand-50 pt-4 text-center">
+              {stats.map(([k, v]) => (
+                <div key={k} className="rounded-xl bg-cream py-2"><dt className="text-xs text-slate-500">{k}</dt><dd className="text-2xl font-extrabold text-forest tabular-nums">{num(v)}</dd></div>
+              ))}
+            </dl>
+          </section>
 
-        <Card>
-          <h2 className="mb-2 font-semibold text-forest">Education</h2>
-          <Facts rows={[
-            ["SSC", [t.ssc_school, t.ssc_group, t.ssc_year, t.ssc_result && `GPA ${t.ssc_result}`].filter(Boolean).join(" · ")],
-            ["HSC", [t.hsc_college, t.hsc_group, t.hsc_year, t.hsc_result && `GPA ${t.hsc_result}`].filter(Boolean).join(" · ")],
-          ]} />
-        </Card>
+          <section>
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-500">Applications<span className="rounded-full bg-white px-2 text-xs text-brand-700 shadow-ring">{num(applications.length)}</span>{live.length > 0 && <span className="text-xs font-semibold text-emerald-700">{live.length} open</span>}</h2>
+            {applications.length === 0 ? <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500 shadow-ring">No applications yet.</p> : (
+              <ol className="overflow-hidden rounded-2xl bg-white shadow-ring">
+                {applications.map((a) => (
+                  <li key={a.id} className="border-b border-brand-50 last:border-0">
+                    <Link to={`/admin/tuitions/${a.tuition_code}?a=${a.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-brand-50/50">
+                      <span className="w-20 shrink-0 text-sm font-bold text-forest">HTR-{a.tuition_code}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-slate-800">{labelOf(CLASS_LEVELS, a.class_level)} · {labelOf(AREAS, a.area)}</span>
+                        <span className="block text-xs text-slate-500">{a.salary_kind === "fixed" && a.salary_amount ? `${taka(a.salary_amount)} · ` : ""}applied {when(a.created_at)}</span>
+                      </span>
+                      <Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
 
-        <Card>
-          <h2 className="mb-2 font-semibold text-forest">Can teach</h2>
-          {Object.entries(BANDS).map(([band, label]) => {
-            const list = subjects.filter((s) => s.band === band).map((s) => labelOf(SUBJECTS, s.subject));
-            return list.length > 0 && <p key={band} className="py-1 text-sm"><span className="font-semibold text-forest">{label}:</span> {list.join(", ")}</p>;
-          })}
-        </Card>
+          {statements.length > 0 && (
+            <section className="grid gap-3 sm:grid-cols-2">
+              {statements.map((s) => (
+                <Card key={s.kind}>
+                  <h3 className="text-sm font-bold text-forest">{STATEMENTS[s.kind]}</h3>
+                  <p className="mt-1 text-sm break-words whitespace-pre-line text-slate-700">{s.body}</p>
+                </Card>
+              ))}
+            </section>
+          )}
+        </div>
 
-        {statements.map((s) => (
-          <Card key={s.kind}>
-            <h2 className="mb-1 font-semibold text-forest">{STATEMENTS[s.kind]}</h2>
-            <p className="text-sm break-words whitespace-pre-line text-slate-700">{s.body}</p>
+        <aside className="space-y-4">
+          <Card>
+            <h2 className="text-sm font-bold text-forest">What they picked</h2>
+            <div className="mt-3 space-y-3 text-sm">
+              <div><p className="text-xs text-slate-500">Areas</p><p className="font-semibold text-slate-900">{t.anywhere ? "Anywhere in Rajshahi" : areas.map((a) => labelOf(AREAS, a)).join(", ") || "Not picked yet"}</p></div>
+              <div><p className="text-xs text-slate-500">Classes</p><p className="font-semibold text-slate-900">{classes.map((c) => labelOf(CLASS_LEVELS, c)).join(", ") || "Not picked yet"}</p></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><p className="text-xs text-slate-500">Lowest salary</p><p className="font-semibold text-slate-900">{t.min_salary ? taka(t.min_salary) : "—"}</p></div>
+                <div><p className="text-xs text-slate-500">Transport</p><p className="font-semibold text-slate-900">{t.transport ? labelOf(TRANSPORTS, t.transport) : "—"}</p></div>
+                <div><p className="text-xs text-slate-500">Demo class</p><p className="font-semibold text-slate-900">{t.demo_willing === null ? "—" : t.demo_willing ? "Willing" : "Not willing"}</p></div>
+                <div><p className="text-xs text-slate-500">Medium</p><p className="font-semibold text-slate-900">{(t.mediums ?? "").split(",").filter(Boolean).map((m) => labelOf(MEDIUMS, m)).join(", ") || "—"}</p></div>
+              </div>
+              {t.about && <div><p className="text-xs text-slate-500">About</p><p className="whitespace-pre-line text-slate-800">{t.about}</p></div>}
+            </div>
           </Card>
-        ))}
-
-        <section>
-          <h2 className="mb-2 font-semibold text-forest">Applications ({num(applications.length)}){placements.length > 0 && ` · selected ${num(placements.length)}`}</h2>
-          <ul className="space-y-2">
-            {applications.map((a) => (
-              <li key={a.id}>
-                <Link to={`/admin/tuitions/${a.tuition_code}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm">
-                  <span>HTR-{a.tuition_code} · {labelOf(CLASS_LEVELS, a.class_level)} · {labelOf(AREAS, a.area)}</span>
-                  <Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </main>
+          <Card>
+            <h2 className="text-sm font-bold text-forest">Can teach</h2>
+            {BANDS.map((b) => {
+              const list = subjects.filter((s) => s.band === b.key);
+              return list.length > 0 && (
+                <div key={b.key} className="mt-3">
+                  <p className="text-xs text-slate-500">{b.label}</p>
+                  <div className="mt-1 flex flex-wrap gap-1">{list.map((s) => <span key={s.subject} className="rounded-lg bg-brand-50 px-2 py-0.5 text-xs font-semibold text-forest">{labelOf(SUBJECTS, s.subject)}</span>)}</div>
+                </div>
+              );
+            })}
+          </Card>
+          <Card>
+            <h2 className="mb-1 text-sm font-bold text-forest">Education and home</h2>
+            <Facts rows={[
+              ["SSC", [t.ssc_school, t.ssc_group, t.ssc_year, t.ssc_result && `GPA ${t.ssc_result}`].filter(Boolean).join(" · ")],
+              ["HSC", [t.hsc_college, t.hsc_group, t.hsc_year, t.hsc_result && `GPA ${t.hsc_result}`].filter(Boolean).join(" · ")],
+              ["Lives in", t.current_location], ["Home", [t.home_district, t.home_division].filter(Boolean).join(", ")],
+              ["Registered", when(t.registered_at)], ["Email", t.email],
+            ]} />
+          </Card>
+          <Card className={t.flag_reason ? "ring-2 ring-rose-200" : ""}>
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-forest"><Flag size={15} aria-hidden />Do-not-place flag</h2>
+            <p className="mt-1 text-xs text-slate-500">Private. Shows a warning on their applications; nothing is blocked.</p>
+            <Form method="post" className="mt-3 space-y-2">
+              <textarea name="reason" rows={2} maxLength={300} defaultValue={t.flag_reason ?? ""} placeholder="Reason, e.g. didn't show up for a demo" className={`${inputClass} py-2 text-sm`} />
+              <div className="flex gap-2">
+                <button disabled={busy} className="inline-flex min-h-11 items-center rounded-xl bg-forest px-4 text-sm font-bold text-cream disabled:opacity-60">{t.flag_reason ? "Update" : "Flag"}</button>
+                {t.flag_reason && <button name="intent" value="clear" disabled={busy} className={ghost}>Clear flag</button>}
+              </div>
+            </Form>
+          </Card>
+          {placements.length > 0 && (
+            <Card>
+              <h2 className="text-sm font-bold text-forest">Placements</h2>
+              <ul className="mt-2 space-y-1.5">
+                {placements.map((p) => (
+                  <li key={p.tuition_code + p.status} className="flex items-center justify-between gap-2 text-sm">
+                    <Link to={`/admin/tuitions/${p.tuition_code}`} className="font-semibold text-brand-700 hover:underline">HTR-{p.tuition_code}</Link>
+                    <span className="text-xs text-slate-500">{p.confirmed_at ? ago(p.confirmed_at) : ""}</span>
+                    <Badge tone={p.status === "cancelled" ? "grey" : "brand"}>{p.status[0].toUpperCase() + p.status.slice(1)}</Badge>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </aside>
+      </div>
     </>
   );
 }

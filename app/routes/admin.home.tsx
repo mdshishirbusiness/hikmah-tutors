@@ -91,8 +91,12 @@ export default function AdminHome({ loaderData: { counts: c, list, p, now } }: R
     key: `conf-${x.code}`, to: `/admin/tuitions/${x.code}?stage=selected`, icon: BadgeCheck, tone: "bg-brand-600 text-white",
     title: `HTR-${x.code}: tutor confirmed`, sub: `${x.tutor_code ? `T-${x.tutor_code} · ` : ""}${ago(x.confirmed_at)} · check with the guardian`,
   }));
+  const checkins: Task[] = list.checkins.map((x) => ({
+    key: `chk-${x.id}-${x.day}`, to: "/admin/placements", icon: PhoneCall, tone: "bg-sky-100 text-sky-900",
+    title: `HTR-${x.code}: day ${x.day} check-in call`, sub: `${where(x.class_level, x.area)} · confirmed ${ago(x.confirmed_at)}`,
+  }));
   const review: Task[] = c.held > 0 ? [{ key: "review", to: "/admin/review", icon: ListChecks, tone: "bg-amber-100 text-amber-900", title: `To review: ${num(c.held)}`, sub: "Tutors, tuitions and rows from the sheet" }] : [];
-  const nothing = !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length;
+  const nothing = !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length && !checkins.length;
 
   const date = new Date(now * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", weekday: "long", day: "numeric", month: "long" });
   const weekLabel = (i: number) => new Date((now - (p.weeks - i) * 7 * 86400 + 86400) * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short" });
@@ -125,6 +129,7 @@ export default function AdminHome({ loaderData: { counts: c, list, p, now } }: R
           {nothing && <p className="rounded-2xl border border-dashed border-brand-200 bg-white/60 p-8 text-center text-slate-600">আজকের সব কাজ শেষ। নতুন কল এলে + চাপুন।</p>}
           <Section title="Call" tasks={calls} more={{ to: "/admin/leads", label: "All leads" }} />
           <Section title="Selected tutors" tasks={[...notCalled, ...confirmed]} more={{ to: "/admin/placements", label: "Placements" }} />
+          <Section title="Check-in calls" tasks={checkins} more={{ to: "/admin/placements", label: "Placements" }} />
           <Section title="Check applications" tasks={applications} more={{ to: "/admin/applications?status=submitted&open=1", label: "All new" }} />
           <Section title="Post tuitions" tasks={[...toPost, ...drafts]} more={{ to: "/admin/leads?status=called", label: "Called leads" }} />
           <Section title="Review" tasks={review} />
