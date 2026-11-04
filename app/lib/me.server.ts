@@ -296,7 +296,7 @@ export type NeedsAction = { application_id: number; tuition_code: number; class_
 /** Students the tutor has taught, newest first (owner, 2026-11-05). */
 export async function myStudents(tutorId: number): Promise<Student[]> {
   const r = await env.DB.prepare(
-    `SELECT id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement FROM tutor_students
+    `SELECT id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement, source FROM tutor_students
      WHERE tutor_id = ? ORDER BY COALESCE(ended, '9999-12') DESC, started DESC, id DESC`,
   ).bind(tutorId).all<Student>();
   return r.results;

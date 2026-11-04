@@ -292,7 +292,7 @@ export async function getTuition(code: number) {
        FROM tutor_levels WHERE band = ? AND tutor_id IN (${ids})`, band, code,
     ) : Promise.resolve([] as (Level & { tutor_id: number })[]),
     all<Student & { tutor_id: number }>(
-      `SELECT tutor_id, id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement
+      `SELECT tutor_id, id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement, source
        FROM tutor_students WHERE tutor_id IN (${ids}) ORDER BY COALESCE(ended, '9999-12') DESC, started DESC`, code,
     ),
     all<{ tutor_id: number; demos: number; dropped: number }>(
@@ -628,7 +628,7 @@ export async function getTutor(code: number) {
     all<{ class_level: string }>(`SELECT class_level FROM tutor_classes WHERE tutor_id = ?`, tutor.id),
     all<Level>(`SELECT band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian FROM tutor_levels WHERE tutor_id = ?
                 ORDER BY CASE band WHEN 'junior' THEN 1 WHEN 'ssc' THEN 2 ELSE 3 END`, tutor.id),
-    all<Student>(`SELECT id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement FROM tutor_students
+    all<Student>(`SELECT id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement, source FROM tutor_students
                   WHERE tutor_id = ? ORDER BY COALESCE(ended, '9999-12') DESC, started DESC, id DESC`, tutor.id),
   ]);
   return { tutor, subjects, statements, applications, placements, levels, students, areas: areas.map((a) => a.area), classes: classes.map((c) => c.class_level) };

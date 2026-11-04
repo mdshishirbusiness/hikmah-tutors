@@ -12,6 +12,7 @@ export type Level = {
 export type Student = {
   id: number; class_level: string; class_other: string | null; area: string | null; subjects: string | null; started: string | null;
   ended: string | null; result_before: string | null; result_after: string | null; improvement: string | null;
+  source?: "tutor" | "sheet";
 };
 
 // The checklist groups, in the order the tutor sees them; each has its own colour (SectionCard tones).

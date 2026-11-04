@@ -33,6 +33,7 @@ export function StudentTimeline({ students, onRemove }: { students: Student[]; o
                     {area && <span className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700"><MapPin size={14} aria-hidden className="text-slate-400" />{area}</span>}
                   </p>
                   {s.started && <p className="mt-1 text-xs font-semibold text-slate-500 tabular-nums">{periodLabel(s.started, s.ended)}</p>}
+                  {s.source === "sheet" && <p className="mt-1 text-xs font-semibold text-slate-400">From your sheet notes</p>}
                 </div>
                 {onRemove && (confirm === s.id ? (
                   <button type="button" onClick={() => onRemove(s.id)} className="shrink-0 rounded-full bg-rose-600 px-3 py-1.5 text-xs font-bold text-white">Remove?</button>
