@@ -15,6 +15,7 @@ import { requireUser } from "~/lib/auth.server";
 import { homeView, liveNotice, markUpdatesSeen, myApplications, tutorBadges, tutorForUser } from "~/lib/me.server";
 import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
 import { timeAgo } from "~/lib/tuition";
+import { profilePercent } from "~/lib/profile";
 import { firstName } from "~/lib/whatsapp";
 
 export function meta(_: Route.MetaArgs) {
@@ -58,13 +59,13 @@ function greeting(now: number) {
 }
 
 /** The profile ring: an SVG circle, so it costs nothing and animates with one CSS transition. */
-function Ring({ done, total }: { done: number; total: number }) {
-  const r = 26, c = 2 * Math.PI * r, pct = done / total;
+function Ring({ percent }: { percent: number }) {
+  const r = 26, c = 2 * Math.PI * r, pct = percent / 100;
   return (
-    <svg width="68" height="68" viewBox="0 0 68 68" role="img" aria-label={`${done} of ${total} done`} className="shrink-0 -rotate-90">
+    <svg width="68" height="68" viewBox="0 0 68 68" role="img" aria-label={`Profile ${percent}% complete`} className="shrink-0 -rotate-90">
       <circle cx="34" cy="34" r={r} fill="none" stroke="var(--color-brand-100)" strokeWidth="7" />
       <circle cx="34" cy="34" r={r} fill="none" stroke="var(--color-brand-600)" strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} className="transition-[stroke-dashoffset] duration-700" />
-      <text x="34" y="34" transform="rotate(90 34 34)" textAnchor="middle" dominantBaseline="central" className="fill-forest text-sm font-extrabold">{done}/{total}</text>
+      <text x="34" y="34" transform="rotate(90 34 34)" textAnchor="middle" dominantBaseline="central" className="fill-forest text-sm font-extrabold">{percent}%</text>
     </svg>
   );
 }
@@ -76,7 +77,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     ["Open", open.length], ["Shortlisted", apps.filter((a) => a.status === "shortlisted").length],
     ["Selected", apps.filter((a) => a.status === "trial_arranged").length], ["Confirmed", apps.filter((a) => a.status === "confirmed").length],
   ] as const;
-  const done = view.progress.filter((p) => p.done).length;
   const missing = view.progress.filter((p) => !p.done);
   const unread = view.updates.filter((u) => u.unread).length;
 
@@ -188,15 +188,15 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             {missing.length > 0 && (
               <section className="rounded-2xl bg-white p-4 shadow-ring">
                 <div className="flex items-center gap-4">
-                  <Ring done={done} total={view.progress.length} />
+                  <Ring percent={profilePercent(view.progress)} />
                   <div className="min-w-0">
                     <h2 className="font-extrabold text-forest">Finish your profile</h2>
-                    <p className="text-sm text-slate-500">A full profile gets better matches and helps HTR pick you.</p>
+                    <p className="text-sm text-slate-500">Complete profiles are shown to HTR first.</p>
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {missing.map((p) => (
-                    <Link key={p.key} to={`/me/profile#${p.key}`} className="inline-flex min-h-10 items-center gap-1 rounded-full bg-brand-50 px-3 text-sm font-semibold text-forest hover:bg-brand-100">+ {p.label}</Link>
+                    <Link key={p.key} to={`/me/profile#${p.section}`} className="inline-flex min-h-10 items-center gap-1 rounded-full bg-brand-50 px-3 text-sm font-semibold text-forest hover:bg-brand-100">+ {p.label}</Link>
                   ))}
                 </div>
               </section>

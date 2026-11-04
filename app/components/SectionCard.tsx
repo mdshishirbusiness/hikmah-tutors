@@ -35,7 +35,7 @@ export function SectionCard({ icon, tone = "brand", title, hint, step, required,
   id?: string; error?: boolean; className?: string; children: React.ReactNode;
 }) {
   return (
-    <section id={id} className={`scroll-mt-24 overflow-hidden rounded-2xl bg-white shadow-ring target:ring-2 target:ring-brand-500 ${error ? "ring-2 ring-rose-300" : ""} ${className}`}>
+    <section id={id} className={`scroll-mt-32 overflow-hidden rounded-2xl bg-white shadow-ring target:ring-2 target:ring-brand-500 ${error ? "ring-2 ring-rose-300" : ""} ${className}`}>
       <div aria-hidden className={`h-1 ${SECTION_TONES[tone].line}`} />
       <div className="p-4 sm:p-5">
         <SectionHead icon={icon} tone={tone} title={title} hint={hint} step={step} required={required} />

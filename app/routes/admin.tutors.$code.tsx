@@ -5,6 +5,7 @@ import { Form, Link, data, useNavigation } from "react-router";
 import { Check, Flag, KeyRound, Mail, MessageCircle, Phone, UserPlus } from "lucide-react";
 import type { Route } from "./+types/admin.tutors.$code";
 import { Avatar } from "~/components/Avatar";
+import { LevelSummary } from "~/components/LevelSummary";
 import { APPLICATION_TONE, Badge, Card, Facts, PageHead, ago, inputClass, num, safeUrl, when } from "~/components/admin";
 import { APPLICATION_STATUS } from "~/lib/admin-labels";
 import { getTutor, reviewTutor, setFlag, setTutorEmail } from "~/lib/admin.server";
@@ -41,9 +42,11 @@ const STATEMENTS: Record<string, string> = {
   skills_detail: "Skills in detail", demo_video: "Demo video",
 };
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical", other: "Other" };
+// The sheet's per-level statements now live in the tutor's Experience (tutor_levels); the rest still show as they were.
+const LEVEL_KINDS = new Set(["junior_strategy", "junior_experience", "ssc_strategy", "ssc_experience", "hsc_strategy", "hsc_experience", "special_skills", "demo_video"]);
 const ghost = "inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring hover:bg-brand-50";
 
-export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, areas, classes }, actionData }: Route.ComponentProps) {
+export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, areas, classes }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const facebook = safeUrl(t.facebook_url);
   const reached = (s: string[]) => applications.filter((a) => s.includes(a.status)).length;
@@ -121,9 +124,23 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
             )}
           </section>
 
-          {statements.length > 0 && (
+          {levels.length > 0 && (
+            <section>
+              <h2 className="mb-2 text-sm font-bold text-slate-500">Experience by level</h2>
+              <div className="space-y-3">{levels.map((l) => <LevelSummary key={l.band} level={l} />)}</div>
+            </section>
+          )}
+
+          {(t.skills || t.demo_video_url) && (
+            <Card>
+              {t.skills && <><h3 className="text-sm font-bold text-forest">Special skills</h3><p className="mt-1 text-sm text-slate-700">{t.skills}</p></>}
+              {t.demo_video_url && safeUrl(t.demo_video_url) && <a href={safeUrl(t.demo_video_url)!} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-brand-700">Demo class video</a>}
+            </Card>
+          )}
+
+          {statements.some((s) => !LEVEL_KINDS.has(s.kind)) && (
             <section className="grid gap-3 sm:grid-cols-2">
-              {statements.map((s) => (
+              {statements.filter((s) => !LEVEL_KINDS.has(s.kind)).map((s) => (
                 <Card key={s.kind}>
                   <h3 className="text-sm font-bold text-forest">{STATEMENTS[s.kind]}</h3>
                   <p className="mt-1 text-sm break-words whitespace-pre-line text-slate-700">{s.body}</p>

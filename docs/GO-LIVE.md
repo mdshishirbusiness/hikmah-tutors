@@ -112,6 +112,11 @@ Includes:
 
 Checked: public pages 200, admin and tutor pages ask for log in, the guardian form shows the new fields.
 
+## 9. Part B (tutor Profile: experience per level, progress)
+
+Needs migration 0015 first. It adds `tutor_levels`, prefilled from the sheet's statements (about 1,000 tutors per
+level on the local copy), and the skills and demo-video columns. Nothing existing changes. Then the deploy.
+
 ## Before tutors are invited (later)
 
 - Consent screen: **published (In production), 2026-11-04**. Branding has the home, privacy and terms links; no
