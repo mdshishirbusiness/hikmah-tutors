@@ -145,6 +145,12 @@ Migrations 0019 (`premium_members`, `premium_problems`, with triggers) and 0020 
 database first, then the deploy. `/me/premium` and `/admin/premium` answer and ask for sign-in. No Premium term exists
 yet; the first real one starts when a tutor applies. HTR's payment number shows to a tutor only after HTR accepts them.
 
+## 12. Tutor side vs Porao, and the folding Profile: live 2026-11-05 (version 5bf308f5)
+
+Migration 0021 (seen tick, free times, status links) was already on the real database; `db:migrate` had nothing to
+apply. Then the deploy: "Seen by HTR", the guardian preview, free times, the status link, and the Profile's folding
+sections with the sticky completion line. Home answers 200; `/me/profile` asks for sign-in.
+
 ## Before tutors are invited (later)
 
 - Consent screen: **published (In production), 2026-11-04**. Branding has the home, privacy and terms links; no
