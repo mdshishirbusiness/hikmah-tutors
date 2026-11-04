@@ -128,10 +128,16 @@ Needs migrations 0015 and 0016 first. `npm run db:migrate` runs both.
 
 Nothing existing changes. Then the deploy.
 
-## 10. Part D (follow-ups, notes, Today in Bangla, donuts)
+## 10. Part D and the owner's round after it: live 2026-11-05 (version 33271b4e)
 
-Needs migration 0017 first (two new tables: `followups` and `contact_notes`; nothing existing changes), then the
-deploy: `npm run db:migrate`, then `npm run deploy`, in the Terminal panel after `npx wrangler whoami`.
+Includes follow-ups, notes, Today in Bangla, donuts, the Facebook and WhatsApp post templates, green WhatsApp
+buttons, and Install app. Migrations 0017 (`followups`, `contact_notes`) and 0018 (`tutor_students.source`) ran on
+the real database first.
+
+Students taught from the sheet: the owner's local file `imports/` (gitignored; generated from the sheet's
+experience notes, tutors without a note left out) ran with `wrangler d1 execute hikmah --remote --file`. Result:
+275 entries for 237 tutors, tagged `source = 'sheet'` ("From your sheet notes" on the profile). The file begins by
+deleting `source = 'sheet'` rows, so it can be run again safely; it looks tutors up by code, not by id.
 
 ## Before tutors are invited (later)
 
