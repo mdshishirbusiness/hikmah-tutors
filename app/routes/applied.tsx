@@ -147,7 +147,7 @@ function SelectedCard({ a, busy, error }: { a: MyApplication; busy: boolean; err
         <GuardianNumber a={a} />
         {error && <p role="alert" className="rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{error}</p>}
         <Checklist a={a} onConfirm={() => setSheet("confirm")} busy={busy} />
-        <button type="button" onClick={() => setSheet("didnt")} className="min-h-11 w-full text-sm font-semibold text-brand-200 underline-offset-2 hover:underline">Didn't work out?</button>
+        <button type="button" onClick={() => setSheet("didnt")} className="min-h-11 w-full text-sm font-semibold text-brand-200 underline-offset-2 hover:underline">হয়নি? HTR-কে জানান</button>
       </div>
 
       <Sheet open={sheet === "confirm"} onClose={() => setSheet(null)} title="Confirm this tuition?">
@@ -173,8 +173,8 @@ function SelectedCard({ a, busy, error }: { a: MyApplication; busy: boolean; err
         </Form>
       </Sheet>
 
-      <Sheet open={sheet === "didnt"} onClose={() => setSheet(null)} title="Didn't work out?">
-        <p className="text-slate-700">Tell HTR why. The tuition goes back to HTR to find the next tutor.</p>
+      <Sheet open={sheet === "didnt"} onClose={() => setSheet(null)} title="টিউশনটা হয়নি?">
+        <p className="text-slate-700">কেন হয়নি জানান। HTR এই টিউশনের জন্য পরের টিউটর খুঁজবে।</p>
         <Form method="post" className="mt-3 space-y-2" onSubmit={() => setSheet(null)}>
           <input type="hidden" name="intent" value="didnt" />
           <input type="hidden" name="id" value={a.id} />
@@ -183,7 +183,7 @@ function SelectedCard({ a, busy, error }: { a: MyApplication; busy: boolean; err
               <input type="radio" name="reason" value={key} required className="size-5 accent-forest" />{label}
             </label>
           ))}
-          <button disabled={busy} className="mt-2 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-rose-700 text-sm font-semibold text-white hover:bg-rose-800">Send to HTR</button>
+          <button disabled={busy} className="mt-2 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-rose-700 text-sm font-semibold text-white hover:bg-rose-800">HTR-কে পাঠান</button>
         </Form>
       </Sheet>
     </li>

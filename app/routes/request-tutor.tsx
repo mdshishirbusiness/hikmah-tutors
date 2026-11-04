@@ -2,7 +2,8 @@
 // Quick Pad (owner, 2026-11-04, review step 3), in five short parts; only name, phone, area, class and a subject are
 // needed. Helper lines are in Bangla, where a guardian reads them most easily.
 import { Form, Link, useNavigation } from "react-router";
-import { CheckCircle2, MessageCircle, Phone } from "lucide-react";
+import { CheckCircle2, Clock, GraduationCap, type LucideIcon, MapPin, MessageCircle, Phone, UserRound } from "lucide-react";
+import { SectionCard, type SectionTone } from "~/components/SectionCard";
 import type { Route } from "./+types/request-tutor";
 import { AddressDetails, AreaPicker, ClassPicker, MediumPicker, RequirementPicker, SessionPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
 import { GUARDIAN_WA_TEXT, PageShell, buttonClass } from "~/components/site";
@@ -59,19 +60,8 @@ export async function action({ request }: Route.ActionArgs) {
 const field = "min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-base outline-none transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
 const Chips = ({ children }: { children: React.ReactNode }) => <div className="flex flex-wrap gap-2">{children}</div>;
 
-function Part({ n, title, hint, error, children }: { n: number; title: string; hint?: string; error?: boolean; children: React.ReactNode }) {
-  return (
-    <section className={`space-y-5 rounded-2xl bg-white p-5 shadow-ring sm:p-7 ${error ? "ring-2 ring-rose-300" : ""}`}>
-      <div className="flex items-start gap-3">
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-mango text-sm font-extrabold text-forest">{n}</span>
-        <div>
-          <h2 className="text-lg font-extrabold text-forest">{title}</h2>
-          {hint && <p className="mt-0.5 text-sm text-slate-500">{hint}</p>}
-        </div>
-      </div>
-      {children}
-    </section>
-  );
+function Part({ n, title, hint, icon, tone, error, children }: { n: number; title: string; hint?: string; icon: LucideIcon; tone?: SectionTone; error?: boolean; children: React.ReactNode }) {
+  return <SectionCard step={n} icon={icon} tone={tone} title={title} hint={hint} error={error}><div className="space-y-5">{children}</div></SectionCard>;
 }
 
 function Q({ children, optional }: { children: React.ReactNode; optional?: boolean }) {
@@ -112,7 +102,7 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
         <input type="hidden" name="client_id" value={clientId} />
         {Object.keys(errors).length > 0 && <p role="alert" className="rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{errors.form ?? "লাল দাগ দেওয়া অংশগুলো ঠিক করুন।"}</p>}
 
-        <Part n={1} title="Your contact" hint="এই নম্বরে আমরা ফোন করব। কোনো টিউটর বা অন্য কেউ এটি দেখবে না।" error={!!(errors.name || errors.phone)}>
+        <Part n={1} icon={Phone} tone="brand" title="Your contact" hint="এই নম্বরে আমরা ফোন করব। কোনো টিউটর বা অন্য কেউ এটি দেখবে না।" error={!!(errors.name || errors.phone)}>
           <div>
             <label htmlFor="rq-name" className="mb-1 block font-bold text-forest">Your name</label>
             <input id="rq-name" name="guardian_name" className={field} autoComplete="name" maxLength={60} aria-invalid={!!errors.name} />
@@ -125,25 +115,25 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
           </div>
         </Part>
 
-        <Part n={2} title="Where" hint="এলাকা বেছে নিন। বিস্তারিত ঠিকানা দিলে শুধু নির্বাচিত টিউটর দেখবেন।" error={!!errors.area}>
+        <Part n={2} icon={MapPin} tone="amber" title="Where" hint="এলাকা বেছে নিন। বিস্তারিত ঠিকানা দিলে শুধু নির্বাচিত টিউটর দেখবেন।" error={!!errors.area}>
           <AreaPicker allowOther />
           <AddressDetails name="address" />
           {err("area")}
         </Part>
 
-        <Part n={3} title="Your child" error={!!(errors.class_level || errors.subjects)}>
+        <Part n={3} icon={UserRound} tone="sky" title="Your child" error={!!(errors.class_level || errors.subjects)}>
           <div><Q>Class</Q><ClassPicker />{err("class_level")}</div>
           <div><Q>Subjects</Q><SubjectPicker />{err("subjects")}</div>
           <div><Q optional>Medium</Q><MediumPicker /></div>
           <div><Q optional>Student</Q><Chips>{STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key}>{g.key === "boy" ? "Son" : "Daughter"}</ChoiceChip>)}</Chips></div>
         </Part>
 
-        <Part n={4} title="When" hint="জানা না থাকলে খালি রাখুন, ফোনে ঠিক করে নেব।" error={!!errors.time}>
+        <Part n={4} icon={Clock} tone="violet" title="When" hint="জানা না থাকলে খালি রাখুন, ফোনে ঠিক করে নেব।" error={!!errors.time}>
           <div><Q optional>Days per week</Q><Chips>{DAYS_PER_WEEK.map((d) => <ChoiceChip key={d} type="radio" name="days_per_week" value={String(d)}>{d} days</ChoiceChip>)}</Chips></div>
           <div><Q optional>Time</Q><TimePicker />{err("time")}</div>
         </Part>
 
-        <Part n={5} title="The tutor you want" error={!!(errors.salary || errors.consent)}>
+        <Part n={5} icon={GraduationCap} tone="brand" title="The tutor you want" error={!!(errors.salary || errors.consent)}>
           <TutorPicker genderName="tutor_gender" />
           <div><Q optional>যা যা চান</Q><RequirementPicker /></div>
           <div>

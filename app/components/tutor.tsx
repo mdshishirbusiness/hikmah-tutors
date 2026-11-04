@@ -1,7 +1,8 @@
 // Shared pieces of the signed-in tutor's pages: the bottom bar, a bottom sheet and choice chips.
 import { useEffect, useRef } from "react";
 import { Link } from "react-router";
-import { ClipboardCheck, House, LayoutList, UserRound } from "lucide-react";
+import { ClipboardCheck, House, LayoutList, type LucideIcon, UserRound } from "lucide-react";
+import { SectionCard, type SectionTone } from "~/components/SectionCard";
 
 // Home · Tuitions · Applied · Profile (owner, 2026-11-04).
 const TABS = [
@@ -74,18 +75,7 @@ export function ChoiceChip({ type = "checkbox", name, value, checked, onChange, 
   );
 }
 
-/** A numbered form section. */
-export function Step({ n, title, hint, children }: { n: number; title: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-brand-100 bg-white p-4 shadow-card sm:p-5">
-      <div className="flex items-start gap-3">
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-mango text-sm font-bold text-forest">{n}</span>
-        <div className="min-w-0">
-          <h2 className="text-lg leading-tight font-bold text-forest">{title}</h2>
-          {hint && <p className="mt-0.5 text-sm text-slate-500">{hint}</p>}
-        </div>
-      </div>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
+/** A numbered form section, in the shared section look. */
+export function Step({ n, title, hint, icon, tone, children }: { n: number; title: string; hint?: string; icon: LucideIcon; tone?: SectionTone; children: React.ReactNode }) {
+  return <SectionCard step={n} icon={icon} tone={tone} title={title} hint={hint}>{children}</SectionCard>;
 }

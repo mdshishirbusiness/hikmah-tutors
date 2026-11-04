@@ -3,7 +3,7 @@
 // waiting or when HTR asks for a fix, it shows the saved answers and the owner's note.
 import { useEffect, useState } from "react";
 import { Form, redirect, useNavigation } from "react-router";
-import { AlertTriangle, Camera, MessageCircle } from "lucide-react";
+import { AlertTriangle, BookOpen, Camera, GraduationCap, MapPin, MessageCircle, ShieldCheck, UserRound, Wallet } from "lucide-react";
 import type { Route } from "./+types/me.join";
 import { inputClass, primaryButton } from "~/components/admin";
 import { SiteHeader } from "~/components/site";
@@ -145,7 +145,7 @@ export default function Join({ loaderData: { me, choices, email, googleName, ses
             const key = FIELD_ERROR[(e.target as unknown as HTMLInputElement).name];
             if (key && !fixed.has(key)) setFixed(new Set(fixed).add(key));
           }}>
-          <Step n={1} title="You" hint="Your photo and how HTR reaches you.">
+          <Step n={1} icon={UserRound} tone="brand" title="You" hint="Your photo and how HTR reaches you.">
             <PhotoField existing={me?.photo_key ? `/photos/tutor/${me.code}` : null} error={errors.photo} />
             <Err>{errors.photo}</Err>
             <div className="mt-5 space-y-4">
@@ -175,7 +175,7 @@ export default function Join({ loaderData: { me, choices, email, googleName, ses
             </div>
           </Step>
 
-          <Step n={2} title="Where you study">
+          <Step n={2} icon={GraduationCap} tone="sky" title="Where you study">
             <fieldset>
               <legend className={label}>University</legend>
               <div className="flex flex-wrap gap-2">
@@ -208,12 +208,12 @@ export default function Join({ loaderData: { me, choices, email, googleName, ses
             </div>
           </Step>
 
-          <Step n={3} title="Where you can teach" hint="Every area you can reach. No limit.">
+          <Step n={3} icon={MapPin} tone="amber" title="Where you can teach" hint="Every area you can reach. No limit.">
             <AreaField picked={choices.areas} anywhere={me?.anywhere === 1} />
             <Err>{errors.areas}</Err>
           </Step>
 
-          <Step n={4} title="What you teach" hint="Classes first, then subjects for each level.">
+          <Step n={4} icon={BookOpen} tone="violet" title="What you teach" hint="Classes first, then subjects for each level.">
             <ClassField picked={choices.classes} />
             <Err>{errors.classes}</Err>
             <div className="mt-5 border-t border-brand-50 pt-4">
@@ -222,7 +222,7 @@ export default function Join({ loaderData: { me, choices, email, googleName, ses
             </div>
           </Step>
 
-          <Step n={5} title="Salary and travel">
+          <Step n={5} icon={Wallet} tone="brand" title="Salary and travel">
             <p className={label}>Lowest salary you'll take <span className="font-normal text-slate-500">(per month)</span></p>
             <SalaryField value={me?.min_salary ?? null} />
             <p className={`${label} mt-5`}>How you travel</p>
@@ -231,7 +231,7 @@ export default function Join({ loaderData: { me, choices, email, googleName, ses
             </div>
           </Step>
 
-          <Step n={6} title="Confirm">
+          <Step n={6} icon={ShieldCheck} tone="slate" title="Confirm">
             <label className="flex min-h-11 items-start gap-3 py-1 text-slate-800">
               <input type="checkbox" name="available" value="1" defaultChecked={!!me} className="mt-0.5 size-5 shrink-0 accent-forest" />
               I want to take tuitions now.

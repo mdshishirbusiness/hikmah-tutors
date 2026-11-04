@@ -3,7 +3,8 @@
 // phone, gender, university and results are locked and change through HTR.
 import { useEffect, useState } from "react";
 import { Form, Link, useActionData, useNavigation } from "react-router";
-import { Check, Lock, LogOut, MessageCircle, PauseCircle, PlayCircle } from "lucide-react";
+import { Bike, BookOpen, Check, Library, Lock, LogOut, MapPin, MessageCircle, PauseCircle, PenLine, PlayCircle, Presentation, Wallet } from "lucide-react";
+import { SectionCard } from "~/components/SectionCard";
 import type { Route } from "./+types/me.profile";
 import { Avatar } from "~/components/Avatar";
 import { inputClass } from "~/components/admin";
@@ -41,15 +42,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical", other: "Other" };
-function Section({ id, title, hint, children }: { id: string; title: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <section id={id} className="scroll-mt-24 rounded-2xl bg-white p-4 shadow-ring sm:p-5 target:ring-2 target:ring-brand-500">
-      <h2 className="font-extrabold text-forest">{title}</h2>
-      {hint && <p className="mt-0.5 text-sm text-slate-500">{hint}</p>}
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
+const Section = SectionCard;
 
 export default function Profile({ loaderData: { me, choices, badges } }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
@@ -99,29 +92,29 @@ export default function Profile({ loaderData: { me, choices, badges } }: Route.C
         <Form method="post" className="mt-5 space-y-4" onChange={() => setDirty(true)}>
           <input type="hidden" name="intent" value="save" />
 
-          <Section id="areas" title="Where you teach" hint="Every area you can reach. No limit.">
+          <Section id="areas" icon={MapPin} tone="amber" title="Where you teach" hint="Every area you can reach. No limit.">
             <AreaField picked={choices.areas} anywhere={me.anywhere === 1} />
           </Section>
 
-          <Section id="classes" title="Classes you want">
+          <Section id="classes" icon={BookOpen} tone="violet" title="Classes you want">
             <ClassField picked={choices.classes} />
           </Section>
 
-          <Section id="subjects" title="Subjects you teach" hint="By level, so an SSC tuition only matches your SSC subjects.">
+          <Section id="subjects" icon={Library} tone="sky" title="Subjects you teach" hint="By level, so an SSC tuition only matches your SSC subjects.">
             <SubjectField picked={picked} />
           </Section>
 
-          <Section id="min_salary" title="Lowest salary you'll take" hint="Per month. Lower ones still show, with a warning.">
+          <Section id="min_salary" icon={Wallet} tone="brand" title="Lowest salary you'll take" hint="Per month. Lower ones still show, with a warning.">
             <SalaryField value={me.min_salary} />
           </Section>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Section id="transport" title="How you travel">
+            <Section id="transport" icon={Bike} tone="sky" title="How you travel">
               <div className="flex flex-wrap gap-2">
                 {TRANSPORTS.map((t) => <ChoiceChip key={t.key} type="radio" name="transport" value={t.key} checked={me.transport === t.key}>{t.key === "none" ? "On foot / rickshaw" : t.label}</ChoiceChip>)}
               </div>
             </Section>
-            <Section id="demo" title="Demo class" hint="Will you take a free trial class?">
+            <Section id="demo" icon={Presentation} tone="violet" title="Demo class" hint="Will you take a free trial class?">
               <div className="flex flex-wrap gap-2">
                 <ChoiceChip type="radio" name="demo" value="yes" checked={me.demo_willing === 1}>Yes</ChoiceChip>
                 <ChoiceChip type="radio" name="demo" value="no" checked={me.demo_willing === 0}>No</ChoiceChip>
@@ -129,7 +122,7 @@ export default function Profile({ loaderData: { me, choices, badges } }: Route.C
             </Section>
           </div>
 
-          <Section id="about" title="About you" hint="Two or three lines HTR can share with guardians: how you teach, what you're good at.">
+          <Section id="about" icon={PenLine} tone="brand" title="About you" hint="Two or three lines HTR can share with guardians: how you teach, what you're good at.">
             <textarea name="about" rows={4} maxLength={500} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="e.g. I explain with examples and give a short test every week." className={`${inputClass} py-3`} />
             <p className={`mt-1 text-right text-xs tabular-nums ${about.length > 450 ? "text-amber-700" : "text-slate-400"}`}>{about.length}/500</p>
           </Section>

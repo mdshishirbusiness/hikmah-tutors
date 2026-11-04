@@ -3,7 +3,8 @@
 // the server; with no internet the lead waits on the phone and goes as soon as the net is back.
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { ArrowLeft, ClipboardPaste, CloudOff } from "lucide-react";
+import { ArrowLeft, BookOpen, ClipboardPaste, Clock, CloudOff, GraduationCap, type LucideIcon, MapPin, Phone, UserRound, Wallet } from "lucide-react";
+import { SectionCard, type SectionTone } from "~/components/SectionCard";
 import type { Route } from "./+types/admin.quick";
 import { AddressDetails, AreaPicker, ClassPicker, MediumPicker, RequirementPicker, SessionPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
 import { ChoiceChip } from "~/components/tutor";
@@ -25,13 +26,12 @@ const num = (n: number) => n.toLocaleString("en-IN");
 const box = "min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-base outline-none transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
 type Toast = { tone: "ok" | "wait" | "error"; text: string } | null;
 
-function Card({ id, title, required, error, children }: { id?: string; title: string; required?: boolean; error?: string; children: React.ReactNode }) {
+function Card({ id, title, icon, tone, required, error, children }: { id?: string; title: string; icon: LucideIcon; tone?: SectionTone; required?: boolean; error?: string; children: React.ReactNode }) {
   return (
-    <section id={id} className={`scroll-mt-20 rounded-2xl bg-white p-4 shadow-ring ${error ? "ring-2 ring-rose-300" : ""}`}>
-      <h2 className="mb-3 font-extrabold text-forest">{title}{required && <span className="text-rose-600"> *</span>}</h2>
+    <SectionCard id={id} icon={icon} tone={tone} title={title} required={required} error={!!error}>
       {children}
       {error && <p role="alert" className="mt-2 text-sm font-semibold text-rose-700">{error}</p>}
-    </section>
+    </SectionCard>
   );
 }
 const Sub = ({ children }: { children: React.ReactNode }) => <p className="mt-4 mb-1.5 text-xs font-bold tracking-wide text-slate-500 uppercase first:mt-0">{children}</p>;
@@ -115,7 +115,7 @@ export default function QuickPad() {
       </header>
 
       <form key={formKey} onSubmit={submit} noValidate className="mx-auto max-w-xl space-y-3 px-4 pt-4">
-        <Card id="f-phone" title="Guardian" required error={errors.phone}>
+        <Card id="f-phone" icon={Phone} tone="brand" title="Guardian" required error={errors.phone}>
           <div className="flex gap-2">
             <input ref={phoneRef} name="phone" type="tel" inputMode="tel" autoComplete="off" placeholder="01XXXXXXXXX" aria-label="Phone number" aria-invalid={!!errors.phone}
               className={`${box} h-14 min-w-0 flex-1 text-xl tracking-wide`} />
@@ -126,7 +126,7 @@ export default function QuickPad() {
           <Chips>{LEAD_SOURCES.map((s) => <ChoiceChip key={s.key} type="radio" name="lead_source" value={s.key} checked={s.key === "call"}>{s.label}</ChoiceChip>)}</Chips>
         </Card>
 
-        <Card id="f-class_level" title="Student" required error={errors.class_level}>
+        <Card id="f-class_level" icon={UserRound} tone="sky" title="Student" required error={errors.class_level}>
           <ClassPicker />
           <Sub>Medium</Sub>
           <MediumPicker />
@@ -134,14 +134,14 @@ export default function QuickPad() {
           <Chips>{STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key}>{g.label}</ChoiceChip>)}</Chips>
         </Card>
 
-        <Card title="Subjects"><SubjectPicker /></Card>
+        <Card icon={BookOpen} tone="violet" title="Subjects"><SubjectPicker /></Card>
 
-        <Card id="f-area" title="Area" required error={errors.area}>
+        <Card id="f-area" icon={MapPin} tone="amber" title="Area" required error={errors.area}>
           <AreaPicker allowOther />
           <AddressDetails name="address" />
         </Card>
 
-        <Card id="f-time" title="When" error={errors.time}>
+        <Card id="f-time" icon={Clock} tone="sky" title="When" error={errors.time}>
           <Sub>Days per week</Sub>
           <Chips>{DAYS_PER_WEEK.map((d) => <ChoiceChip key={d} type="radio" name="days_per_week" value={String(d)}>{d} days</ChoiceChip>)}</Chips>
           <Sub>Time</Sub>
@@ -150,11 +150,11 @@ export default function QuickPad() {
           <SessionPicker />
         </Card>
 
-        <Card id="f-salary" title="Salary per month" error={errors.salary}>
+        <Card id="f-salary" icon={Wallet} tone="brand" title="Salary per month" error={errors.salary}>
           <SalaryChips />
         </Card>
 
-        <Card title="Tutor wanted">
+        <Card icon={GraduationCap} tone="violet" title="Tutor wanted">
           <TutorPicker genderName="tutor_gender" />
           <Sub>Guardian asks</Sub>
           <RequirementPicker />

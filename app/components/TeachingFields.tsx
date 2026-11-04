@@ -68,13 +68,26 @@ export function SubjectField({ picked }: { picked: Set<string> }) {
   );
 }
 
+/** Quick amounts, or any amount typed in the box (owner, 2026-11-05). One number goes to the server as min_salary. */
 export function SalaryField({ value }: { value: number | null }) {
+  const quick = value === null || SALARIES.includes(value);
+  const [pick, setPick] = useState(quick ? String(value ?? "") : "");
+  const [typed, setTyped] = useState(quick ? "" : String(value));
+  const choose = (v: string) => { setPick(v); setTyped(""); };
   return (
-    <div className="flex flex-wrap gap-2">
-      <ChoiceChip type="radio" name="min_salary" value="" checked={!value}>No minimum</ChoiceChip>
-      {[...new Set([...SALARIES, ...(value ? [value] : [])])].sort((a, b) => a - b).map((s) => (
-        <ChoiceChip key={s} type="radio" name="min_salary" value={String(s)} checked={value === s}>{taka(s)}</ChoiceChip>
-      ))}
-    </div>
+    <>
+      <div className="flex flex-wrap gap-2">
+        <ChoiceChip type="radio" name="min_salary_pick" value="" checked={!typed && pick === ""} onChange={() => choose("")}>No minimum</ChoiceChip>
+        {SALARIES.map((s) => (
+          <ChoiceChip key={s} type="radio" name="min_salary_pick" value={String(s)} checked={!typed && pick === String(s)} onChange={() => choose(String(s))}>{taka(s)}</ChoiceChip>
+        ))}
+      </div>
+      <label className="mt-3 flex max-w-xs items-center gap-2 rounded-xl bg-cream px-3 ring-1 ring-brand-100 focus-within:ring-2 focus-within:ring-brand-200">
+        <span className="text-sm font-bold text-slate-500">৳</span>
+        <input value={typed} onChange={(e) => setTyped(e.target.value.replace(/[^\d০-৯]/g, ""))} inputMode="numeric" placeholder="Or type an amount, e.g. 3500" aria-label="Lowest salary, typed"
+          className="min-h-11 min-w-0 flex-1 bg-transparent text-base outline-none" />
+      </label>
+      <input type="hidden" name="min_salary" value={(typed || pick).replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d)))} />
+    </>
   );
 }

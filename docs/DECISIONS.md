@@ -3,6 +3,45 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-05 (plan agreed with the owner, Q1–Q16)
+
+Agreed in a question round. Built in this order: A → B → C → D → E.
+
+- **A. Quick fixes.**
+  - Subjects are a tick list again (the combinations dropdown was hard to use).
+  - "Didn't work out" and its reasons are in Bangla.
+  - Lowest salary: quick amounts plus a box to type any amount. No range, because a top limit would only hide
+    tuitions from the tutor.
+  - Section headings get a soft tinted icon tile, the title in forest, a grey hint and a thin coloured accent line,
+    the same on every page. No emoji.
+- **B. Tutor Profile.**
+  - Five sections with jump chips: Availability, Teaching, Experience, Academic, About and skills.
+  - Experience, for each level the tutor teaches (Junior / SSC / HSC):
+    - students taught and years
+    - how I teach
+    - habits as taps: notes, regular tests, homework, reports to guardian
+    - a student I helped (optional)
+  - Experience is prefilled from the sheet's statements; most tutors already have them, e.g. SSC approach 967, Junior
+    experience 812.
+  - Academic is locked after approval.
+  - An animated progress bar with the next step highlighted. "Complete profiles are shown to HTR first" is true,
+    because completeness feeds C.
+- **C. Applicants ranked by Strength for this tuition.**
+  - Order: experience at its level first, then how complete the profile is for that level, then the record with HTR.
+  - Gender and area only show as warnings.
+  - The side panel opens with that level's approach and story.
+  - No AI ranking for now: it would send tutors' details to an outside service. Revisit later.
+- **D. Follow-ups and notes.**
+  - A follow-up is a reminder on a guardian, tutor, lead or tuition, with a due date (and time) and a note.
+  - Created from those pages with quick choices (Today evening, Tomorrow, 3 days, Next week, a date).
+  - Shown on Today, red when late, with a count. Done (optional outcome) or Later.
+  - A notes timeline on guardian and tutor pages.
+  - Reminders appear in the site only, for now.
+- **D, admin.**
+  - Short labels stay English. Helper lines, tips, reason lists and follow-up notes are Bangla.
+  - Today keeps its charts and adds two donuts: lead sources and tuition outcomes, each with a legend and numbers.
+- **E. Premium Tutor**, after B and C.
+
 ## 2026-11-04 (site review, step 3: one set of request fields)
 
 The owner approved step 3. They asked for the forms to reflect what guardians actually ask, Bangla where it sounds

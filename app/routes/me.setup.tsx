@@ -2,17 +2,18 @@
 // availability and accept the terms. These choices drive For You and the fit check. ?edit=1 reopens it later.
 import { useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
-import { MessageCircle } from "lucide-react";
+import { BookOpen, MapPin, MessageCircle, ShieldCheck, UserRound, Wallet } from "lucide-react";
 import type { Route } from "./+types/me.setup";
 import { Facts, primaryButton } from "~/components/admin";
 import { SiteHeader } from "~/components/site";
+import { SalaryField } from "~/components/TeachingFields";
 import { ChoiceChip, Step } from "~/components/tutor";
 import { CONTACT, waLink } from "~/lib/contact";
 import { safeNext } from "~/lib/google-auth";
 import { bandOf } from "~/lib/fit";
 import { requireTutor, saveSetup, setupChoices } from "~/lib/me.server";
 import { AREAS, AREAS_TOP, CLASS_CHOICES, TUTOR_FROM, labelOf } from "~/lib/options";
-import { taka } from "~/lib/tuition";
+
 import { firstName } from "~/lib/whatsapp";
 
 export function meta(_: Route.MetaArgs) {
@@ -37,7 +38,6 @@ export async function action({ request }: Route.ActionArgs) {
   throw redirect(safeNext(new URL(request.url).searchParams.get("next")) ?? "/");
 }
 
-const SALARIES = [3000, 4000, 5000, 6000, 8000, 10000];
 const GROUPS = [
   { band: "junior", label: "Play–Class 8" },
   { band: "ssc", label: "Class 9–10 · SSC" },
@@ -62,7 +62,7 @@ export default function Setup({ loaderData: { me, choices, first }, actionData }
         {actionData?.error && <p role="alert" className="mt-4 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
 
         <Form method="post" className="mt-6 space-y-4">
-          <Step n={1} title="Your details" hint="Locked. If something is wrong, message HTR.">
+          <Step n={1} icon={UserRound} tone="sky" title="Your details" hint="Locked. If something is wrong, message HTR.">
             <Facts rows={[
               ["Name", me.full_name],
               ["Phone", me.phone],
@@ -77,7 +77,7 @@ export default function Setup({ loaderData: { me, choices, first }, actionData }
             </a>
           </Step>
 
-          <Step n={2} title="Where can you teach?" hint="Pick every area you can reach. No limit.">
+          <Step n={2} icon={MapPin} tone="amber" title="Where can you teach?" hint="Pick every area you can reach. No limit.">
             <ChoiceChip name="anywhere" value="1" checked={anywhere} onChange={setAnywhere}>Anywhere in Rajshahi</ChoiceChip>
             <div className={`mt-3 flex flex-wrap gap-2 transition-opacity ${anywhere ? "pointer-events-none opacity-40" : ""}`} aria-disabled={anywhere}>
               {AREAS.map((a, i) => (
@@ -93,14 +93,11 @@ export default function Setup({ loaderData: { me, choices, first }, actionData }
             )}
           </Step>
 
-          <Step n={3} title="Lowest salary you'll take" hint="Per month. Lower ones still show, with a warning.">
-            <div className="flex flex-wrap gap-2">
-              <ChoiceChip type="radio" name="min_salary" value="" checked={!me.min_salary}>No minimum</ChoiceChip>
-              {SALARIES.map((s) => <ChoiceChip key={s} type="radio" name="min_salary" value={String(s)} checked={me.min_salary === s}>{taka(s)}</ChoiceChip>)}
-            </div>
+          <Step n={3} icon={Wallet} tone="brand" title="Lowest salary you'll take" hint="Per month. Lower ones still show, with a warning.">
+            <SalaryField value={me.min_salary} />
           </Step>
 
-          <Step n={4} title="Classes you want" hint={first ? "We picked the levels you teach on the old form. Change freely." : undefined}>
+          <Step n={4} icon={BookOpen} tone="violet" title="Classes you want" hint={first ? "We picked the levels you teach on the old form. Change freely." : undefined}>
             <div className="space-y-3">
               {GROUPS.map((g) => (
                 <div key={g.label}>
@@ -115,7 +112,7 @@ export default function Setup({ loaderData: { me, choices, first }, actionData }
             </div>
           </Step>
 
-          <Step n={5} title="Confirm">
+          <Step n={5} icon={ShieldCheck} tone="slate" title="Confirm">
             <label className="flex min-h-11 items-start gap-3 py-1 text-slate-800">
               <input type="checkbox" name="available" value="1" defaultChecked={!!me.availability_confirmed_at} className="mt-0.5 size-5 shrink-0 accent-forest" />
               I still want to take tuitions.

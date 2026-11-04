@@ -1,7 +1,9 @@
 // The tuition's own fields, shared by "New tuition" and the tuition page's Details tab. They use the same pickers as the
 // Quick Pad and the guardian form (owner, 2026-11-04, review step 3): class by level with Other, subjects with Other, an
 // area search, a time window, requirement quick picks and the universities wanted. Radios and checkboxes underneath.
+import { GraduationCap, ListChecks, type LucideIcon, MapPin, Megaphone, UserRound, Wallet } from "lucide-react";
 import { inputClass } from "~/components/admin";
+import { SECTION_TONES, SectionHead, type SectionTone } from "~/components/SectionCard";
 import { AddressDetails, AreaPicker, ClassPicker, MediumPicker, RequirementPicker, SessionPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
 import { ChoiceChip } from "~/components/tutor";
 import { CLASS_LEVELS, DAYS_PER_WEEK, SALARY_PRESETS, STUDENT_GENDERS } from "~/lib/options";
@@ -14,15 +16,15 @@ export type TuitionDraft = {
   requirement_keys?: string | null;
 };
 
-export function Group({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+export function Group({ title, hint, icon = ListChecks, tone, children }: { title: string; hint?: string; icon?: LucideIcon; tone?: SectionTone; children: React.ReactNode }) {
   return (
-    <fieldset className="min-w-0 space-y-3 rounded-2xl bg-white p-4 shadow-ring sm:p-5">
+    <fieldset className="min-w-0 overflow-hidden rounded-2xl bg-white shadow-ring">
       <legend className="sr-only">{title}</legend>
-      <div aria-hidden>
-        <p className="text-sm font-bold text-forest">{title}</p>
-        {hint && <p className="text-xs text-slate-500">{hint}</p>}
+      <div aria-hidden className={`h-1 ${SECTION_TONES[tone ?? "brand"].line}`} />
+      <div className="space-y-3 p-4 sm:p-5">
+        <div aria-hidden><SectionHead icon={icon} tone={tone} title={title} hint={hint} /></div>
+        {children}
       </div>
-      {children}
     </fieldset>
   );
 }
@@ -44,7 +46,7 @@ export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?:
   const days = t.days_per_week ?? 4;
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Group title="Student">
+      <Group icon={UserRound} tone="sky" title="Student">
         {legacy && <p className="rounded-xl bg-amber-100 px-3 py-2 text-sm text-amber-900">Old class “{legacy.label}”. Pick one class or batch below before it goes on the board.</p>}
         <ClassPicker value={legacy ? "" : t.class_level} other={t.class_other} />
         {legacy && <input type="hidden" name="class_level" value={t.class_level} />}
@@ -62,7 +64,7 @@ export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?:
         </div>
       </Group>
 
-      <Group title="Place and time">
+      <Group icon={MapPin} tone="amber" title="Place and time">
         <div>
           <Sub>Area</Sub>
           <AreaPicker value={t.area} />
@@ -84,7 +86,7 @@ export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?:
         </div>
       </Group>
 
-      <Group title="Salary">
+      <Group icon={Wallet} tone="brand" title="Salary">
         <Chips>
           {[["fixed", "Fixed"], ["negotiable", "Negotiable"], ["unspecified", "Not given"]].map(([k, label]) => (
             <ChoiceChip key={k} type="radio" name="salary_kind" value={k} checked={(t.salary_kind ?? "fixed") === k}>{label}</ChoiceChip>
@@ -96,11 +98,11 @@ export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?:
         </Label>
       </Group>
 
-      <Group title="Tutor wanted">
+      <Group icon={GraduationCap} tone="violet" title="Tutor wanted">
         <TutorPicker genderName="tutor_gender_pref" gender={t.tutor_gender_pref} from={(t.tutor_from ?? "").split(",").filter(Boolean)} />
       </Group>
 
-      <Group title="Public wording" hint="Shown on the board. No family names, address or phone numbers.">
+      <Group icon={Megaphone} tone="slate" title="Public wording" hint="Shown on the board. No family names, address or phone numbers.">
         <div>
           <Sub>Guardian asks (quick picks)</Sub>
           <RequirementPicker picked={requirementKeys(t.requirement_keys)} />
