@@ -227,7 +227,7 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
             <input type="hidden" name="status" value={t.status} />
             {t.is_public === 1 && <input type="hidden" name="is_public" value="1" />}
             {t.accepting_applications === 1 && <input type="hidden" name="accepting" value="1" />}
-            <TuitionFields t={t} />
+            <TuitionFields t={t} address={priv?.exact_address} />
             <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 flex justify-end lg:bottom-4">
               <button disabled={busy} className={`${primaryButton} w-full shadow-lift sm:w-auto`}>{busy ? "Saving…" : "Save details"}</button>
             </div>

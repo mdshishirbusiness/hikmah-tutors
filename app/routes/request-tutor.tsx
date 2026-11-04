@@ -4,13 +4,13 @@
 import { Form, Link, useNavigation } from "react-router";
 import { CheckCircle2, MessageCircle, Phone } from "lucide-react";
 import type { Route } from "./+types/request-tutor";
-import { AreaPicker, ClassPicker, RequirementPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
+import { AddressDetails, AreaPicker, ClassPicker, MediumPicker, RequirementPicker, SessionPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
 import { GUARDIAN_WA_TEXT, PageShell, buttonClass } from "~/components/site";
 import { ChoiceChip } from "~/components/tutor";
 import { CONTACT, telLink, waLink } from "~/lib/contact";
 import { leadFromForm, parseLead } from "~/lib/lead";
 import { insertLead, recentWebsiteLeads } from "~/lib/leads.server";
-import { DAYS_PER_WEEK, MEDIUMS, STUDENT_GENDERS } from "~/lib/options";
+import { DAYS_PER_WEEK, STUDENT_GENDERS } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -39,8 +39,8 @@ export async function action({ request }: Route.ActionArgs) {
   if (f.getAll("subjects").length === 0) errors.subjects = "অন্তত একটি বিষয় বেছে নিন।";
   if (f.get("consent") !== "on") errors.consent = "এগিয়ে যেতে সম্মতি দিন।";
 
-  // The same fields and checks as the Quick Pad; a guardian never gives a full address here.
-  const { lead, errors: leadErrors } = parseLead(leadFromForm(f, { client_id: f.get("client_id"), created_at: Math.floor(Date.now() / 1000), address: "", lead_source: "website" }));
+  // The same fields and checks as the Quick Pad. The address details stay private (only the Selected tutor sees them).
+  const { lead, errors: leadErrors } = parseLead(leadFromForm(f, { client_id: f.get("client_id"), created_at: Math.floor(Date.now() / 1000), lead_source: "website" }));
   if (leadErrors?.phone) errors.phone = "সঠিক মোবাইল নম্বর দিন (013–019 দিয়ে শুরু, 11 ডিজিট)।";
   if (leadErrors?.area) errors.area = "এলাকা বেছে নিন বা লিখুন।";
   if (leadErrors?.class_level) errors.class_level = "ক্লাস বেছে নিন।";
@@ -107,7 +107,7 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
   }
 
   return (
-    <PageShell title="Request a tutor" sub="কয়েকটা ট্যাপেই হয়ে যাবে। বাকিটা আমরা ফোন করে জেনে নেব। পূর্ণ ঠিকানা এখানে লাগবে না।">
+    <PageShell title="Request a tutor" sub="কয়েকটা ট্যাপেই হয়ে যাবে। বাকিটা আমরা ফোন করে জেনে নেব।">
       <Form method="post" noValidate className="space-y-4">
         <input type="hidden" name="client_id" value={clientId} />
         {Object.keys(errors).length > 0 && <p role="alert" className="rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{errors.form ?? "লাল দাগ দেওয়া অংশগুলো ঠিক করুন।"}</p>}
@@ -125,15 +125,16 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
           </div>
         </Part>
 
-        <Part n={2} title="Where" hint="শুধু এলাকা, পূর্ণ ঠিকানা নয়।" error={!!errors.area}>
+        <Part n={2} title="Where" hint="এলাকা বেছে নিন। বিস্তারিত ঠিকানা দিলে শুধু নির্বাচিত টিউটর দেখবেন।" error={!!errors.area}>
           <AreaPicker allowOther />
+          <AddressDetails name="address" />
           {err("area")}
         </Part>
 
         <Part n={3} title="Your child" error={!!(errors.class_level || errors.subjects)}>
           <div><Q>Class</Q><ClassPicker />{err("class_level")}</div>
           <div><Q>Subjects</Q><SubjectPicker />{err("subjects")}</div>
-          <div><Q optional>Medium</Q><Chips>{MEDIUMS.map((m) => <ChoiceChip key={m.key} type="radio" name="medium" value={m.key}>{m.label}</ChoiceChip>)}</Chips></div>
+          <div><Q optional>Medium</Q><MediumPicker /></div>
           <div><Q optional>Student</Q><Chips>{STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key}>{g.key === "boy" ? "Son" : "Daughter"}</ChoiceChip>)}</Chips></div>
         </Part>
 

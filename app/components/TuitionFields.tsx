@@ -2,11 +2,10 @@
 // Quick Pad and the guardian form (owner, 2026-11-04, review step 3): class by level with Other, subjects with Other, an
 // area search, a time window, requirement quick picks and the universities wanted. Radios and checkboxes underneath.
 import { inputClass } from "~/components/admin";
-import { AreaPicker, ClassPicker, RequirementPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
+import { AddressDetails, AreaPicker, ClassPicker, MediumPicker, RequirementPicker, SessionPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
 import { ChoiceChip } from "~/components/tutor";
-import { CLASS_LEVELS, DAYS_PER_WEEK, MEDIUMS, SALARY_PRESETS, SESSION_MINUTES, STUDENT_GENDERS, labelOf } from "~/lib/options";
+import { CLASS_LEVELS, DAYS_PER_WEEK, SALARY_PRESETS, STUDENT_GENDERS } from "~/lib/options";
 import { requirementKeys } from "~/lib/request";
-import { sessionLength } from "~/lib/tuition";
 
 export type TuitionDraft = {
   class_level?: string; medium?: string; subjects?: string; area?: string; days_per_week?: number; session_minutes?: number | null; time_of_day?: string | null;
@@ -40,7 +39,7 @@ export function Label({ text, children, hint }: { text: string; children: React.
 const Chips = ({ children }: { children: React.ReactNode }) => <div className="flex flex-wrap gap-1.5">{children}</div>;
 const Sub = ({ children }: { children: React.ReactNode }) => <p className="mb-1 text-xs font-semibold text-slate-600">{children}</p>;
 
-export function TuitionFields({ t = {} }: { t?: TuitionDraft }) {
+export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?: string | null }) {
   const legacy = CLASS_LEVELS.find((c) => c.key === t.class_level && c.legacy);
   const days = t.days_per_week ?? 4;
   return (
@@ -51,7 +50,7 @@ export function TuitionFields({ t = {} }: { t?: TuitionDraft }) {
         {legacy && <input type="hidden" name="class_level" value={t.class_level} />}
         <div>
           <Sub>Medium</Sub>
-          <Chips>{MEDIUMS.map((m) => <ChoiceChip key={m.key} type="radio" name="medium" value={m.key} checked={t.medium === m.key}>{m.label}</ChoiceChip>)}</Chips>
+          <MediumPicker value={t.medium} />
         </div>
         <div>
           <Sub>Student</Sub>
@@ -67,6 +66,7 @@ export function TuitionFields({ t = {} }: { t?: TuitionDraft }) {
         <div>
           <Sub>Area</Sub>
           <AreaPicker value={t.area} />
+          <AddressDetails name="exact_address" value={address} />
         </div>
         <div>
           <Sub>Days per week</Sub>
@@ -80,7 +80,7 @@ export function TuitionFields({ t = {} }: { t?: TuitionDraft }) {
         </div>
         <div>
           <Sub>Each session</Sub>
-          <Chips>{SESSION_MINUTES.map((m) => <ChoiceChip key={m} type="radio" name="session_minutes" value={String(m)} checked={t.session_minutes === m}>{sessionLength(m)}</ChoiceChip>)}</Chips>
+          <SessionPicker value={t.session_minutes} />
         </div>
       </Group>
 

@@ -22,8 +22,8 @@ enforced with SQLite triggers. Roles: Owner only for now.
 - Deploy before Google login has been tried with real Google credentials and `OWNER_EMAILS` is set on Cloudflare.
   `DEV_ADMIN` is for `npm run dev` only (`app/lib/auth.server.ts`).
 - Show a guardian's phone number or full address anywhere a tutor or the public can see it. One exception: the tutor
-  marked Selected on that tuition sees the guardian's phone (never the address) while the status lasts, each view
-  logged (owner, 2026-11-04).
+  marked Selected on that tuition sees the guardian's phone and the address details (house, road, landmark) while
+  the status lasts, each view logged (owner, 2026-11-04).
 - Show a tutor's phone number, NID or verification document to guardians or the public. One exception: the Selected
   tutor's phone may go into the admin's WhatsApp summary for that guardian; shortlist summaries carry no phone.
 - Handle passwords, OAuth secrets or API keys. `.dev.vars` stays gitignored.

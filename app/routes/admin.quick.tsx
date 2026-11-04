@@ -5,13 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { ArrowLeft, ClipboardPaste, CloudOff } from "lucide-react";
 import type { Route } from "./+types/admin.quick";
-import { AreaPicker, ClassPicker, RequirementPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
+import { AddressDetails, AreaPicker, ClassPicker, MediumPicker, RequirementPicker, SessionPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
 import { ChoiceChip } from "~/components/tutor";
 import { requireAdmin } from "~/lib/auth.server";
 import { type LeadErrors, leadFromForm, parseLead } from "~/lib/lead";
 import { flushPending, saveLead, usePendingCount } from "~/lib/lead-queue";
-import { DAYS_PER_WEEK, LEAD_SOURCES, MEDIUMS, SALARY_PRESETS, SESSION_MINUTES, STUDENT_GENDERS } from "~/lib/options";
-import { sessionLength } from "~/lib/tuition";
+import { DAYS_PER_WEEK, LEAD_SOURCES, SALARY_PRESETS, STUDENT_GENDERS } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Quick Pad · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
@@ -130,7 +129,7 @@ export default function QuickPad() {
         <Card id="f-class_level" title="Student" required error={errors.class_level}>
           <ClassPicker />
           <Sub>Medium</Sub>
-          <Chips>{MEDIUMS.map((m) => <ChoiceChip key={m.key} type="radio" name="medium" value={m.key}>{m.label}</ChoiceChip>)}</Chips>
+          <MediumPicker />
           <Sub>Student</Sub>
           <Chips>{STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key}>{g.label}</ChoiceChip>)}</Chips>
         </Card>
@@ -139,7 +138,7 @@ export default function QuickPad() {
 
         <Card id="f-area" title="Area" required error={errors.area}>
           <AreaPicker allowOther />
-          <input name="address" placeholder="Full address or landmark (private)" aria-label="Full address" className={`${box} mt-3`} />
+          <AddressDetails name="address" />
         </Card>
 
         <Card id="f-time" title="When" error={errors.time}>
@@ -148,7 +147,7 @@ export default function QuickPad() {
           <Sub>Time</Sub>
           <TimePicker />
           <Sub>Each session</Sub>
-          <Chips>{SESSION_MINUTES.map((m) => <ChoiceChip key={m} type="radio" name="session_minutes" value={String(m)}>{sessionLength(m)}</ChoiceChip>)}</Chips>
+          <SessionPicker />
         </Card>
 
         <Card id="f-salary" title="Salary per month" error={errors.salary}>

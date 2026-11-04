@@ -35,6 +35,17 @@ better and English where it is clearer, and a time window such as "2:00 PM to 6:
   counts as RC or VU when their institution names it.
 - **Leads now store** time of day, window, session length, tutor from, requirement picks and the Other texts
   (migration 0014). "Post" carries them into the draft tuition, so nothing is typed twice.
+- **Owner's changes after seeing it** (same day):
+  - Class, medium, subjects and session length are dropdowns.
+  - Classes: Play, Nursery and KG are each their own ("Play–KG" stays only on old rows), and admission is
+    University, Medical or Engineering. Other opens a box.
+  - Subjects: a dropdown of the combinations guardians asked most in the sheet, most asked first, including "Only
+    English" and "Only Bangla". "Other combination…" opens every subject as chips.
+  - Session length in 15-minute steps, 45 min to 3 hours ("1 hr 15 min"). Guardians ask for "about 1 hr 10–15" or
+    "1 hr 40–45".
+  - Area gets an address **Details** box (house, road, landmark) on Quick Pad, the guardian form and the tuition
+    editor. **The Selected tutor now sees it with the phone**, each view logged. This changes the earlier
+    "phone, never the address" rule (CLAUDE.md updated).
 - The guardian form is five numbered parts. Only name, phone, area, class and one subject are needed; the rest is
   marked optional. The tuition page now also shows "Tutor from".
 

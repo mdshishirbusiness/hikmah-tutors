@@ -41,7 +41,7 @@ export default function NewTuition({ actionData }: Route.ComponentProps) {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Label text="Phone"><input name="guardian_phone" required inputMode="tel" autoComplete="off" placeholder="01XXXXXXXXX" className={`${inputClass} font-semibold`} /></Label>
             <Label text="Name or how to call them"><input name="guardian_name" placeholder="e.g. Mrs. Rahman" className={inputClass} /></Label>
-            <Label text="Address" hint="never public"><input name="exact_address" placeholder="House, road, area" className={inputClass} /></Label>
+
             <Label text="Came through">
               <select name="lead_source" defaultValue="call" className={inputClass}>
                 {LEAD_SOURCES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}

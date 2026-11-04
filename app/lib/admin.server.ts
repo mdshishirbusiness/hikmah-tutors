@@ -341,6 +341,8 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
       genderPref, tutorFrom.join(","), requirements, startNote, postedAt, studentGender, closedAt, closedAt,
       classLevel === "other" ? text("class_other") || null : null, subjects.includes("other") ? text("subject_other") || null : null,
       window.time_from, window.time_to, asks.join(","), code),
+    // The private address details sit with the guardian's row, never on the public tuition.
+    ...(form.has("exact_address") ? [env.DB.prepare(`UPDATE tuition_private SET exact_address = ?, updated_at = ? WHERE tuition_code = ?`).bind(text("exact_address").slice(0, 200) || null, t, code)] : []),
     audit(actorId, "tuition_updated", "tuition", String(code), { status, is_public: publish }),
   ]);
   return null;

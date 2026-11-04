@@ -35,6 +35,17 @@ export function MediumPicker({ value }: { value?: string | null }) {
   );
 }
 
+/** House, road and landmark. Private: only the tutor marked Selected sees it, with the phone, each view logged
+ * (owner, 2026-11-04). Leads call it address, tuitions exact_address. */
+export function AddressDetails({ name, value }: { name: "address" | "exact_address"; value?: string | null }) {
+  return (
+    <div className="mt-3">
+      <input name={name} defaultValue={value ?? ""} maxLength={200} placeholder="Details: house, road, landmark" aria-label="Address details" className={box} />
+      <p className="mt-1 text-xs text-slate-500">শুধু নির্বাচিত টিউটর দেখবেন, আর কেউ নয়।</p>
+    </div>
+  );
+}
+
 /** How long each class is, in 15-minute steps. */
 export function SessionPicker({ value }: { value?: number | null }) {
   return (
