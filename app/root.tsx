@@ -1,6 +1,7 @@
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, type ShouldRevalidateFunctionArgs } from "react-router";
 
 import type { Route } from "./+types/root";
+import { PageLoader } from "./components/PageLoader";
 import { headerViewer } from "./lib/me.server";
 import "./app.css";
 
@@ -16,6 +17,8 @@ export function shouldRevalidate({ formMethod, currentUrl, nextUrl, defaultShoul
 }
 
 export const links: Route.LinksFunction = () => [
+  { rel: "icon", type: "image/png", sizes: "192x192", href: "/brand/icon-192.png" },
+  { rel: "apple-touch-icon", href: "/brand/apple-touch-icon.png" },
   { rel: "preload", href: "/fonts/plus-jakarta-sans-latin.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" },
   { rel: "preload", href: "/fonts/hind-siliguri-bengali-400.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" },
 ];
@@ -40,7 +43,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <>
+      <PageLoader />
+      <Outlet />
+    </>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

@@ -49,11 +49,13 @@ export function SiteHeader() {
       document.body.style.overflow = "";
     };
   }, [open]);
+  // The phone menu sits beside the header, not inside it: the header's blur makes a fixed child size itself to the header.
   return (
+    <>
     <header className="sticky top-0 z-40 border-b border-brand-100/60 bg-cream/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex min-w-0 items-center gap-2.5 rounded-lg" aria-label="Hikmah Tutors Rajshahi, home">
-          <img src="/brand/logo-square.webp" alt="" width={40} height={40} className="size-10 shrink-0 rounded-xl" />
+          <img src="/brand/mark.webp" alt="" width={40} height={40} className="size-10 shrink-0" />
           <span className="min-w-0 leading-none">
             <span className="block text-[17px] font-extrabold tracking-tight text-forest">Hikmah Tutors<span className="text-brand-600">.</span></span>
             <span className="mt-1 block truncate text-[10px] font-bold tracking-[0.18em] text-slate-500 uppercase">Rajshahi</span>
@@ -71,7 +73,9 @@ export function SiteHeader() {
               </Link>
             )}
           </div>
-          {viewer && <span className="lg:hidden"><Account viewer={viewer} compact /></span>}
+          <span className="lg:hidden">
+            {viewer ? <Account viewer={viewer} compact /> : <Link to="/login" className="inline-flex min-h-11 items-center rounded-xl bg-forest px-4 text-sm font-bold text-cream">Log in</Link>}
+          </span>
           <button
             type="button"
             onClick={() => setOpen(!open)}
@@ -84,6 +88,7 @@ export function SiteHeader() {
           </button>
         </div>
       </div>
+    </header>
       {open && (
         <nav id="mobile-site-nav" aria-label="Main navigation" className="fixed inset-x-0 top-16 bottom-0 z-40 flex animate-fade flex-col gap-1 overflow-y-auto bg-cream px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] lg:hidden">
           {NAV.map(([to, label], i) => (
@@ -107,7 +112,7 @@ export function SiteHeader() {
           </div>
         </nav>
       )}
-    </header>
+    </>
   );
 }
 
@@ -138,7 +143,7 @@ export function SiteFooter() {
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:px-8">
           <div className="col-span-2 lg:col-span-1 lg:pr-12">
             <Link to="/" className="inline-flex items-center gap-3 rounded-lg">
-              <img src="/brand/logo-square.webp" alt="" width={44} height={44} className="size-11 rounded-xl" />
+              <span className="flex size-11 items-center justify-center rounded-xl bg-cream"><img src="/brand/mark.webp" alt="" width={34} height={34} className="size-[34px]" /></span>
               <span className="text-lg font-bold">
                 Hikmah Tutors<span className="text-mango">.</span>
                 <span className="block text-xs font-normal tracking-widest text-brand-200">RAJSHAHI</span>

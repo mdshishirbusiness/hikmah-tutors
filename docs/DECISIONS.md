@@ -3,6 +3,21 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-04 (site review, step 1)
+
+The owner asked for a deep review of every page (`docs/REVIEW-2026-11-04.md`) and approved its step 1:
+
+- **Page loader** (owner, like Towfique HSC English): a thin emerald bar at the top 0.1 s after a tap; the logo mark,
+  name and a sliding bar in the middle when a new page takes over 0.4 s. Filters on the same page show only the bar.
+  The bar slides left to right, as on Towfique; the owner may still ask for right to left.
+- **Logo mark**: the header, footer, admin and app icons use the mark alone (figure, cap, star), cut cleanly from
+  `design/brand/logo-square.png` by `scripts/make-logo-mark.mjs`. The old icon was a crop that showed pieces of the H, T
+  and the RAJSHAHI pill. On forest it sits on a cream tile, because the head is forest. A redrawn full logo with whole
+  letters is still to do.
+- **Phone header**: signed-out visitors see a Log in button beside the menu; the menu is no longer inside the blurred
+  header (it opened only 40 px tall).
+- Under reduced motion, looping animations play once instead of flickering.
+
 ## 2026-11-04 (design and workflow overhaul)
 
 Context: the owner dropped the inspiration-picture step and asked Claude to design "like a high end designer" from the

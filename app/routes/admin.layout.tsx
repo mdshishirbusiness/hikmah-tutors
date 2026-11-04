@@ -192,7 +192,7 @@ function Sidebar({ counts, onSearch }: { counts: Counts; onSearch: () => void })
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-forest text-cream lg:flex">
       <Link to="/admin" className="flex items-center gap-3 px-5 pt-5 pb-4">
-        <img src="/brand/logo-square.webp" alt="" width={36} height={36} className="size-9 rounded-xl" />
+        <span className="flex size-9 items-center justify-center rounded-xl bg-cream"><img src="/brand/mark.webp" alt="" width={28} height={28} className="size-7" /></span>
         <span className="leading-tight">
           <span className="block font-bold">Hikmah Admin</span>
           <span className="block text-[11px] font-semibold tracking-[0.16em] text-brand-200 uppercase">Rajshahi</span>
@@ -245,7 +245,7 @@ function PhoneBars({ counts, onSearch }: { counts: Counts; onSearch: () => void 
     <>
       <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-brand-100/70 bg-cream/90 px-4 backdrop-blur-md lg:hidden">
         <Link to="/admin" className="flex items-center gap-2">
-          <img src="/brand/logo-square.webp" alt="" width={32} height={32} className="size-8 rounded-lg" />
+          <img src="/brand/mark.webp" alt="" width={32} height={32} className="size-8" />
           <span className="font-bold text-forest">Admin</span>
         </Link>
         <button type="button" onClick={onSearch} className="ml-auto flex min-h-11 flex-1 items-center gap-2 rounded-xl bg-white px-3 text-sm text-slate-500 shadow-ring max-w-56">

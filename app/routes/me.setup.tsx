@@ -67,7 +67,7 @@ export default function Setup({ loaderData: { me, choices, first }, actionData }
               ["Name", me.full_name],
               ["Phone", me.phone],
               ["Gender", me.gender === "female" ? "Female" : me.gender === "male" ? "Male" : ""],
-              ["University", [university, me.institution].filter(Boolean).join(" · ")],
+              ["University", [university, me.institution?.toLowerCase() === university.toLowerCase() ? null : me.institution].filter(Boolean).join(" · ")],
               ["Department", me.department],
               ["Session", me.session_year],
             ]} />

@@ -346,7 +346,7 @@ function AreaPicker({ value, onChange }: { value: string; onChange: (key: string
   const q = query.trim().toLowerCase();
 
   let shown: Option[];
-  if (q) shown = AREAS.filter((a) => a.label.includes(q) || (a.alt ?? "").toLowerCase().includes(q));
+  if (q) shown = AREAS.filter((a) => a.label.toLowerCase().includes(q) || (a.alt ?? "").toLowerCase().includes(q));
   else if (showAll) shown = AREAS;
   else {
     shown = AREAS.slice(0, AREAS_TOP);

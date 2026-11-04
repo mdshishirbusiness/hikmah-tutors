@@ -120,6 +120,22 @@
       transform: scaleX(0);
     }
   }
+  /* The page loader: a bar that slides across, and the logo breathing (as on Towfique HSC English). */
+  --animate-slide: slide 1.15s ease-in-out infinite;
+  @keyframes slide {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+  --animate-breathe: breathe 1.8s ease-in-out infinite;
+  @keyframes breathe {
+    50% {
+      transform: scale(0.94);
+    }
+  }
   --animate-pop: pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
   @keyframes pop {
     from {
@@ -162,5 +178,6 @@ a {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-delay: 0s !important;
+    animation-iteration-count: 1 !important; /* looping loaders would flicker at 0.01 ms */
   }
 }
