@@ -238,6 +238,7 @@ export type Applicant = {
   students: Student[]; // students they have taught, this level first
   demos: number; // demo classes done through HTR
   dropped: number; // tuitions that didn't work out for the tutor's own reasons
+  premium: number; // 1 while the tutor has an active Premium term (part E): first within their Strength level
 };
 
 export async function getTuition(code: number) {
@@ -261,7 +262,8 @@ export async function getTuition(code: number) {
               (SELECT body FROM tutor_statements st WHERE st.tutor_id = a.tutor_id AND st.kind = ?) experience,
               t.photo_key, t.about, t.demo_willing, t.availability_paused paused, t.flag_reason, a.updated_at, a.called_at, a.met_at, a.demo_done_at,
               (SELECT count(*) FROM applications x WHERE x.tutor_id = a.tutor_id) total_apps,
-              (SELECT count(*) FROM placements pl WHERE pl.tutor_id = a.tutor_id AND pl.status IN ('confirmed', 'joined', 'ended')) placed
+              (SELECT count(*) FROM placements pl WHERE pl.tutor_id = a.tutor_id AND pl.status IN ('confirmed', 'joined', 'ended')) placed,
+              EXISTS (SELECT 1 FROM premium_members pm WHERE pm.tutor_id = a.tutor_id AND pm.status = 'active') premium
        FROM applications a LEFT JOIN tutors t ON t.id = a.tutor_id WHERE a.tuition_code = ? ORDER BY a.created_at`,
       band, band, tuition.subjects, band ? `${band}_experience` : "", code,
     ),
@@ -630,9 +632,9 @@ export async function getTutor(code: number) {
                 ORDER BY CASE band WHEN 'junior' THEN 1 WHEN 'ssc' THEN 2 ELSE 3 END`, tutor.id),
     all<Student>(`SELECT id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement, source FROM tutor_students
                   WHERE tutor_id = ? ORDER BY COALESCE(ended, '9999-12') DESC, started DESC, id DESC`, tutor.id),
+    all<{ id: number; kind: string; label: string | null; created_at: number }>(`SELECT id, kind, label, created_at FROM tutor_documents WHERE tutor_id = ? ORDER BY kind, id`, tutor.id),
   ]);
   return { tutor, subjects, statements, applications, placements, levels, students, documents, areas: areas.map((a) => a.area), classes: classes.map((c) => c.class_level) };
-    all<{ id: number; kind: string; label: string | null; created_at: number }>(`SELECT id, kind, label, created_at FROM tutor_documents WHERE tutor_id = ? ORDER BY kind, id`, tutor.id),
 }
 
 // ---------- Guardians ----------
@@ -797,10 +799,12 @@ export async function navCounts() {
             (SELECT count(*) FROM tuitions WHERE status IN ('available', 'processing')) open,
             (SELECT count(*) FROM applications WHERE status = 'trial_arranged') selected,
             (SELECT count(*) FROM tutors WHERE review_status = 'waiting' AND deleted_at IS NULL) new_tutors,
-            (SELECT count(*) FROM followups WHERE done_at IS NULL AND due_at <= unixepoch()) followups`,
-  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number; followups: number }>();
+            (SELECT count(*) FROM followups WHERE done_at IS NULL AND due_at <= unixepoch()) followups,
+            (SELECT count(*) FROM premium_members WHERE status IN ('applied', 'paid')
+               OR (refund_due_at IS NOT NULL AND refund_sent_at IS NULL)) premium`,
+  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number; followups: number; premium: number }>();
   const review = await reviewCounts();
-  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0, followups: 0 }), review: review.tutors + review.tuitions + review.held };
+  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0, followups: 0, premium: 0 }), review: review.tutors + review.tuitions + review.held };
 }
 
 export type SearchHit = { kind: "tuition" | "tutor" | "guardian" | "lead"; to: string; title: string; sub: string; photo?: { code: number; has: boolean } };

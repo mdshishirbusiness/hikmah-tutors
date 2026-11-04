@@ -3,7 +3,7 @@
 // Private: only this tutor sees it.
 import { Link, redirect } from "react-router";
 import {
-  ArrowRight, BadgeCheck, Bell, CircleSlash, ClipboardCheck, Hourglass, Megaphone, PartyPopper, PauseCircle, PhoneCall, Sparkles, Star, UserPen, XCircle,
+  ArrowRight, BadgeCheck, Bell, CircleSlash, ClipboardCheck, Crown, Hourglass, Megaphone, PartyPopper, PauseCircle, PhoneCall, Sparkles, Star, UserPen, XCircle,
 } from "lucide-react";
 import type { Route } from "./+types/me";
 import { Avatar } from "~/components/Avatar";
@@ -16,6 +16,8 @@ import { homeView, liveNotice, markUpdatesSeen, myApplications, tutorBadges, tut
 import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
 import { timeAgo } from "~/lib/tuition";
 import { profilePercent } from "~/lib/profile";
+import { premiumStatus } from "~/lib/premium.server";
+import { taka } from "~/lib/tuition";
 import { firstName } from "~/lib/whatsapp";
 
 export function meta(_: Route.MetaArgs) {
@@ -32,10 +34,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   const me = await tutorForUser(viewer.id);
   if (!me) throw redirect("/me/join"); // a Google account with no tutor record registers first
   if (!me.setup_done_at) throw redirect("/me/setup?next=/me");
-  const [view, notice, apps, badges] = await Promise.all([homeView(viewer, me), liveNotice(), myApplications(me.id), tutorBadges(viewer, me)]);
+  const [view, notice, apps, badges, premium] = await Promise.all([homeView(viewer, me), liveNotice(), myApplications(me.id), tutorBadges(viewer, me), premiumStatus(me.id)]);
   // Drawn once with the dots, then marked seen, so the next visit starts clean.
   await markUpdatesSeen(me);
-  return { me, view, notice, apps, badges, now: Math.floor(Date.now() / 1000) };
+  return { me, view, notice, apps, badges, premium, now: Math.floor(Date.now() / 1000) };
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };
@@ -71,7 +73,7 @@ function Ring({ percent }: { percent: number }) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { me, view, notice, apps, badges, now } = loaderData;
+  const { me, view, notice, apps, badges, premium, now } = loaderData;
   const open = apps.filter((a) => ["submitted", "under_review", "shortlisted", "trial_arranged"].includes(a.status));
   const stats = [
     ["Open", open.length], ["Shortlisted", apps.filter((a) => a.status === "shortlisted").length],
@@ -224,6 +226,19 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 </ul>
               )}
             </section>
+
+            {/* Premium (part E): an entry for everyone, the term's state once there is one. */}
+            <Link to="/me/premium" className="group relative block overflow-hidden rounded-2xl bg-forest p-4 text-cream shadow-ring transition-shadow hover:shadow-lift">
+              <span aria-hidden className="absolute -top-10 -right-8 size-28 rounded-full bg-forest-mid" />
+              <span className="relative flex items-center gap-3">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-mango text-forest"><Crown size={20} aria-hidden /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-extrabold">{premium?.status === "active" ? "Premium" : premium?.status === "accepted" ? `Premium accepted · pay ${taka(premium.price)}` : premium ? "Premium · HTR is checking" : "Become Premium"}</span>
+                  <span className="block text-xs text-brand-100">{premium?.status === "active" && premium.ends_at ? `${Math.max(0, Math.ceil((premium.ends_at - now) / 86400))} days left` : premium ? "See where it stands" : "সমান যোগ্যদের মধ্যে আগে বিবেচনা, 90 দিনে টিউশনের চেষ্টা"}</span>
+                </span>
+                <ArrowRight size={18} className="shrink-0 text-mango transition-transform group-hover:translate-x-0.5" aria-hidden />
+              </span>
+            </Link>
 
             <section className="grid grid-cols-2 gap-3">
               <Link to="/me/refer" className="rounded-2xl bg-white p-4 shadow-ring transition-shadow hover:shadow-lift">

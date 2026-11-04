@@ -3,6 +3,8 @@
 export const CONTACT = {
   whatsapp: "01522136687",
   call: "01522136687",
+  // Premium payments (docs/DECISIONS.md 2026-10-29): Send Money or Cash In. Shown only after HTR accepts a tutor.
+  pay: "01845359242",
 };
 
 const intl = (phone: string) => {

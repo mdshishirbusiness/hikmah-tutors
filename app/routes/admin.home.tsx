@@ -2,7 +2,7 @@
 // with their trend, posted against booked by week, the funnel and where demand is. Phone: numbers, then the to-do
 // list, then the charts.
 import { Link } from "react-router";
-import { BadgeCheck, ChevronRight, ClipboardList, FilePen, FileText, Inbox, ListChecks, PhoneCall, PhoneMissed, Plus, UserPlus } from "lucide-react";
+import { BadgeCheck, ChevronRight, Crown, ClipboardList, FilePen, FileText, Inbox, ListChecks, PhoneCall, PhoneMissed, Plus, UserPlus } from "lucide-react";
 import type { Route } from "./+types/admin.home";
 import { PageHead, num } from "~/components/admin";
 import { BarList, CHART, ColumnChart, Donut, StatTile } from "~/components/charts";
@@ -11,6 +11,7 @@ import { dashboard, mix, pulse, todayList } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { agoBn } from "~/lib/dhaka";
 import { dueFollowups } from "~/lib/followups.server";
+import { premiumWaiting } from "~/lib/premium.server";
 import { AREAS, CLASS_LEVELS, LEAD_SOURCES, labelOf } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
@@ -19,8 +20,8 @@ export function meta(_: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const [counts, list, p, follow, parts] = await Promise.all([dashboard(), todayList(), pulse(12), dueFollowups(), mix()]);
-  return { counts, list, p, follow, parts, now: Math.floor(Date.now() / 1000) };
+  const [counts, list, p, follow, parts, premium] = await Promise.all([dashboard(), todayList(), pulse(12), dueFollowups(), mix(), premiumWaiting()]);
+  return { counts, list, p, follow, parts, premium, now: Math.floor(Date.now() / 1000) };
 }
 
 const OUTCOME: Record<string, string> = { booked: "Booked", open: "Still open", cancelled: "Cancelled", closed: "Closed unfilled", draft: "Hidden" };
@@ -73,7 +74,7 @@ function greeting() {
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-export default function AdminHome({ loaderData: { counts: c, list, p, follow, parts, now } }: Route.ComponentProps) {
+export default function AdminHome({ loaderData: { counts: c, list, p, follow, parts, premium, now } }: Route.ComponentProps) {
   const calls: Task[] = list.leads.filter((l) => l.status === "new").map((l) => ({
     key: `lead-${l.id}`, to: "/admin/leads", icon: PhoneCall, tone: "bg-mango text-forest",
     title: `${l.guardian_name || "New guardian"}: ${where(l.class_level, l.area)}`, sub: `নতুন লিড · ${agoBn(l.created_at)}`, late: late(l.created_at, 2),
@@ -107,7 +108,14 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
     title: `Check new tutor: ${x.full_name}`, sub: `T-${x.code} · ${[x.university?.toUpperCase(), x.department].filter(Boolean).join(" · ")} · ${agoBn(x.created_at)}`, late: late(x.created_at, 24),
   }));
   const review: Task[] = c.held > 0 ? [{ key: "review", to: "/admin/review", icon: ListChecks, tone: "bg-amber-100 text-amber-900", title: `To review: ${num(c.held)}`, sub: "শিট থেকে আসা টিউটর, টিউশন ও সারি দেখুন" }] : [];
-  const nothing = !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length && !checkins.length && !newTutors.length && !follow.due.length;
+  // Premium (part E): new applications, payments to check, refunds owed (red once 7 days have passed).
+  const premiumTasks: Task[] = [
+    premium.applied > 0 && { key: "pr-applied", to: "/admin/premium?tab=applied", icon: Crown, tone: "bg-mango text-forest", title: `Premium: ${premium.applied} new ${premium.applied === 1 ? "application" : "applications"}`, sub: "24 ঘণ্টার মধ্যে গ্রহণ বা না করুন" },
+    premium.paid > 0 && { key: "pr-paid", to: "/admin/premium?tab=payment", icon: Crown, tone: "bg-forest text-mango", title: `Premium: check ${premium.paid} ${premium.paid === 1 ? "payment" : "payments"}`, sub: "bKash/Nagad-এ TrxID মিলিয়ে Verify করুন" },
+    premium.refunds > 0 && { key: "pr-refund", to: "/admin/premium?tab=ended", icon: Crown, tone: premium.refunds_late ? "bg-rose-100 text-rose-900" : "bg-amber-100 text-amber-900", title: `Premium: ${premium.refunds} ${premium.refunds === 1 ? "refund" : "refunds"} to send`, sub: "7 দিনের মধ্যে একই নম্বরে পাঠান", late: premium.refunds_late > 0 && "7 দিন পার" },
+    premium.ending > 0 && { key: "pr-ending", to: "/admin/premium?tab=ending", icon: Crown, tone: "bg-sky-100 text-sky-900", title: `Premium: ${premium.ending} ending in 5 days`, sub: "রিফান্ড না আরও 90 দিন, জেনে নিন" },
+  ].filter(Boolean) as Task[];
+  const nothing = !premiumTasks.length && !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length && !checkins.length && !newTutors.length && !follow.due.length;
 
   const date = new Date(now * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", weekday: "long", day: "numeric", month: "long" });
   const weekLabel = (i: number) => new Date((now - (p.weeks - i) * 7 * 86400 + 86400) * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short" });
@@ -147,6 +155,7 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
               <ul className="space-y-2">{follow.due.map((f) => <FollowupRow key={f.id} f={f} />)}</ul>
             </section>
           )}
+          <Section title="Premium" tasks={premiumTasks} more={{ to: "/admin/premium", label: "Premium" }} />
           <Section title="Call" hint="নতুন গার্ডিয়ান: 2 ঘণ্টার মধ্যে কল করুন।" tasks={calls} more={{ to: "/admin/leads", label: "All leads" }} />
           <Section title="Selected tutors" hint="সিলেক্ট হওয়া টিউটর 3 ঘণ্টার মধ্যে গার্ডিয়ানকে কল করবে; কনফার্ম হলে গার্ডিয়ানের সাথে মিলিয়ে নিন।" tasks={[...confirmed, ...notCalled]} more={{ to: "/admin/placements", label: "Placements" }} />
           <Section title="Check-in calls" hint="কনফার্মের 7 ও 30 দিন পর গার্ডিয়ানকে কল করে খোঁজ নিন।" tasks={checkins} more={{ to: "/admin/placements", label: "Placements" }} />

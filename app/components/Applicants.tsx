@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Link, useFetcher, useSearchParams } from "react-router";
 import {
-  AlertTriangle, Check, ChevronRight, Columns3, Copy, ExternalLink, LayoutList, MessageCircle, Phone, Search, Send, X,
+  AlertTriangle, Check, ChevronRight, Columns3, Copy, Crown, ExternalLink, LayoutList, MessageCircle, Phone, Search, Send, X,
 } from "lucide-react";
 import { Avatar } from "~/components/Avatar";
 import { FollowUpButton } from "~/components/FollowUps";
@@ -20,7 +20,7 @@ import { waLink } from "~/lib/contact";
 import { type Fit, bandOf, fitOf, tutorFromLabel } from "~/lib/fit";
 import { SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
 import { bandShort } from "~/lib/profile";
-import { type Strength, strengthOf, strengthWord } from "~/lib/strength";
+import { type Strength, levelOf, strengthOf, strengthWord } from "~/lib/strength";
 import { taka } from "~/lib/tuition";
 import { guardianSummary, tutorMessage } from "~/lib/whatsapp";
 
@@ -177,6 +177,7 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
           <div className="min-w-0 flex-1 pt-1">
             <Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge>
             <h3 className="mt-1.5 text-xl leading-tight font-extrabold break-words text-forest">{a.name || "No name"}</h3>
+            {a.premium ? <Link to="/admin/premium?tab=active" className="mt-1 inline-flex items-center gap-1 rounded-md bg-mango px-2 py-0.5 text-xs font-extrabold text-forest"><Crown size={12} aria-hidden />Premium · first among equals</Link> : null}
             <p className="mt-0.5 text-sm break-words text-slate-600">{[a.institution, a.department].filter(Boolean).join(" · ")}</p>
             <p className="mt-0.5 text-xs text-slate-400">{[a.tutor_code && `T-${a.tutor_code}`, a.gender && (a.gender === "female" ? "Female" : "Male"), `applied ${ago(a.created_at)}`].filter(Boolean).join(" · ")}</p>
           </div>
@@ -325,6 +326,7 @@ function RowButton({ row, active, onPick, compact }: { row: Row; active: boolean
       <span className="min-w-0">
         <span className="flex items-center gap-1.5">
           <span className="truncate font-bold text-forest">{a.name || "No name"}</span>
+          {a.premium ? <span title="Premium: first within its Strength level" className="inline-flex shrink-0 items-center gap-0.5 rounded bg-mango px-1 text-[10px] font-extrabold text-forest"><Crown size={10} aria-hidden />PREMIUM</span> : null}
           {a.priority === "urgent" && <span className="shrink-0 rounded bg-forest px-1 text-[10px] font-bold text-mango">URGENT</span>}
           {a.flag_reason && <span title={`Flagged: ${a.flag_reason}`} className="shrink-0 rounded bg-rose-600 px-1 text-[10px] font-bold text-white">FLAG</span>}
           {a.note && <span title="Wrote a note" className="size-1.5 shrink-0 rounded-full bg-brand-600" />}
@@ -378,7 +380,9 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
       sort === "new" ? y.a.created_at - x.a.created_at
         : sort === "old" ? x.a.created_at - y.a.created_at
           : sort === "fit" ? STAGE[y.a.status] - STAGE[x.a.status] || y.match - x.match || x.a.created_at - y.a.created_at
-            : STAGE[y.a.status] - STAGE[x.a.status] || y.strength.score - x.strength.score || y.match - x.match || x.a.created_at - y.a.created_at);
+            // Premium moves a tutor to the top of their own Strength level only, never above a stronger one (part E).
+            : STAGE[y.a.status] - STAGE[x.a.status] || levelOf(y.strength.score) - levelOf(x.strength.score) || y.a.premium - x.a.premium
+              || y.strength.score - x.strength.score || y.match - x.match || x.a.created_at - y.a.created_at);
 
   const current = rows.find((r) => r.a.id === picked) ?? (desktop && view === "table" ? list[0] : undefined);
 
@@ -474,7 +478,7 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
                         <span className="flex items-center gap-2.5">
                           <Avatar code={r.a.tutor_code} name={r.a.name} hasPhoto={!!r.a.photo_key} size="sm" />
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-bold text-forest">{r.a.name}</span>
+                            <span className="flex items-center gap-1"><span className="truncate text-sm font-bold text-forest">{r.a.name}</span>{r.a.premium ? <span title="Premium" className="grid size-4 shrink-0 place-items-center rounded bg-mango text-forest"><Crown size={10} aria-label="Premium" /></span> : null}</span>
                             <span className="block truncate text-xs text-slate-500">{who(r.a)}</span>
                           </span>
                         </span>

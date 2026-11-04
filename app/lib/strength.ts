@@ -31,3 +31,5 @@ export function strengthOf(a: StrengthInput, band: Band | null): Strength {
 }
 
 export const strengthWord = (score: number) => (score >= 70 ? "Strong" : score >= 40 ? "Good" : score >= 15 ? "Some" : "Little shown");
+/** The Strength level as a number (3 Strong … 0 Little shown), for "first within the level" (Premium, part E). */
+export const levelOf = (score: number) => (score >= 70 ? 3 : score >= 40 ? 2 : score >= 15 ? 1 : 0);

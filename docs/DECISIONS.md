@@ -16,6 +16,57 @@ Newest first. Each entry: what was decided, by whom, and why.
   shrunk to 1600 px on the phone (no crop, hidden details such as location dropped) before sending.
 - **Not changed**: tutors from the sheet keep their documents in Drive; they never see the registration form.
 
+## 2026-11-05 (part E: Premium Tutor, agreed with the owner in three rounds)
+
+- **The 28–29 Oct Pro rules stand** (owner): the price is 50% of the tutor's minimum salary, as the media fee paid
+  in advance. The 90 days run from the day HTR verifies the payment, with no refund before day 90. 3 problems end
+  Premium with a 50% refund; misconduct ends it with no refund. Tutors apply first and pay only after HTR accepts.
+  Priority only among equally suitable tutors. Admin and the tutor see Premium; guardians and the public never do.
+- **No cap on Premium tutors** (owner; replaces the pilot's 10). To keep the 90-day promise, the admin list shows
+  each tutor's day count and a "No tuition after 60 days" group, and HTR may decline areas or classes with few
+  tuitions (Claude, owner agreed).
+- **No pilot members to bring in**: the Google Form was never published (owner).
+- **Price**: rounded to the nearest ৳100; the minimum salary is at least ৳2,000, so the price is at least ৳1,000.
+  Shown live as the tutor types.
+- **One delivered tuition ends Premium** (first salary received and the remaining fee paid); the tutor may buy
+  again. The fee left is 50% of the real salary minus the deposit, within 7 days of the first salary.
+- **Payment is manual**: the tutor sends money by Send Money or Cash In and enters the number used, the TrxID and
+  the amount; the admin verifies. HTR's payment number shows only after HTR accepts the tutor.
+- **Only tutors who have finished the required Profile steps can apply.** The form is short: minimum salary,
+  areas and classes confirmed, terms accepted. Voice note and teaching sheets wait.
+- **What "matching tuition" means is saved when HTR accepts** (areas, classes, subjects, minimum salary); the
+  tutor sees it on their Premium page.
+- **Problems** (the old yellow cards, in plain words): no reply within 12 hours, refused a matching tuition, wrong
+  profile details, a tuition found elsewhere (1 each), trial missed through the tutor's fault (2). The tutor sees
+  "সমস্যা: 1 of 3" with the reason.
+- **Tutor page `/me/premium`**: what Premium gives (Bangla), a preview of how their application looks to HTR with and
+  without Premium, the terms as promises on both sides, the form, then their status, cards, days left and problems.
+- **Admin page `/admin/premium`**: Applied, Awaiting payment, Active, Ending soon, Ended. A mango Premium chip on
+  applicants; in the applicant order a Premium tutor moves to the top of their own Strength level only.
+- **Reminders**: verifying a payment creates a follow-up for day 85 ("refund or renew"); a refund still due 7 days
+  after it fell due shows red on Today.
+- **Cards drawn in the browser and sent on WhatsApp** (owner's suggestion, from the Towfique HSC English app's
+  share cards): Welcome, Payment receipt (PRM-0001…) and Refund receipt, drawn on a canvas with no library. On a
+  phone the share sheet puts the picture into WhatsApp; on a computer it saves as a PNG. Every step also has a
+  WhatsApp text button. The tutor can save their welcome card; there is no public-share button. A "You're
+  Selected" card for every tutor may come later.
+- **Terms**: Claude drafts them in Bangla; the owner reviews them before they go live.
+- **Honest before every application** (owner): the page always says that a tuition is a matter of rizq ("রিযিকে
+  থাকলে ইনশাআল্লাহ পাবেন"), that HTR will try its very best, and that Premium is not a guarantee, and it encourages
+  patience. The apply tick says so too, and the same note stays on the page while a term runs. The accepted and
+  verified WhatsApp messages carry one line of it.
+- **Designs that make tutors want to join** (owner: "more interesting, to inspire others"). Claude's design:
+  - The tutor sees their own **Premium pass**: a mango ticket with their photo and a stub with the days, notched
+    like the ticket card the owner chose for the board. One light sweep when it appears.
+  - **"Watch your name move up"**: an example applicant list where their row rises from 4th to 1st among Good,
+    still below the Strong tutor. Other applicants are blank rows, not invented people.
+  - **A fee bar** under the minimum salary: a sample tuition's fee split into the Premium part (paid now) and the
+    rest (after the first salary), so "not an extra fee" is visible.
+  - How it works in 4 coloured steps; the promises in three coloured blocks; a count of Premium tutors once there
+    are at least 5 (a number only, never who).
+  - The welcome card is the same pass, drawn large; receipts are paper receipts with a VERIFIED or REFUNDED stamp.
+- **English digits in Premium's Bangla text too** (CLAUDE.md language rule), e.g. "90 দিন", "24 ঘণ্টা".
+
 ## 2026-11-05 (owner's round after part D)
 
 - **"Late" now says what passed, in Bangla**: "2 ঘণ্টা পার", "3 ঘণ্টা পার", "6 ঘণ্টা পার", "1 দিন পার". Each Today

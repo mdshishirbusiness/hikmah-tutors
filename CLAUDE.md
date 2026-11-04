@@ -56,6 +56,9 @@ enforced with SQLite triggers. Roles: Owner only for now.
   `LevelSummary.tsx` shows one level to the owner. Section headings use `SectionCard.tsx`.
 - Follow-ups and notes: `app/lib/followups.server.ts`, posted to `/admin/followups` from `app/components/FollowUps.tsx`
   (button, row, notes panel). Dhaka-time helpers and Bangla "ago" lines are in `app/lib/dhaka.ts`.
+- Premium (migration 0019): rules, terms and WhatsApp texts in `app/lib/premium.ts`, steps in `premium.server.ts`
+  (triggers hold the status order and fix a verified receipt). Pages `/me/premium` and `/admin/premium`. Cards are
+  drawn on a canvas in `app/lib/cards.ts` and shared or saved by `ShareCard.tsx`.
 - Admin pieces: `app/components/Applicants.tsx` (applicant table/board/detail), `charts.tsx` (no chart library),
   `TuitionFields.tsx` (new and edit tuition), `Avatar.tsx` (private photos via `/photos/tutor/:code`).
 - Database changes: a new numbered file in `migrations/`, then `npm run db:migrate:local` (and `db:migrate` for the

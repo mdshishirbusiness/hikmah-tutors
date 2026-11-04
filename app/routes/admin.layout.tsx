@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Form, Link, NavLink, Outlet, type ShouldRevalidateFunctionArgs, useFetcher, useLocation, useNavigate } from "react-router";
 import { InstallButton } from "~/components/InstallApp";
 import {
-  ArrowUpRight, BarChart3, ClipboardList, FileText, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, Plus, Search, UserRound, Users, X, Zap,
+  ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, Plus, Search, UserRound, Users, X, Zap,
 } from "lucide-react";
 import type { Route } from "./+types/admin.layout";
 import { Avatar } from "~/components/Avatar";
@@ -46,6 +46,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: "People",
     items: [
       { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors, hot: true },
+      { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true },
       { to: "/admin/guardians", label: "Guardians", icon: UserRound },
     ],
   },
@@ -68,6 +69,7 @@ const TABS: Item[] = [
 const MORE: Item[] = [
   { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications },
   { to: "/admin/placements", label: "Placements", icon: Handshake, count: (c) => c.selected },
+  { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true },
   { to: "/admin/guardians", label: "Guardians", icon: UserRound },
   { to: "/admin/insights", label: "Insights", icon: BarChart3 },
   { to: "/admin/review", label: "Review", icon: ListChecks, count: (c) => c.review },
