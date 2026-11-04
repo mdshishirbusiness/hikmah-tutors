@@ -3,6 +3,26 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-04 (step 3, data side)
+
+Context: step 3 (owner: "Start step 3", data side first while the owner collects design inspiration). Choices Claude
+made inside the agreed plan:
+
+- **For You** = open, available tuitions taking applications that pass gender, class (or no classes picked), at least
+  one subject at the tuition's band, area (listed, Anywhere, or the address names it; online tuitions skip the area)
+  and university (or any). Tuitions the tutor already applied to, even withdrawn, are left out. Home shows the 3
+  newest and the total; the board's For You chip (step 4) uses the same rule. **Paused tutors get no For You.**
+- **Updates** = the last 30 days of HTR's steps on the tutor's applications (Shortlisted, Selected, Not selected,
+  Opportunity closed; the tutor's own moves are not listed) and any profile edit by the admin. "Unread" = newer than
+  the tutor's last Home visit (`tutors.updates_seen_at`, migration 0011). Home's red dot: unread updates or a Selected
+  application.
+- **Profile setup progress** counts what the tutor can fill in themselves: areas, classes, subjects, lowest salary,
+  transport, demo class, About. The photo is left out until tutors can upload one.
+- **About** is a new field (`tutors.about`, 500 characters), typed by the tutor.
+- **A paused tutor can still apply** (owner): the apply sheet warns "You're paused", and applying turns pause off.
+- **Profile saves** replace areas, classes and subjects together; locked fields are never read from the form. The
+  pause switch saves on its own tap.
+
 ## 2026-11-04 (domain)
 
 - **The site's address is `hikmahtutor.com`** (owner bought it; DNS on the Hikmah Cloudflare account). The Worker

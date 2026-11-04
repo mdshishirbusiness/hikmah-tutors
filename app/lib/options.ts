@@ -74,6 +74,21 @@ export const SUBJECTS: Option[] = [
   { key: "finance", label: "Finance", alt: "ফিন্যান্স" },
 ];
 
+// How a tutor gets to a home tuition (tutors.transport).
+export const TRANSPORTS: Option[] = [
+  { key: "none", label: "None" },
+  { key: "bicycle", label: "Bicycle" },
+  { key: "motorbike", label: "Motorbike" },
+  { key: "other", label: "Other" },
+];
+
+// The teaching bands a tutor lists subjects for (tutor_subjects.band).
+export const BANDS: Option[] = [
+  { key: "junior", label: "Class 1–8" },
+  { key: "ssc", label: "Class 9–10 / SSC" },
+  { key: "hsc", label: "HSC / Admission" },
+];
+
 // Where the guardian wants the tutor from (owner, 2026-11-04). None picked means any university.
 export const TUTOR_FROM: Option[] = [
   { key: "ru", label: "RU", alt: "Rajshahi University রাবি" },

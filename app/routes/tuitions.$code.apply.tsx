@@ -26,7 +26,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const { me } = await requireTutor(request);
   const view = await applyView(me, codeOf(params.code));
   if (!view) throw data("Tuition not found", { status: 404 });
-  return { ...view, minSalary: me.min_salary };
+  return { ...view, minSalary: me.min_salary, paused: me.availability_paused === 1 };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -73,7 +73,7 @@ const ICON = {
   bad: { icon: X, tone: "bg-rose-100 text-rose-800" },
 };
 
-export default function Apply({ loaderData: { t, fit, applied, minSalary }, actionData }: Route.ComponentProps) {
+export default function Apply({ loaderData: { t, fit, applied, minSalary, paused }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const rows = fitRows(t, fit, minSalary);
   const blocked = fit.gender === "mismatch";
@@ -104,6 +104,12 @@ export default function Apply({ loaderData: { t, fit, applied, minSalary }, acti
           ) : (
             <Form method="post" className="mt-4 space-y-5">
               {actionData?.error && <p role="alert" className="rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
+              {paused && !blocked && (
+                <p className="flex items-start gap-3 rounded-xl bg-amber-100 px-4 py-3 text-sm text-amber-900">
+                  <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden />
+                  <span><span className="font-semibold">You're paused.</span> Applying turns pause off, so HTR can send you tuitions again.</span>
+                </p>
+              )}
 
               <section aria-labelledby="fit">
                 <h2 id="fit" className="mb-2 text-sm font-semibold tracking-wide text-slate-500">YOUR FIT</h2>
