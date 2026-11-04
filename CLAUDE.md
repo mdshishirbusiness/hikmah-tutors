@@ -41,6 +41,8 @@ enforced with SQLite triggers. Roles: Owner only for now.
   that is in use, only its label. Areas are Rajshahi, ordered by how often guardians ask.
 - Quick Pad (`/admin/quick`): saves to `/api/leads`; with no internet the lead waits in localStorage
   (`app/lib/lead-queue.ts`) and is sent when the net is back. `client_id` makes retries safe (no duplicates).
+- Tutor pages call `requireTutor` (`app/lib/me.server.ts`). To try them in `npm run dev`, open `/dev/tutor/<code>` for a
+  synthetic test tutor (code ≥ 99000, created_via 'staff'); it never works for real tutors or in a production build.
 - Database changes: a new numbered file in `migrations/`, then `npm run db:migrate:local` (and `db:migrate` for the
   real database on the Hikmah account). Never edit a migration that has run on the real database.
 

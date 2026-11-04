@@ -33,7 +33,7 @@ export async function dashboard() {
 
 /** The admin's to-do list, most urgent first. Steps that come with the tutor's own ticks (3-hour call, demo, confirm) join later. */
 export async function todayList() {
-  const [leads, applications, drafts] = await Promise.all([
+  const [leads, applications, drafts, selected, tutorConfirmed] = await Promise.all([
     all<{ id: number; status: string; class_level: string; area: string; guardian_name: string | null; created_at: number }>(
       `SELECT id, status, class_level, area, guardian_name, created_at FROM leads WHERE status IN ('new', 'called') ORDER BY status = 'new' DESC, created_at LIMIT 20`,
     ),
@@ -47,8 +47,23 @@ export async function todayList() {
       `SELECT t.code, t.class_level, t.area, p.created_at FROM tuitions t LEFT JOIN tuition_private p ON p.tuition_code = t.code
        WHERE t.status = 'draft' ORDER BY t.code DESC LIMIT 20`,
     ),
+    // Selected tutors who have not ticked Called: flagged after 3 hours, never dropped (owner, 2026-11-04).
+    all<{ code: number; class_level: string; area: string; tutor_code: number | null; selected_at: number }>(
+      `SELECT a.tuition_code code, t.class_level, t.area, tu.code tutor_code,
+              (SELECT max(e.created_at) FROM application_events e WHERE e.application_id = a.id AND e.to_status = 'trial_arranged') selected_at
+       FROM applications a JOIN tuitions t ON t.code = a.tuition_code LEFT JOIN tutors tu ON tu.id = a.tutor_id
+       WHERE a.status = 'trial_arranged' AND a.called_at IS NULL ORDER BY selected_at LIMIT 20`,
+    ),
+    // Confirmed by the tutor's own tick in the last 7 days: the admin checks with the guardian and can undo it.
+    all<{ code: number; class_level: string; area: string; tutor_code: number | null; confirmed_at: number }>(
+      `SELECT a.tuition_code code, t.class_level, t.area, tu.code tutor_code, e.created_at confirmed_at
+       FROM application_events e JOIN applications a ON a.id = e.application_id JOIN users u ON u.id = e.actor_user_id
+       JOIN tuitions t ON t.code = a.tuition_code LEFT JOIN tutors tu ON tu.id = a.tutor_id
+       WHERE e.to_status = 'confirmed' AND u.role = 'tutor' AND a.status = 'confirmed' AND e.created_at > unixepoch() - 7 * 86400
+       ORDER BY e.created_at DESC LIMIT 20`,
+    ),
   ]);
-  return { leads, applications, drafts };
+  return { leads, applications, drafts, selected, tutorConfirmed };
 }
 
 // ---------- Leads ----------
@@ -164,7 +179,8 @@ export type Applicant = {
   id: number; tutor_id: number | null; tutor_code: number | null; name: string | null; phone: string | null; gender: string | null; shortcode: string | null;
   location: string | null; note: string | null; fee_plan: string | null; status: string; created_at: number; priority: string | null; transport: string | null;
   institution: string | null; department: string | null; session_year: string | null; ssc_group: string | null; ssc_result: string | null;
-  hsc_group: string | null; hsc_result: string | null;
+  hsc_group: string | null; hsc_result: string | null; university: string | null; anywhere: number | null; min_salary: number | null;
+  classes: string | null; // the classes the tutor wants, comma-separated (empty until set up)
   subject_fit: string | null; // the tuition's subjects the tutor teaches at its band, comma-separated
   areas: string | null; // the tutor's chosen areas, comma-separated (empty until they sign in)
   experience: string | null; // the tutor's experience statement for the tuition's band
@@ -183,7 +199,8 @@ export async function getTuition(code: number) {
       `SELECT a.id, a.tutor_id, t.code tutor_code, COALESCE(t.full_name, a.applicant_name) name, COALESCE(a.applicant_phone, t.phone) phone,
               COALESCE(t.gender, a.applicant_gender) gender, COALESCE(a.applicant_shortcode, t.institution) shortcode,
               COALESCE(a.applicant_location, t.current_location) location, a.note, a.fee_plan, a.status, a.created_at, t.priority, t.transport,
-              t.institution, t.department, t.session_year, t.ssc_group, t.ssc_result, t.hsc_group, t.hsc_result,
+              t.institution, t.department, t.session_year, t.ssc_group, t.ssc_result, t.hsc_group, t.hsc_result, t.university, t.anywhere, t.min_salary,
+              (SELECT group_concat(c.class_level) FROM tutor_classes c WHERE c.tutor_id = a.tutor_id) classes,
               (SELECT group_concat(DISTINCT s.subject) FROM tutor_subjects s WHERE s.tutor_id = a.tutor_id AND (? = '' OR s.band = ?)
                  AND instr(',' || ? || ',', ',' || s.subject || ',') > 0) subject_fit,
               (SELECT group_concat(ar.area) FROM tutor_areas ar WHERE ar.tutor_id = a.tutor_id) areas,
@@ -272,6 +289,25 @@ export async function moveApplication(id: number, to: string, reason: string, ac
     env.DB.prepare(`INSERT INTO application_events (application_id, from_status, to_status, actor_user_id, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)`).bind(id, app.status, to, actorId, reason || null, t),
     audit(actorId, "application_moved", "application", String(id), { from: app.status, to }),
   ];
+  // Selecting a tutor takes the tuition off the open list while the match is tried (owner, 2026-11-04).
+  if (to === "trial_arranged" && app.status === "shortlisted") {
+    steps.push(env.DB.prepare(`UPDATE tuitions SET status = 'processing' WHERE code = ? AND status = 'available'`).bind(app.tuition_code));
+  }
+  // A match that didn't work out (owner, 2026-11-04): the tuition goes back to Processing for the next tutor.
+  if ((app.status === "trial_arranged" || app.status === "confirmed") && to === "not_selected") {
+    steps.push(
+      env.DB.prepare(`UPDATE placements SET status = 'cancelled', updated_at = ? WHERE application_id = ? AND status IN ('selected', 'confirmed')`).bind(t, id),
+      env.DB.prepare(`UPDATE tuitions SET status = 'processing', closed_at = NULL WHERE code = ? AND status = 'booked'`).bind(app.tuition_code),
+    );
+  }
+  // Undoing a Confirmed (a tutor's tick the admin does not accept): back to Selected and the tuition to Processing.
+  // Applicants already closed stay closed; they can apply again.
+  if (app.status === "confirmed" && to === "trial_arranged") {
+    steps.push(
+      env.DB.prepare(`UPDATE placements SET status = 'cancelled', updated_at = ? WHERE application_id = ? AND status = 'confirmed'`).bind(t, id),
+      env.DB.prepare(`UPDATE tuitions SET status = 'processing', closed_at = NULL WHERE code = ? AND status = 'booked'`).bind(app.tuition_code),
+    );
+  }
   if (to === "confirmed") {
     if (app.tutor_id === null) return "Match the applicant to a tutor before confirming.";
     steps.push(

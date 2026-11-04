@@ -83,10 +83,11 @@ export default function TuitionDetail({ loaderData: { t, similar, now } }: Route
 
         <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
           <div className="grid grid-cols-[1fr_auto] gap-2">
-            {/* Applying needs a tutor account, which comes with Google login. */}
-            <button type="button" disabled className="min-h-12 rounded-xl bg-slate-200 text-sm font-semibold text-slate-600">
-              {t.is_available ? "Applying opens soon" : "Applications closed"}
-            </button>
+            {t.is_available && t.accepting_applications ? (
+              <Link to={`/tuitions/${t.code_label}/apply`} className="flex min-h-12 items-center justify-center rounded-xl bg-forest text-sm font-semibold text-cream transition-colors duration-150 hover:bg-brand-700">Apply</Link>
+            ) : (
+              <span className="flex min-h-12 items-center justify-center rounded-xl bg-slate-200 text-sm font-semibold text-slate-600">Applications closed</span>
+            )}
             <button type="button" onClick={() => share(`/tuitions/${t.code_label}`, `${t.code_label} · Hikmah Tutors`)} className="min-h-12 rounded-xl border border-brand-100 bg-white px-5 text-sm font-semibold text-forest hover:bg-brand-50">Share</button>
           </div>
 

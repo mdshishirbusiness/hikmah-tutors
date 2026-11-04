@@ -15,6 +15,15 @@
 	},
 	"upload_source_maps": true,
 	/**
+	 * The site's address (owner bought hikmahtutor.com, 2026-11-04; the zone is on the Hikmah account). www redirects to
+	 * the bare domain in workers/app.ts. The workers.dev address stays on as a fallback until the domain is confirmed.
+	 */
+	"routes": [
+		{ "pattern": "hikmahtutor.com", "custom_domain": true },
+		{ "pattern": "www.hikmahtutor.com", "custom_domain": true }
+	],
+	"workers_dev": true,
+	/**
 	 * D1 database. Local development works without a Cloudflare account (`npm run db:migrate:local`).
 	 * For production: create it on the Hikmah account (`npx wrangler d1 create hikmah`) and paste the real id here.
 	 */

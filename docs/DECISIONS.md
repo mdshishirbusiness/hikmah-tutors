@@ -3,6 +3,12 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-04 (domain)
+
+- **The site's address is `hikmahtutor.com`** (owner bought it; DNS on the Hikmah Cloudflare account). The Worker
+  serves it as a custom domain; `www.hikmahtutor.com` redirects to it, so sign-in and the Google callback use one
+  address. `hikmah-tutors.hikmahtutor.workers.dev` stays on until the domain is confirmed working, then is turned off.
+
 ## 2026-11-04 (Porao comparison)
 
 Context: ideas from `docs/research/porao-deep-dive-2026-11-04.md`, discussed one by one. All by the owner.
@@ -129,6 +135,31 @@ Choices Claude made inside the agreed plan:
 - **"Message tutor"** opens WhatsApp to the tutor with a ready shortlisted or selected message. It does not carry the
   guardian's number: that view must be logged, so the tutor's app shows it in step 2.
 - **The edit form opens by itself for drafts**, since a tuition just posted from a lead needs its details filled in.
+
+Context: step 2 (owner: "Start step 2"), the tutor side. Choices Claude made inside the agreed plan:
+
+- **First sign-in is one page with five numbered parts** (details, areas, lowest salary, classes, confirm), not one
+  question per screen, which the owner ruled out in board round 1. Classes start ticked from the bands the tutor
+  listed on the old form. A tutor lands on the setup page after sign-in and on the board once it is done; `?edit=1`
+  reopens it.
+- **University key** (`tutors.university`, migration 0010) is filled from the sheet's institution text: RU 783, RUET
+  377, Medical 74, other 220 tutors in the local copy. "Other" is mostly Rajshahi College and Varendra University.
+- **Apply is its own private page**, `/tuitions/HTR-…/apply`, drawn as a sheet over the tuition, so public pages never
+  depend on who is looking. The card's and the tuition page's Apply open it; signed out goes to sign-in, not set up goes
+  to setup first.
+- **The guardian's number sits behind "Show number"**: each tap writes a row in `contact_views` (append-only), so a view
+  is logged only when the number is really opened. The address never shows.
+- **The checklist goes in order** (Called → Met → Demo done → Confirmed). Confirm opens a sheet with both fee plans in
+  taka and a tick "I understand the media fee is due".
+- **Selecting a tutor moves the tuition to Processing.** "Didn't work out" (tutor or admin) makes the application Not
+  selected with the reason and returns a Booked tuition to Processing; migration 0010 allows Booked → Processing. The
+  admin's undo of a tutor's Confirmed goes back to Selected; applicants already closed stay closed but can apply again.
+- **A tutor can withdraw** an application until they are selected.
+- **The admin's Today list** adds "selected tutor hasn't called" after 3 hours and "tutor confirmed" for 7 days.
+- **Bottom bar for tutors** on /me and Applied: Home · Tuitions · Applied · Profile, with a red count on Applied. Home
+  and Profile both open /me until step 3 splits them.
+- **Test sign-in for `npm run dev` only**: `/dev/tutor/99001` signs in as a synthetic test tutor (code 99000 and up,
+  added by staff). Real tutors can't be reached this way, and a production build answers 404.
 
 ## 2026-11-03
 

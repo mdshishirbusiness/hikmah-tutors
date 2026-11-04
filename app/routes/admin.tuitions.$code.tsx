@@ -101,6 +101,8 @@ function FitChips({ fit, a }: { fit: Fit; a: Applicant }) {
       <Chip tone={fit.area === "listed" ? ok : fit.area === "nearby" ? ok : none}>
         {fit.area === "listed" ? "Picked this area" : fit.area === "nearby" ? "Lives nearby" : "Area not known"}
       </Chip>
+      {fit.class === "other" && <Chip tone={warn}>Other classes</Chip>}
+      {fit.salary === "low" && <Chip tone={warn}>Below their minimum</Chip>}
       {fit.university && (
         <Chip tone={fit.university === "ok" ? ok : fit.university === "other" ? warn : none}>
           {fit.university === "ok" ? "University fits" : fit.university === "other" ? "Other university" : "University not known"}
@@ -303,7 +305,7 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
   const raw = priv?.raw_json ? (JSON.parse(priv.raw_json) as Record<string, string>) : null;
   const [showClosed, setShowClosed] = useState(false);
 
-  const ranked = applicants.map((a) => ({ a, fit: fitOf({ tutor_gender_pref: t.tutor_gender_pref, subjects, area: t.area, tutor_from: tutorFrom }, a) }));
+  const ranked = applicants.map((a) => ({ a, fit: fitOf({ ...t, subjects, tutor_from: tutorFrom }, a) }));
   const live = ranked.filter(({ a }) => STAGE[a.status])
     .sort((x, y) => STAGE[y.a.status] - STAGE[x.a.status] || y.fit.score - x.fit.score || x.a.created_at - y.a.created_at);
   const finished = ranked.filter(({ a }) => !STAGE[a.status]);

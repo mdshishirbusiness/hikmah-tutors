@@ -15,6 +15,7 @@ export function when(sec: number | null) {
 export function ago(sec: number | null) {
   if (!sec) return "";
   const m = Math.max(Math.floor((Date.now() / 1000 - sec) / 60), 0);
+  if (m < 1) return "just now";
   if (m < 60) return `${m} min ago`;
   if (m < 48 * 60) return `${Math.floor(m / 60)} h ago`;
   return `${Math.floor(m / 1440)} days ago`;

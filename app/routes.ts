@@ -3,6 +3,7 @@ import { type RouteConfig, index, layout, route } from "@react-router/dev/routes
 export default [
   index("routes/home.tsx"),
   route("tuitions/:code", "routes/tuitions.$code.tsx"),
+  route("tuitions/:code/apply", "routes/tuitions.$code.apply.tsx"),
   route("how-it-works", "routes/how-it-works.tsx"),
   route("fees", "routes/fees.tsx"),
   route("request-tutor", "routes/request-tutor.tsx"),
@@ -15,6 +16,9 @@ export default [
   route("auth/google", "routes/auth.google.ts"),
   route("auth/google/callback", "routes/auth.google.callback.ts"),
   route("me", "routes/me.tsx"),
+  route("me/setup", "routes/me.setup.tsx"),
+  route("applied", "routes/applied.tsx"),
+  route("dev/tutor/:code", "routes/dev.tutor.$code.ts"),
   route("admin/quick", "routes/admin.quick.tsx"),
   layout("routes/admin.layout.tsx", [
     route("admin", "routes/admin.home.tsx"),

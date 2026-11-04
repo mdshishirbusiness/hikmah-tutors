@@ -166,8 +166,7 @@ export function TuitionCard({ t, now, index = 0 }: { t: PublicTuition; now: numb
           <StubPay t={t} />
           <div className="mt-auto pt-3">
             {open ? (
-              // The apply sheet comes with sign-in for tutors; until then Apply opens the detail page.
-              <Link to={href} className="relative z-10 flex min-h-11 w-full items-center justify-center rounded-xl bg-forest text-sm font-semibold text-cream transition-colors duration-150 hover:bg-brand-700">Apply</Link>
+              <Link to={`${href}/apply`} className="relative z-10 flex min-h-11 w-full items-center justify-center rounded-xl bg-forest text-sm font-semibold text-cream transition-colors duration-150 hover:bg-brand-700">Apply</Link>
             ) : (
               <span className="flex min-h-11 items-center justify-center rounded-xl bg-white/70 text-sm font-semibold">{t.status === "processing" ? "Processing" : "Paused"}</span>
             )}

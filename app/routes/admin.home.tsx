@@ -1,6 +1,6 @@
 // The admin's to-do list (owner, 2026-11-04): what to do next, most urgent first, with the counts as a small strip.
 import { Link } from "react-router";
-import { ChevronRight, FilePen, FileText, Inbox, ListChecks, PhoneCall } from "lucide-react";
+import { BadgeCheck, ChevronRight, FilePen, FileText, Inbox, ListChecks, PhoneCall, PhoneMissed } from "lucide-react";
 import type { Route } from "./+types/admin.home";
 import { PageHead, ago, num } from "~/components/admin";
 import { dashboard, todayList } from "~/lib/admin.server";
@@ -68,8 +68,16 @@ export default function AdminHome({ loaderData: { counts: c, list } }: Route.Com
     key: `draft-${d.code}`, to: `/admin/tuitions/${d.code}`, icon: FilePen, tone: "bg-slate-100 text-slate-700",
     title: `HTR-${d.code}: Draft`, sub: `${where(d.class_level, d.area) || "Details missing"} · not public yet`,
   }));
+  const notCalled: Task[] = list.selected.filter((s) => late(s.selected_at, 3)).map((s) => ({
+    key: `sel-${s.code}`, to: `/admin/tuitions/${s.code}#applicants`, icon: PhoneMissed, tone: "bg-rose-100 text-rose-900",
+    title: `HTR-${s.code}: selected tutor hasn't called`, sub: `${s.tutor_code ? `T-${s.tutor_code} · ` : ""}selected ${ago(s.selected_at)}`, late: true,
+  }));
+  const confirmed: Task[] = list.tutorConfirmed.map((c) => ({
+    key: `conf-${c.code}`, to: `/admin/tuitions/${c.code}#applicants`, icon: BadgeCheck, tone: "bg-brand-600 text-white",
+    title: `HTR-${c.code}: tutor confirmed`, sub: `${c.tutor_code ? `T-${c.tutor_code} · ` : ""}${ago(c.confirmed_at)} · check with the guardian`,
+  }));
   const review: Task[] = c.held > 0 ? [{ key: "review", to: "/admin/review", icon: ListChecks, tone: "bg-amber-100 text-amber-900", title: `To review: ${num(c.held)}`, sub: "Tutors, tuitions and rows from the sheet" }] : [];
-  const nothing = !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length;
+  const nothing = !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length;
 
   const strip = [
     { to: "/admin/leads", n: c.leads, label: "new leads" },
@@ -92,6 +100,7 @@ export default function AdminHome({ loaderData: { counts: c, list } }: Route.Com
       <main className="space-y-6">
         {nothing && <p className="rounded-2xl border border-dashed border-brand-200 bg-white p-8 text-center text-slate-600">আজকের সব কাজ শেষ। নতুন কল এলে + চাপুন।</p>}
         <Section title="Call" tasks={calls} />
+        <Section title="Selected tutors" tasks={[...notCalled, ...confirmed]} />
         <Section title="Check applications" tasks={applications} />
         <Section title="Post tuitions" tasks={[...toPost, ...drafts]} />
         <Section title="Review" tasks={review} />

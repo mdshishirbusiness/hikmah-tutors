@@ -58,6 +58,17 @@ npm run import:top-up-real
 It adds only new rows; nothing you reviewed or edited changes. On cutover day run one last top-up, close the Google
 Forms (or point them to the site), and keep the sheet as a read-only archive.
 
+## 5. The domain: hikmahtutor.com
+
+Bought by the owner (2026-11-04); its nameservers point to Cloudflare. **Live since 2026-11-04**: `wrangler.jsonc`
+attaches it (and www, which redirects to it) to the Worker, and migrations 0008–0010 are on the real database. Still to
+do: in Google Cloud, on the "Hikmah live" client, add:
+
+- Authorised JavaScript origins: `https://hikmahtutor.com`
+- Authorised redirect URIs: `https://hikmahtutor.com/auth/google/callback`
+
+Then sign in on `https://hikmahtutor.com/login` and check it lands on `/admin`.
+
 ## Before tutors are invited (later)
 
-Buy the domain, add it to the Worker, add its callback to the Google client, and publish the consent screen.
+Publish the consent screen (in Testing mode only the test users can sign in) and make a fresh client secret.

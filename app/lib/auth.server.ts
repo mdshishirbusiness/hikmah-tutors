@@ -78,7 +78,31 @@ export async function requireUser(request: Request): Promise<Viewer> {
   return viewer;
 }
 
-export const homeFor = (viewer: Viewer) => (viewer.role === "owner" ? "/admin" : "/me");
+// A tutor lands on the board once set up (owner, 2026-11-04); the setup page sends them there when it is done.
+export const homeFor = (viewer: Viewer) => (viewer.role === "owner" ? "/admin" : "/me/setup");
+
+/**
+ * `npm run dev` only: sign in as a synthetic test tutor (code 99000 and up, added by staff), so the tutor pages can be
+ * tried without Google. Real tutors are never reachable this way, and a production build always refuses.
+ */
+export async function devSignInAsTutor(request: Request, code: number) {
+  if (!import.meta.env.DEV || !(code >= 99000)) throw new Response("Not found", { status: 404 });
+  const tutor = await env.DB.prepare(`SELECT id FROM tutors WHERE code = ? AND created_via = 'staff' AND deleted_at IS NULL`).bind(code).first<{ id: number }>();
+  if (!tutor) throw new Response("Not found", { status: 404 });
+  const t = now();
+  const user = await env.DB.prepare(
+    `INSERT INTO users (google_sub, email, name, role, created_at, last_login_at) VALUES (?, ?, ?, 'tutor', ?, ?)
+     ON CONFLICT (google_sub) DO UPDATE SET last_login_at = excluded.last_login_at RETURNING id`,
+  ).bind(`dev-tutor-${code}`, `tutor${code}@dev.test`, `Test tutor ${code}`, t, t).first<{ id: number }>();
+  if (!user) throw new Response("Not found", { status: 404 });
+  const token = randomToken();
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)`).bind(await hashToken(token), user.id, t, t + SESSION_SECONDS),
+    env.DB.prepare(`UPDATE tutors SET user_id = ?, claim_status = 'claimed', updated_at = ? WHERE id = ? AND (user_id IS NULL OR user_id = ?)`).bind(user.id, t, tutor.id, user.id),
+  ]);
+  const next = safeNext(new URL(request.url).searchParams.get("next")) ?? "/me/setup";
+  return redirect(next, { headers: { "Set-Cookie": cookie(request, SESSION_COOKIE, token, SESSION_SECONDS), "Cache-Control": "no-store" } });
+}
 
 export const googleConfigured = () => Boolean(authEnv.GOOGLE_CLIENT_ID && authEnv.GOOGLE_CLIENT_SECRET);
 

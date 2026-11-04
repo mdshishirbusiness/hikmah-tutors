@@ -4,6 +4,7 @@ import { ArrowUpRight, Check, LogOut, ShieldCheck } from "lucide-react";
 import type { Route } from "./+types/me";
 import { APPLICATION_TONE, Badge, Card, Facts, num, primaryButton, when } from "~/components/admin";
 import { SitePage } from "~/components/site";
+import { TutorBar } from "~/components/tutor";
 import { APPLICATION_STATUS } from "~/lib/admin-labels";
 import { requireUser } from "~/lib/auth.server";
 import { confirmAvailability, myProfile } from "~/lib/me.server";
@@ -89,7 +90,7 @@ export default function Me({ loaderData: { email, profile } }: Route.ComponentPr
   const active = applications.filter((a) => STEPS.indexOf(a.status) >= 0 && a.status !== "confirmed").length;
   return (
     <SitePage>
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:py-10">
+      <div className="mx-auto max-w-5xl space-y-6 px-4 pt-6 pb-24 sm:px-6 lg:py-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
             {t.photo_key && <img src={`/photos/tutor/${t.code}`} alt="" width={64} height={64} className="size-16 shrink-0 rounded-2xl object-cover" />}
@@ -128,9 +129,9 @@ export default function Me({ loaderData: { email, profile } }: Route.ComponentPr
               <p className="mt-3 text-base font-semibold">Don't miss the right tuition.</p>
             </div>
             <div className="space-y-1">
-              <a href="#applications" className="flex min-h-12 items-center justify-between gap-2 border-b border-white/10 py-2 text-sm transition-colors hover:text-mango">
+              <Link to="/applied" className="flex min-h-12 items-center justify-between gap-2 border-b border-white/10 py-2 text-sm transition-colors hover:text-mango">
                 <span>Active applications</span><span className="font-bold">{num(active)}</span>
-              </a>
+              </Link>
               <Link to="/" className="flex min-h-12 items-center justify-between gap-2 py-2 text-sm transition-colors hover:text-mango">
                 <span>See all tuitions</span><ArrowUpRight size={17} aria-hidden />
               </Link>
@@ -162,7 +163,7 @@ export default function Me({ loaderData: { email, profile } }: Route.ComponentPr
           )}
         </section>
 
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div id="profile" className="grid scroll-mt-24 gap-5 lg:grid-cols-2">
           <Card>
             <h2 className="mb-2 text-lg font-bold text-forest">My details</h2>
             <Facts rows={[
@@ -203,6 +204,7 @@ export default function Me({ loaderData: { email, profile } }: Route.ComponentPr
           </Card>
         ))}
       </div>
+      <TutorBar active="home" count={applications.filter((a) => a.status === "trial_arranged").length} />
     </SitePage>
   );
 }

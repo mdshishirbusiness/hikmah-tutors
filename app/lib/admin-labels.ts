@@ -1,4 +1,4 @@
-// Status words and allowed moves for the admin screens. The moves mirror the triggers in migrations 0003 and 0005.
+// Status words and allowed moves for the admin screens. The moves mirror the triggers in migrations 0003, 0005 and 0010.
 
 export const ADMIN_PAGE_SIZE = 30;
 
@@ -15,7 +15,7 @@ export const TUITION_MOVES: Record<string, string[]> = {
   draft: ["available", "cancelled", "closed"],
   available: ["processing", "booked", "cancelled", "closed"],
   processing: ["available", "booked", "cancelled", "closed"],
-  booked: ["available", "closed"],
+  booked: ["available", "processing", "closed"],
   cancelled: ["closed"],
   closed: [],
 };
@@ -46,6 +46,7 @@ export const APPLICATION_MOVES: Record<string, string[]> = {
   under_review: ["shortlisted", "not_selected"],
   shortlisted: ["trial_arranged", "not_selected"],
   trial_arranged: ["confirmed", "shortlisted", "not_selected"],
+  confirmed: ["trial_arranged", "not_selected"], // undo a tutor's tick, or the match didn't work out
 };
 
 export const REVIEW_ISSUE: Record<string, string> = {
@@ -73,4 +74,13 @@ export const REVIEW_ISSUE: Record<string, string> = {
   salary_under_2000: "Salary under ৳2,000",
   guardian_phone_missing: "No guardian number",
   tuition_status_blank: "No status",
+};
+
+// Why a selected tutor's match ended (owner, 2026-11-04); the key goes into the application event's reason.
+export const DIDNT_WORK_OUT: Record<string, string> = {
+  guardian_chose_other: "Guardian chose someone else",
+  schedule: "Schedule didn't match",
+  salary: "Salary didn't match",
+  tutor_declined: "I declined",
+  other: "Other reason",
 };
