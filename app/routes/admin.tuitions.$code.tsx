@@ -1,16 +1,16 @@
 // One tuition for the admin (owner, 2026-11-04): what it is and who the guardian is on top, one-tap Publish / Pause /
 // Close, then three tabs: the applicant workspace (table or board, best fit first), the details form and the history.
 import { useState } from "react";
-import { Form, Link, type ShouldRevalidateFunctionArgs, data, useNavigation, useSearchParams } from "react-router";
+import { Form, Link, type ShouldRevalidateFunctionArgs, data, useFetcher, useNavigation, useSearchParams } from "react-router";
 import {
-  ArrowUpRight, CircleAlert, Copy, Check, Eye, EyeOff, MessageCircle, MoreHorizontal, Pause, Phone, Play, Rocket, RotateCcw,
+  ArrowUpRight, CircleAlert, Copy, Check, Eye, EyeOff, Link2, MessageCircle, MoreHorizontal, Pause, Phone, Play, Rocket, RotateCcw,
 } from "lucide-react";
 import type { Route } from "./+types/admin.tuitions.$code";
 import { ApplicantWorkspace } from "~/components/Applicants";
 import { Badge, Money, PageHead, ago, num, primaryButton, when, TUITION_TONE } from "~/components/admin";
 import { TuitionFields } from "~/components/TuitionFields";
 import { APPLICATION_STATUS, TUITION_STATUS, publishGaps } from "~/lib/admin-labels";
-import { getTuition, moveApplication, setTuitionState, updateTuition } from "~/lib/admin.server";
+import { getTuition, markSeen, moveApplication, newGuardianLink, setTuitionState, updateTuition } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
 import { tutorFromLabel } from "~/lib/fit";
@@ -46,6 +46,14 @@ export async function action({ request, params }: Route.ActionArgs) {
     const error = await moveApplication(Number(form.get("id")), String(form.get("to")), String(form.get("reason") ?? ""), viewer?.id ?? null);
     return { error, saved: false, note: "" };
   }
+  if (intent === "seen") {
+    await markSeen(Number(form.get("id")), code);
+    return { error: null, saved: false, note: "" };
+  }
+  if (intent === "status_link") {
+    const token = await newGuardianLink(code, viewer?.id ?? null);
+    return { error: null, saved: false, note: "", link: `${new URL(request.url).origin}/s/${token}` };
+  }
   if (intent === "state") {
     const op = String(form.get("op"));
     const error = await setTuitionState(code, op, viewer?.id ?? null);
@@ -59,6 +67,36 @@ const OP_DONE: Record<string, string> = {
   publish: "Published. It's on the board now.", pause: "Applications paused.", resume: "Taking applications again.", hide: "Hidden from the board.",
   close: "Tuition closed.", cancel: "Tuition cancelled.", reopen: "Re-opened.",
 };
+
+/**
+ * The guardian's private status link (owner, 2026-11-05). Each tap makes a new link and the old one stops working,
+ * so it is made only when the owner is about to send it.
+ */
+function StatusLink({ code, phone }: { code: number; phone: string }) {
+  const fetcher = useFetcher<{ link?: string }>();
+  const link = fetcher.data?.link;
+  const text = (url: string) =>
+    `আসসালামু আলাইকুম। Hikmah Tutors থেকে বলছি। আপনার টিউটর খোঁজার অগ্রগতি (HTR-${code}) এই লিংকে যেকোনো সময় দেখতে পারবেন: ${url}`;
+  return (
+    <div className="mt-3 rounded-xl bg-white p-3 ring-1 ring-rose-100">
+      <p className="flex items-center gap-1.5 text-sm font-bold text-forest"><Link2 size={15} aria-hidden />Status link</p>
+      <p className="mt-0.5 text-xs text-slate-500">The guardian sees this request's steps; no tutor phone. A new link replaces the old one.</p>
+      {link ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <a href={waLink(phone, text(link))} target="_blank" rel="noreferrer" className="wa-btn inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-mango px-3 text-sm font-bold text-forest hover:bg-mango-deep"><MessageCircle size={16} aria-hidden />Send on WhatsApp</a>
+          <a href={link} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50">Open<ArrowUpRight size={15} aria-hidden /></a>
+        </div>
+      ) : (
+        <fetcher.Form method="post" className="mt-2">
+          <input type="hidden" name="intent" value="status_link" />
+          <button disabled={fetcher.state !== "idle"} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-forest px-3 text-sm font-bold text-cream hover:bg-brand-700 disabled:opacity-60">
+            {fetcher.state !== "idle" ? "Making…" : `Make link for HTR-${code}`}
+          </button>
+        </fetcher.Form>
+      )}
+    </div>
+  );
+}
 
 const Chip = ({ tone, children }: { tone: string; children: React.ReactNode }) => (
   <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold ${tone}`}>{children}</span>
@@ -203,6 +241,7 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
                 </>
               )}
             </div>
+            {guardianPhone && t.status !== "closed" && t.status !== "cancelled" && <StatusLink code={t.code} phone={guardianPhone} />}
             {priv?.guardian_id && <Link to={`/admin/guardians/${priv.guardian_id}`} className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-brand-700">Their other tuitions →</Link>}
             {placements.length > 0 && (
               <div className="mt-3 border-t border-rose-100 pt-3">

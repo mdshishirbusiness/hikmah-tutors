@@ -3,6 +3,29 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-05 (tutor side vs Porao and Tutor Provide)
+
+Context: `docs/research/tutor-side-compare-2026-11-05.md`. The owner picked five ideas (7, 8, 13, 1, 2); the details
+are Claude's (migration 0021).
+
+- **Seen by HTR.** An application gets `seen_at` the first time the owner opens it in the tuition's applicant list.
+  The tutor's Applied card says "Seen by HTR" (with when); any step past New also counts as seen. It does not change
+  the status: In review still means HTR is talking to the guardian.
+- **How guardians see you.** Profile shows the tutor the exact WhatsApp summary the owner sends a guardian, one level
+  at a time, with each missing line marked and linked to its section. It says what never goes: phone (until
+  Selected), photo, Facebook, address.
+- **When you're free.** Tutors pick Morning · Noon · Afternoon · Evening · Night, or Any time (`tutors.free_times`;
+  not answered never hides anything). For You leaves out a tuition at a time the tutor isn't free; the apply sheet and the applicant list only
+  warn (only gender blocks, as before). A tuition with Flexible time, or no time, never clashes. New profile step,
+  weight 1.
+- **Home counts** (Open · Shortlisted · Selected · Confirmed) stay hidden until the tutor's first application, so a new
+  tutor never sees a row of zeros. The strip itself was already built.
+- **Guardian status link.** From a tuition, the owner makes a private link (`/s/<token>`) and sends it on WhatsApp.
+  The page shows that one request's steps (Received → Posted → Tutors applied → Shortlist → Tutor selected →
+  Confirmed), the applicant count and the selected tutor's first name and code. Never a tutor's phone, photo or
+  university details beyond the summary, and nothing about other guardians. No login; the token is stored only as a
+  hash, a new link replaces the old one, and the page is noindex with no referrer.
+
 ## 2026-11-05 (documents at registration)
 
 - **A new tutor sends proof of education when registering on the site** (owner). At least one academic document is

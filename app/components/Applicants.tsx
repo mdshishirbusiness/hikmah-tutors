@@ -17,7 +17,7 @@ import { Sheet } from "~/components/tutor";
 import { APPLICATION_ACTION, APPLICATION_STATUS } from "~/lib/admin-labels";
 import type { Applicant, TuitionFull } from "~/lib/admin.server";
 import { waLink } from "~/lib/contact";
-import { type Fit, bandOf, fitOf, tutorFromLabel } from "~/lib/fit";
+import { type Fit, atTime, bandOf, fitOf, freeLabel, timeOfDay, tutorFromLabel } from "~/lib/fit";
 import { SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
 import { bandShort } from "~/lib/profile";
 import { type Strength, levelOf, strengthOf, strengthWord } from "~/lib/strength";
@@ -156,6 +156,7 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
     ...(fit.university ? [{ ok: fit.university === "ok", warn: fit.university === "unknown", text: fit.university === "ok" ? `From ${tutorFromLabel(tutorFrom)}, as asked` : fit.university === "other" ? `Guardian wants ${tutorFromLabel(tutorFrom)}` : "University not known" }] : []),
     ...(fit.class !== "unknown" ? [{ ok: fit.class === "ok", warn: true, text: fit.class === "ok" ? "Wants this class" : "Didn't pick this class" }] : []),
     ...(fit.salary === "low" && a.min_salary ? [{ ok: false, warn: true, text: `Wants at least ${taka(a.min_salary)}` }] : []),
+    ...(fit.time ? [{ ok: fit.time === "ok", warn: true, text: fit.time === "ok" ? `Free ${atTime(timeOfDay(t))}` : `Not free ${atTime(timeOfDay(t))} (free: ${freeLabel(a.free_times)})` }] : []),
   ];
 
   const facts: [string, string | null][] = [
@@ -330,6 +331,7 @@ function RowButton({ row, active, onPick, compact }: { row: Row; active: boolean
           {a.priority === "urgent" && <span className="shrink-0 rounded bg-forest px-1 text-[10px] font-bold text-mango">URGENT</span>}
           {a.flag_reason && <span title={`Flagged: ${a.flag_reason}`} className="shrink-0 rounded bg-rose-600 px-1 text-[10px] font-bold text-white">FLAG</span>}
           {a.note && <span title="Wrote a note" className="size-1.5 shrink-0 rounded-full bg-brand-600" />}
+          {!a.seen_at && a.status === "submitted" && a.tutor_id && <span className="shrink-0 rounded bg-sky-100 px-1 text-[10px] font-bold text-sky-800">UNOPENED</span>}
         </span>
         <span className="block truncate text-xs text-slate-500">{who(a)}</span>
         <span className="mt-1 block lg:hidden"><ExpMarks a={a} fit={fit} strength={strength} /></span>
@@ -385,6 +387,15 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
               || y.strength.score - x.strength.score || y.match - x.match || x.a.created_at - y.a.created_at);
 
   const current = rows.find((r) => r.a.id === picked) ?? (desktop && view === "table" ? list[0] : undefined);
+
+  // "Seen by HTR" for the tutor (owner, 2026-11-05): only an applicant the owner opened, not the first row shown on its own.
+  const seen = useFetcher();
+  const pickedRow = rows.find((r) => r.a.id === picked);
+  useEffect(() => {
+    if (pickedRow && !pickedRow.a.seen_at && pickedRow.a.tutor_id) seen.submit({ intent: "seen", id: String(pickedRow.a.id) }, { method: "post" });
+    // once per opened applicant
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickedRow?.a.id]);
 
   const set = (changes: Record<string, string | null>) =>
     setSp((prev) => {

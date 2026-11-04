@@ -2,7 +2,7 @@
 // logged) and the tutor's own checklist Called → Met → Demo done → Confirmed, with a way out if it didn't work out.
 import { useState } from "react";
 import { Form, Link, useFetcher, useNavigation, useSearchParams } from "react-router";
-import { Check, MessageCircle, Phone } from "lucide-react";
+import { Check, CheckCheck, MessageCircle, Phone } from "lucide-react";
 import type { Route } from "./+types/applied";
 import { APPLICATION_TONE, Badge, ago, primaryButton, when } from "~/components/admin";
 import { SiteHeader } from "~/components/site";
@@ -212,7 +212,13 @@ function ActiveCard({ a, busy }: { a: MyApplication; busy: boolean }) {
       <Ladder status={a.status} />
       <p className="mt-2 text-sm text-slate-700">{NEXT[a.status]}</p>
       <div className="mt-2 flex items-center justify-between gap-2">
-        <p className="text-xs text-slate-500">Applied {when(a.created_at)}</p>
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+          Applied {when(a.created_at)}
+          {/* Seen by HTR (owner, 2026-11-05): opened by the owner, or already moved on from New. */}
+          {a.seen_at || a.status !== "submitted"
+            ? <span className="inline-flex items-center gap-0.5 font-bold text-sky-700"><CheckCheck size={14} aria-hidden />Seen by HTR{a.seen_at ? ` ${ago(a.seen_at)}` : ""}</span>
+            : <span className="inline-flex items-center gap-0.5 font-semibold text-slate-400"><Check size={14} aria-hidden />Sent</span>}
+        </p>
         <Form method="post" onSubmit={(e) => { if (!window.confirm(`Withdraw from HTR-${a.tuition_code}?`)) e.preventDefault(); }}>
           <input type="hidden" name="intent" value="withdraw" />
           <input type="hidden" name="id" value={a.id} />

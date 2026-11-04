@@ -43,7 +43,7 @@ export function taughtBands(classes: string[], subjects: { band: string }[], lev
 
 /** Steps in priority order: the first one not done is "next". */
 export function profileSteps(
-  t: { photo_key: string | null; anywhere: number; min_salary: number | null; transport: string | null; demo_willing: number | null; about: string | null },
+  t: { photo_key: string | null; anywhere: number; min_salary: number | null; transport: string | null; demo_willing: number | null; about: string | null; free_times?: string | null },
   choices: { areas: string[]; classes: string[]; subjects: { band: string }[] },
   levels: Level[],
   studentCount = 0,
@@ -66,6 +66,7 @@ export function profileSteps(
     { key: "classes", label: "Classes you want", section: "classes", group: "teaching", weight: 1, done: choices.classes.length > 0 },
     { key: "subjects", label: "Subjects", section: "subjects", group: "teaching", weight: 1, done: choices.subjects.length > 0 },
     { key: "min_salary", label: "Lowest salary", section: "min_salary", group: "teaching", weight: 1, done: t.min_salary !== null },
+    { key: "free_times", label: "When you're free", section: "free_times", group: "teaching", weight: 1, done: !!t.free_times },
     { key: "transport", label: "How you travel", section: "transport", group: "teaching", weight: 1, done: t.transport !== null },
     { key: "demo", label: "Demo class", section: "demo", group: "teaching", weight: 1, done: t.demo_willing !== null },
     { key: "about", label: "About you", section: "about", group: "you", weight: 1, done: written(t.about, 30) },

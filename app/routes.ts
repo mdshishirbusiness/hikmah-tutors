@@ -7,6 +7,7 @@ export default [
   route("how-it-works", "routes/how-it-works.tsx"),
   route("fees", "routes/fees.tsx"),
   route("request-tutor", "routes/request-tutor.tsx"),
+  route("s/:token", "routes/s.$token.tsx"),
   route("contact", "routes/contact.tsx"),
   route("privacy", "routes/privacy.tsx"),
   route("terms", "routes/terms.tsx"),

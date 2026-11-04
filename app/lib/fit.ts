@@ -1,6 +1,6 @@
 // How well a tutor fits a tuition (owner, 2026-11-04): only a gender mismatch blocks; class, subject, area, university
 // and salary only warn. Shared by the admin's applicant list and the tutor's apply sheet.
-import { AREAS, TUTOR_FROM } from "./options";
+import { AREAS, TIMES_OF_DAY, TUTOR_FROM } from "./options";
 import { normalizeSearch } from "./tuition";
 
 export type Band = "junior" | "ssc" | "hsc";
@@ -47,12 +47,20 @@ function mentionsArea(text: string, areaKey: string): boolean {
 
 export type FitTuition = {
   tutor_gender_pref: string; subjects: string[]; area: string; tutor_from: string[]; class_level: string;
-  salary_kind: string; salary_amount: number | null;
+  salary_kind: string; salary_amount: number | null; time_of_day?: string | null; time_from?: number | null;
 };
 export type FitTutor = {
   gender: string | null; subject_fit: string | null; areas: string | null; anywhere?: number | null; location: string | null;
-  institution: string | null; university?: string | null; classes?: string | null; min_salary?: number | null;
+  institution: string | null; university?: string | null; classes?: string | null; min_salary?: number | null; free_times?: string | null;
 };
+
+/** The tuition's time of day: as picked, else read from its start time (minutes after midnight). Flexible = none. */
+export function timeOfDay(t: { time_of_day?: string | null; time_from?: number | null }): string | null {
+  if (t.time_of_day) return t.time_of_day === "flexible" ? null : t.time_of_day;
+  if (t.time_from == null) return null;
+  const h = t.time_from / 60;
+  return h < 12 ? "morning" : h < 14 ? "noon" : h < 17 ? "afternoon" : h < 20 ? "evening" : "night";
+}
 
 export type Fit = {
   gender: "ok" | "mismatch";
@@ -62,6 +70,7 @@ export type Fit = {
   university: "ok" | "other" | "unknown" | null; // null when the tuition takes any university
   class: "ok" | "other" | "unknown"; // unknown until the tutor picks classes
   salary: "ok" | "low" | null; // low = under the tutor's minimum; null when either side has no number
+  time: "ok" | "clash" | null; // clash = the tutor isn't free at the tuition's time; null when either side has no time
   score: number;
 };
 
@@ -76,10 +85,20 @@ export function fitOf(t: FitTuition, a: FitTutor): Fit {
   const cls = !classes.length ? "unknown" : classes.includes(t.class_level) ? "ok" : "other";
   const pay = t.salary_kind === "fixed" ? t.salary_amount : null;
   const salary = !pay || !a.min_salary ? null : pay >= a.min_salary ? "ok" : "low";
+  const when = timeOfDay(t), free = (a.free_times ?? "").split(",").filter((k) => k && k !== "any");
+  const time = !when || !free.length ? null : free.includes(when) ? "ok" : "clash";
   const score = (gender === "mismatch" ? -100 : 0) + (wanted.length ? (2 * subjects.length) / wanted.length : 0)
     + (area === "listed" ? 1 : area === "nearby" ? 0.5 : 0) + (university === "ok" ? 1 : university === "other" ? -1 : 0)
-    + (cls === "ok" ? 0.5 : cls === "other" ? -0.5 : 0) + (salary === "low" ? -0.5 : 0);
-  return { gender, subjects, subjectTotal: wanted.length, area, university, class: cls, salary, score };
+    + (cls === "ok" ? 0.5 : cls === "other" ? -0.5 : 0) + (salary === "low" ? -0.5 : 0) + (time === "clash" ? -0.5 : 0);
+  return { gender, subjects, subjectTotal: wanted.length, area, university, class: cls, salary, time, score };
 }
 
-export const tutorFromLabel = (keys: string[]) => keys.map((k) => TUTOR_FROM.find((o) => o.key === k)?.label ?? k).join(" · ");
+/** The times of day a tutor can pick: every TIMES_OF_DAY option but Flexible. "any" is stored on its own. */
+export const FREE_TIMES = TIMES_OF_DAY.filter((o) => o.key !== "flexible");
+const AT: Record<string, string> = { morning: "in the morning", noon: "at noon", afternoon: "in the afternoon", evening: "in the evening", night: "at night" };
+/** "in the morning", "at noon"… for a fit line. */
+export const atTime = (key: string | null) => (key && AT[key]) || "at that time";
+export const freeLabel =(keys: string | null | undefined) =>
+  FREE_TIMES.filter((o) => (keys ?? "").split(",").includes(o.key)).map((o) => o.label).join(", ") || (keys === "any" ? "Any time" : "Not said");
+
+export const tutorFromLabel =(keys: string[]) => keys.map((k) => TUTOR_FROM.find((o) => o.key === k)?.label ?? k).join(" · ");

@@ -142,14 +142,15 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               </div>
             )}
 
-            <Link to="/applied" className="grid grid-cols-4 gap-2 rounded-2xl bg-white p-3 shadow-ring">
+            {/* Hidden until the first application, so a new tutor never sees a row of zeros (owner, 2026-11-05). */}
+            {apps.length > 0 && <Link to="/applied" className="grid grid-cols-4 gap-2 rounded-2xl bg-white p-3 shadow-ring">
               {stats.map(([k, v]) => (
                 <span key={k} className="rounded-xl py-1.5 text-center">
                   <span className="block text-2xl font-extrabold text-forest tabular-nums">{num(v)}</span>
                   <span className="block text-[11px] font-semibold text-slate-500">{k}</span>
                 </span>
               ))}
-            </Link>
+            </Link>}
 
             {view.forYou.length > 0 && (
               <section aria-labelledby="for-you">

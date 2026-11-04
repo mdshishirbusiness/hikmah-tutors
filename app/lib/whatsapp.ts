@@ -26,12 +26,15 @@ const what = (t: Tuition) =>
 
 const result = (group: string | null, gpa: string | null) => [group, gpa && `GPA ${gpa}`].filter(Boolean).join(", ");
 
-/** The tutor's summary the admin sends to the guardian. `withPhone` only once the tutor is Selected. */
-export function guardianSummary(t: Tuition, a: Tutor, subjects: string[], withPhone: boolean): string {
+/**
+ * The tutor's summary the admin sends to the guardian. `withPhone` only once the tutor is Selected. With no tuition
+ * (the tutor's own preview on Profile) the code reads "HTR-…".
+ */
+export function guardianSummary(t: Pick<Tuition, "code"> | null, a: Tutor, subjects: string[], withPhone: boolean): string {
   const ssc = result(a.ssc_group, a.ssc_result), hsc = result(a.hsc_group, a.hsc_result);
   const experience = a.experience?.replace(/\s+/g, " ").trim();
   return [
-    `আসসালামু আলাইকুম। HTR-${t.code}-এর জন্য টিউটরের তথ্য:`,
+    `আসসালামু আলাইকুম। HTR-${t ? t.code : "…"}-এর জন্য টিউটরের তথ্য:`,
     "",
     `Tutor${a.tutor_code ? ` T-${a.tutor_code}` : ""}: ${firstName(a.name)}`,
     [a.institution, a.department, a.session_year && `Session ${a.session_year}`].filter(Boolean).join(" · "),

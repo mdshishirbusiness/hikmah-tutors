@@ -7,7 +7,7 @@ import { inputClass, primaryButton } from "~/components/admin";
 import { SiteHeader } from "~/components/site";
 import { SalaryText, placeLabel, subjectList } from "~/components/TuitionCard";
 import type { Fit } from "~/lib/fit";
-import { tutorFromLabel } from "~/lib/fit";
+import { atTime, timeOfDay, tutorFromLabel } from "~/lib/fit";
 import { applyTo, applyView, requireTutor } from "~/lib/me.server";
 import { CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
 import { type PublicTuition, needText, taka } from "~/lib/tuition";
@@ -65,6 +65,10 @@ function fitRows(t: PublicTuition, fit: Fit, minSalary: number | null): Row[] {
     rows.push(fit.university === "ok" ? { tone: "ok", text: `Guardian wants ${tutorFromLabel(t.tutor_from)}: you match` } : { tone: "warn", text: `Guardian prefers a tutor from ${tutorFromLabel(t.tutor_from)}` });
   }
   if (fit.salary === "low" && t.salary_amount && minSalary) rows.push({ tone: "warn", text: `${taka(t.salary_amount)} is below your minimum of ${taka(minSalary)}` });
+  if (fit.time) {
+    const when = atTime(timeOfDay(t));
+    rows.push(fit.time === "ok" ? { tone: "ok", text: `You're free ${when}` } : { tone: "warn", text: `It's ${when}, which isn't in your free times` });
+  }
   return rows;
 }
 

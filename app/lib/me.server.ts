@@ -4,7 +4,7 @@ import { env } from "cloudflare:workers";
 import { redirect } from "react-router";
 import { moveApplication } from "./admin.server";
 import { type Viewer, getViewer, requireUser } from "./auth.server";
-import { type Fit, bandOf, fitOf } from "./fit";
+import { FREE_TIMES, type Fit, bandOf, fitOf } from "./fit";
 import { DIDNT_WORK_OUT } from "./admin-labels";
 import { AREAS, BANDS, CLASS_CHOICES, SUBJECTS, TRANSPORTS } from "./options";
 import type { PublicTuition } from "./tuition";
@@ -19,12 +19,13 @@ export type MyTutor = {
   university: string | null; min_salary: number | null; anywhere: number; setup_done_at: number | null; terms_accepted_at: number | null;
   availability_paused: number; about: string | null; updates_seen_at: number | null;
   review_status: "waiting" | "needs_fix" | "approved"; review_note: string | null; created_via: string;
-  skills: string | null; demo_video_url: string | null;
+  skills: string | null; demo_video_url: string | null; free_times: string | null;
 };
 
 const COLUMNS = `id, code, full_name, gender, email, phone, alt_phone, institution, department, session_year, ssc_school, ssc_year, ssc_result, ssc_group,
   hsc_college, hsc_year, hsc_result, hsc_group, mediums, current_location, home_division, home_district, demo_willing, transport, availability_confirmed_at, photo_key,
-  university, min_salary, anywhere, setup_done_at, terms_accepted_at, availability_paused, about, updates_seen_at, review_status, review_note, created_via, skills, demo_video_url`;
+  university, min_salary, anywhere, setup_done_at, terms_accepted_at, availability_paused, about, updates_seen_at, review_status, review_note, created_via, skills, demo_video_url,
+  free_times`;
 
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -168,14 +169,14 @@ export async function applyTo(viewer: Viewer, me: MyTutor, code: number, note: s
 
 export type MyApplication = {
   id: number; tuition_code: number; status: string; created_at: number; updated_at: number; note: string | null;
-  called_at: number | null; met_at: number | null; demo_done_at: number | null; selected_at: number | null;
+  called_at: number | null; met_at: number | null; demo_done_at: number | null; selected_at: number | null; seen_at: number | null;
   class_level: string; area: string; mode: string; subjects: string; salary_kind: string; salary_amount: number | null; salary_period: string;
   days_per_week: number; session_minutes: number | null; time_of_day: string | null; tuition_status: string;
 };
 
 export async function myApplications(tutorId: number): Promise<MyApplication[]> {
   const { results } = await env.DB.prepare(
-    `SELECT a.id, a.tuition_code, a.status, a.created_at, a.updated_at, a.note, a.called_at, a.met_at, a.demo_done_at,
+    `SELECT a.id, a.tuition_code, a.status, a.created_at, a.updated_at, a.note, a.called_at, a.met_at, a.demo_done_at, a.seen_at,
             (SELECT max(e.created_at) FROM application_events e WHERE e.application_id = a.id AND e.to_status = 'trial_arranged') selected_at,
             t.class_level, t.area, t.mode, t.subjects, t.salary_kind, t.salary_amount, t.salary_period, t.days_per_week, t.session_minutes, t.time_of_day,
             t.status tuition_status
@@ -274,7 +275,7 @@ export async function forYou(me: MyTutor): Promise<PublicTuition[]> {
     const subjectFit = [...new Set(choices.subjects.filter((s) => (!band || s.band === band) && t.subjects.includes(s.subject)).map((s) => s.subject))];
     const fit = fitOf(t, { ...tutor, subject_fit: subjectFit.join(",") });
     return fit.gender === "ok" && fit.class !== "other" && (fit.subjects.length > 0 || !t.subjects.length)
-      && (t.mode === "online" || fit.area !== "unknown") && (fit.university === null || fit.university === "ok");
+      && (t.mode === "online" || fit.area !== "unknown") && (fit.university === null || fit.university === "ok") && fit.time !== "clash";
   });
 }
 
@@ -426,6 +427,9 @@ export async function saveProfile(viewer: Viewer, me: MyTutor, form: FormData): 
   const video = String(form.get("demo_video_url") ?? "").trim();
   if (skills.length > 500) return "Keep skills under 500 characters.";
   if (video && (!/^https?:\/\/\S+$/i.test(video) || video.length > 300)) return "The demo video link must start with http:// or https://.";
+  // "any" is its own answer; nothing picked stays unanswered (owner, 2026-11-05).
+  const picks = form.getAll("free_times").map(String);
+  const free = picks.includes("any") ? "any" : FREE_TIMES.filter((o) => picks.includes(o.key)).map((o) => o.key).join(",") || null;
   const levels: (Omit<Level, "band"> & { band: Band })[] = [];
   for (const b of ["junior", "ssc", "hsc"] as Band[]) {
     if (form.get(`lv_${b}`) !== "1") continue;
@@ -457,7 +461,7 @@ export async function saveProfile(viewer: Viewer, me: MyTutor, form: FormData): 
     ...classes.map((c) => env.DB.prepare(`INSERT INTO tutor_classes (tutor_id, class_level) VALUES (?, ?)`).bind(me.id, c)),
     env.DB.prepare(`DELETE FROM tutor_subjects WHERE tutor_id = ?`).bind(me.id),
     ...subjects.map(([band, subject]) => env.DB.prepare(`INSERT INTO tutor_subjects (tutor_id, band, subject) VALUES (?, ?, ?)`).bind(me.id, band, subject)),
-    env.DB.prepare(`UPDATE tutors SET skills = ?, demo_video_url = ? WHERE id = ?`).bind(skills || null, video || null, me.id),
+    env.DB.prepare(`UPDATE tutors SET skills = ?, demo_video_url = ?, free_times = ? WHERE id = ?`).bind(skills || null, video || null, free, me.id),
     ...levels.map((l) => isEmptyLevel(l) ? env.DB.prepare(`DELETE FROM tutor_levels WHERE tutor_id = ? AND band = ?`).bind(me.id, l.band) : env.DB.prepare(
       `INSERT INTO tutor_levels (tutor_id, band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

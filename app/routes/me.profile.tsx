@@ -6,8 +6,8 @@
 import { useEffect, useState } from "react";
 import { Form, Link, useActionData, useNavigation } from "react-router";
 import {
-  Bike, BookOpen, Check, GraduationCap, Library, Lock, LogOut, MapPin, MessageCircle, NotebookPen, PauseCircle, PenLine, PlayCircle,
-  Presentation, Wallet,
+  ArrowRight, Bike, BookOpen, Check, Clock, Eye, GraduationCap, Library, Lock, LogOut, MapPin, MessageCircle, NotebookPen, PauseCircle, PenLine,
+  PlayCircle, Presentation, Wallet,
 } from "lucide-react";
 import type { Route } from "./+types/me.profile";
 import { Avatar } from "~/components/Avatar";
@@ -15,8 +15,10 @@ import { inputClass } from "~/components/admin";
 import { SectionCard, type SectionTone } from "~/components/SectionCard";
 import { SitePage } from "~/components/site";
 import { AreaField, ClassField, SalaryField, SubjectField } from "~/components/TeachingFields";
-import { ChoiceChip, TutorBar } from "~/components/tutor";
+import { ChoiceChip, Sheet, TutorBar } from "~/components/tutor";
 import { CONTACT, waLink } from "~/lib/contact";
+import { FREE_TIMES } from "~/lib/fit";
+import { guardianSummary } from "~/lib/whatsapp";
 import { addStudent, deleteStudent, myChoices, myLevels, myStudents, requireTutor, saveProfile, setPaused, tutorBadges } from "~/lib/me.server";
 import { MEDIUMS, TRANSPORTS, labelOf } from "~/lib/options";
 import { type Band, type Level, bandLabel, bandShort, profileSteps, taughtBands } from "~/lib/profile";
@@ -108,6 +110,76 @@ function LevelCard({ band, level }: { band: Band; level?: Level }) {
   );
 }
 
+/** When the tutor is free (owner, 2026-11-05). Any time stands alone: picking it clears the times, and back. */
+function FreeTimes({ value }: { value: string | null }) {
+  const [picked, setPicked] = useState(() => new Set((value ?? "").split(",").filter(Boolean)));
+  const toggle = (key: string, on: boolean) => setPicked((prev) => {
+    if (key === "any") return new Set(on ? ["any"] : []);
+    const next = new Set(prev);
+    next.delete("any");
+    if (on) next.add(key); else next.delete(key);
+    return next;
+  });
+  return (
+    <div className="flex flex-wrap gap-2">
+      {FREE_TIMES.map((o) => <ChoiceChip key={o.key} name="free_times" value={o.key} checked={picked.has(o.key)} onChange={(on) => toggle(o.key, on)}>{o.label}</ChoiceChip>)}
+      <ChoiceChip name="free_times" value="any" checked={picked.has("any")} onChange={(on) => toggle("any", on)}>Any time</ChoiceChip>
+    </div>
+  );
+}
+
+type PreviewTutor = Route.ComponentProps["loaderData"]["me"];
+
+/**
+ * How guardians see you (owner, 2026-11-05): the very text HTR sends a guardian, one level at a time, and what is
+ * missing from it. The tutor's phone, photo, Facebook and address never go in it (the phone only once Selected).
+ */
+function GuardianPreview({ me, choices, levels, bands }: { me: PreviewTutor; choices: Route.ComponentProps["loaderData"]["choices"]; levels: Level[]; bands: Band[] }) {
+  const [open, setOpen] = useState(false);
+  const [band, setBand] = useState<Band>(bands[0]);
+  const level = levels.find((l) => l.band === band);
+  const subjects = [...new Set(choices.subjects.filter((s) => s.band === band).map((s) => s.subject))];
+  const experience = level?.story ?? level?.approach ?? null;
+  const text = guardianSummary(null, { ...me, tutor_code: me.code, name: me.full_name, experience }, subjects, false);
+  const gaps = [
+    !(me.ssc_result || me.hsc_result) && { label: "SSC and HSC results", href: "#academic" },
+    !subjects.length && { label: `${bandShort(band)} subjects`, href: "#subjects" },
+    !experience && { label: `How you teach ${bandShort(band)}`, href: `#exp-${band}` },
+  ].filter(Boolean) as { label: string; href: string }[];
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} className="mt-4 flex w-full items-center gap-3 rounded-2xl bg-forest p-4 text-left text-cream shadow-lift">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-mango text-forest"><Eye size={22} aria-hidden /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-extrabold">How guardians see you</span>
+          <span className="block text-sm text-brand-100">The summary HTR sends when you're shortlisted.</span>
+        </span>
+        <ArrowRight size={18} className="shrink-0 text-mango" aria-hidden />
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title="How guardians see you">
+        {bands.length > 1 && (
+          <div className="mb-3 flex gap-2" role="group" aria-label="Level">
+            {bands.map((b) => (
+              <button key={b} type="button" aria-pressed={band === b} onClick={() => setBand(b)}
+                className={`min-h-10 rounded-full px-4 text-sm font-bold ${band === b ? "bg-forest text-cream" : "bg-white text-forest shadow-ring"}`}>{bandShort(b)}</button>
+            ))}
+          </div>
+        )}
+        <div className="rounded-2xl rounded-tl-sm bg-[#e7f8dc] p-4 text-sm leading-relaxed whitespace-pre-line text-slate-900 shadow-ring">{text}</div>
+        {gaps.length > 0 ? (
+          <div className="mt-4">
+            <p className="text-sm font-bold text-forest">Missing from your summary</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {gaps.map((g) => <a key={g.label} href={g.href} onClick={() => setOpen(false)} className="inline-flex min-h-10 items-center rounded-full bg-mango px-3 text-sm font-bold text-forest">+ {g.label}</a>)}
+            </div>
+          </div>
+        ) : <p className="mt-4 flex items-center gap-1.5 text-sm font-bold text-emerald-800"><Check size={16} aria-hidden />Nothing missing at this level.</p>}
+        <p className="mt-4 text-xs leading-relaxed text-slate-500">গার্ডিয়ান আপনার ফোন নম্বর, ছবি, Facebook বা ঠিকানা পান না। আপনি Selected হলে শুধু তখন HTR আপনার নম্বর দেয়।</p>
+      </Sheet>
+    </>
+  );
+}
+
 /** A part of the Profile: its number, its name and a hairline, so the four parts read as chapters. */
 function GroupTitle({ id, n, children, hint }: { id: string; n: number; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
@@ -156,6 +228,7 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
         </header>
 
         <ProfileChecklist steps={steps} code={me.code} />
+        <GuardianPreview me={me} choices={choices} levels={levels} bands={bands} />
 
         {actionData?.error && <p role="alert" className="mt-4 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
 
@@ -194,6 +267,9 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
           </SectionCard>
           <SectionCard id="min_salary" icon={Wallet} tone="brand" title="Lowest salary you'll take" hint="Per month. Lower ones still show, with a warning.">
             <SalaryField value={me.min_salary} />
+          </SectionCard>
+          <SectionCard id="free_times" icon={Clock} tone="amber" title="When you're free" hint="Pick every time you can teach. Tuitions at other times won't show in For You.">
+            <FreeTimes value={me.free_times} />
           </SectionCard>
           <div className="grid gap-4 sm:grid-cols-2">
             <SectionCard id="transport" icon={Bike} tone="sky" title="How you travel">

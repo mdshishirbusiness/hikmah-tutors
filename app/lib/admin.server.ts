@@ -230,7 +230,8 @@ export type Applicant = {
   areas: string | null; // the tutor's chosen areas, comma-separated (empty until they sign in)
   experience: string | null; // the tutor's experience statement for the tuition's band
   photo_key: string | null; about: string | null; demo_willing: number | null; paused: number | null; updated_at: number;
-  called_at: number | null; met_at: number | null; demo_done_at: number | null;
+  called_at: number | null; met_at: number | null; demo_done_at: number | null; seen_at: number | null;
+  free_times: string | null; // TIMES_OF_DAY keys the tutor is free at; null = any time
   total_apps: number; placed: number; // this tutor's whole record with HTR, for the admin's judgement
   flag_reason: string | null;
   // Part C (owner, 2026-11-05): what the Strength order reads.
@@ -261,6 +262,7 @@ export async function getTuition(code: number) {
               (SELECT group_concat(ar.area) FROM tutor_areas ar WHERE ar.tutor_id = a.tutor_id) areas,
               (SELECT body FROM tutor_statements st WHERE st.tutor_id = a.tutor_id AND st.kind = ?) experience,
               t.photo_key, t.about, t.demo_willing, t.availability_paused paused, t.flag_reason, a.updated_at, a.called_at, a.met_at, a.demo_done_at,
+              a.seen_at, t.free_times,
               (SELECT count(*) FROM applications x WHERE x.tutor_id = a.tutor_id) total_apps,
               (SELECT count(*) FROM placements pl WHERE pl.tutor_id = a.tutor_id AND pl.status IN ('confirmed', 'joined', 'ended')) placed,
               EXISTS (SELECT 1 FROM premium_members pm WHERE pm.tutor_id = a.tutor_id AND pm.status = 'active') premium
@@ -506,6 +508,56 @@ function audit(actorId: number | null, action: string, entityType: string, entit
 }
 
 /** One step along the ladder. Confirming also books the tuition and closes the other applications. */
+/** "Seen by HTR" (owner, 2026-11-05): the first time the owner opens an applicant. Later opens keep the first time. */
+export async function markSeen(id: number, code: number) {
+  await env.DB.prepare(`UPDATE applications SET seen_at = ? WHERE id = ? AND tuition_code = ? AND seen_at IS NULL`).bind(now(), id, code).run();
+}
+
+const sha256 = async (s: string) =>
+  [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+/**
+ * The guardian's private status link for one tuition (owner, 2026-11-05). Returns the token once; only its hash is
+ * kept, so a lost link is replaced, never shown again. A new link revokes the old one.
+ */
+export async function newGuardianLink(code: number, actorId: number | null): Promise<string> {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  const token = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const t = now();
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE guardian_links SET revoked_at = ? WHERE tuition_code = ? AND revoked_at IS NULL`).bind(t, code),
+    env.DB.prepare(`INSERT INTO guardian_links (token_hash, tuition_code, created_by, created_at) VALUES (?, ?, ?, ?)`).bind(await sha256(token), code, actorId, t),
+    audit(actorId, "guardian_link_made", "tuition", String(code), {}),
+  ]);
+  return token;
+}
+
+export type GuardianStatus = {
+  code: number; class_level: string; class_other: string | null; area: string; mode: string; status: string; posted_at: number | null;
+  applicants: number; shortlisted: number; selected: { tutor_code: number | null; name: string | null; demo_done_at: number | null; status: string } | null;
+};
+
+/** What a status link shows: this one tuition's steps. No tutor phone, no other guardian, no private notes. */
+export async function guardianStatus(token: string): Promise<GuardianStatus | null> {
+  if (!/^[A-Za-z0-9_-]{16,40}$/.test(token)) return null;
+  const link = await env.DB.prepare(`SELECT tuition_code FROM guardian_links WHERE token_hash = ? AND revoked_at IS NULL`)
+    .bind(await sha256(token)).first<{ tuition_code: number }>();
+  if (!link) return null;
+  const t = await env.DB.prepare(
+    `SELECT code, class_level, class_other, area, mode, status, posted_at,
+            (SELECT count(*) FROM applications a WHERE a.tuition_code = tuitions.code
+               AND a.status IN ('submitted', 'under_review', 'shortlisted', 'trial_arranged', 'confirmed')) applicants,
+            (SELECT count(*) FROM applications a WHERE a.tuition_code = tuitions.code AND a.status IN ('shortlisted', 'trial_arranged', 'confirmed')) shortlisted
+     FROM tuitions WHERE code = ?`,
+  ).bind(link.tuition_code).first<Omit<GuardianStatus, "selected">>();
+  if (!t) return null;
+  const selected = await env.DB.prepare(
+    `SELECT u.code tutor_code, u.full_name name, a.demo_done_at, a.status FROM applications a LEFT JOIN tutors u ON u.id = a.tutor_id
+     WHERE a.tuition_code = ? AND a.status IN ('trial_arranged', 'confirmed') ORDER BY a.status = 'confirmed' DESC, a.updated_at DESC LIMIT 1`,
+  ).bind(t.code).first<NonNullable<GuardianStatus["selected"]>>();
+  return { ...t, selected: selected ?? null };
+}
+
 export async function moveApplication(id: number, to: string, reason: string, actorId: number | null): Promise<string | null> {
   const app = await env.DB.prepare(`SELECT id, tuition_code, tutor_id, status FROM applications WHERE id = ?`).bind(id).first<{ id: number; tuition_code: number; tutor_id: number | null; status: string }>();
   if (!app) return "Application not found.";
