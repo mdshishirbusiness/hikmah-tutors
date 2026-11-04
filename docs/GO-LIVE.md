@@ -89,8 +89,10 @@ referrals). Both only add columns and tables; nothing existing changes.
 
 - **Step 1** (phone menu, Log in button, clean logo, page loader, Quick Pad search): **live since 2026-11-04**, version
   `8ef1aac3`. No database change.
-- **Step 2** (tutors register on the site; the owner approves): needs migration 0013 first (adds the review status;
-  every existing tutor counts as checked), then the deploy. In the Terminal panel, after `npx wrangler whoami`:
+- **Step 2** (tutors register on the site; the owner approves): **live since 2026-11-04**, version `f53e5328`, after
+  migration 0013. Checked: all 1,451 existing tutors count as approved; public pages 200, tutor and admin pages ask
+  for log in, `/dev/new/1` is 404 on the live site. For a later update, the same order in the Terminal panel (after
+  `npx wrangler whoami`):
 
 ```powershell
 npm run db:migrate
