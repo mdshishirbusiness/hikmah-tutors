@@ -7,7 +7,7 @@
     "dev": "react-router dev",
     "dev:synthetic": "react-router dev --mode synthetic",
     "typecheck": "wrangler types && react-router typegen && tsc -b",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "npm run build && node scripts/check-build.mjs && wrangler deploy",
     "preview": "npm run build && vite preview",
     "cf-typegen": "wrangler types",
     "postinstall": "wrangler types",
