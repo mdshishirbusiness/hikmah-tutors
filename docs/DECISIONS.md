@@ -3,6 +3,31 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-05 (part B, second pass: owner's design feedback)
+
+The owner said the first Profile progress and section headings looked AI-made, and asked again for colour separation.
+Standing preferences are now in Claude's memory: the design bar, colour separation, two or three test records, and
+writing every suggestion down.
+
+- **Header logo**: the full logo (`public/brand/logo.webp`, cut by `scripts/make-logo-mark.mjs` on a transparent
+  background), not the mark with the name typed beside it. The footer and admin keep the mark on a cream tile, because
+  they sit on dark green.
+- **Sections**: each has a tinted header band in its colour (white icon tile, eyebrow, title, hint), over a white body
+  framed in the same tint. Colours: emerald, amber, sky, violet, rose and slate. Profile parts are numbered chapters
+  (01 Teaching, 02 Experience, 03 Academic, 04 About & skills).
+- **Profile progress**, inspired by a task-card video the owner sent (not copied):
+  - a light card with a ring that fills to the real percentage
+  - a bar split into one coloured segment per group
+  - the next step as one highlighted row with what it adds
+  - tapping opens a step tree, grouped by colour, with check circles
+  - motion stays short, and stops under reduced motion
+- **Students you've taught** (owner's idea; migration 0016): the tutor adds students one by one:
+  - class, area, subjects, from and to (or "still teaching"), result before → after, and what improved
+  - quick Bangla phrases help with "what improved"
+  - no names are asked
+  - shown as a timeline to the tutor and on the admin tutor page
+  - the first student is the heaviest step in the progress score; up to 20 students per tutor
+
 ## 2026-11-05 (plan agreed with the owner, Q1–Q16)
 
 Agreed in a question round. Built in this order: A → B → C → D → E.

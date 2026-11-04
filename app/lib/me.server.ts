@@ -9,7 +9,7 @@ import { DIDNT_WORK_OUT } from "./admin-labels";
 import { AREAS, BANDS, CLASS_CHOICES, SUBJECTS, TRANSPORTS } from "./options";
 import type { PublicTuition } from "./tuition";
 import { openTuitions, visibleTuition } from "./tuitions.server";
-import { type Band, type Level, profileSteps } from "./profile";
+import { type Band, type Level, type Student, profileSteps } from "./profile";
 
 export type MyTutor = {
   id: number; code: number; full_name: string; gender: string | null; email: string | null; phone: string; alt_phone: string | null; institution: string | null; department: string | null;
@@ -293,6 +293,56 @@ const UPDATE_KIND: Record<string, Update["kind"]> = { shortlisted: "shortlisted"
 
 export type NeedsAction = { application_id: number; tuition_code: number; class_level: string; area: string; next: "call" | "meet" | "demo" | "confirm" };
 
+/** Students the tutor has taught, newest first (owner, 2026-11-05). */
+export async function myStudents(tutorId: number): Promise<Student[]> {
+  const r = await env.DB.prepare(
+    `SELECT id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement FROM tutor_students
+     WHERE tutor_id = ? ORDER BY COALESCE(ended, '9999-12') DESC, started DESC, id DESC`,
+  ).bind(tutorId).all<Student>();
+  return r.results;
+}
+
+const MAX_STUDENTS = 20;
+const MONTH = /^(19|20)\d{2}-(0[1-9]|1[0-2])$/;
+
+/** Adds one student. No names are asked; only class, place, period, results and what improved. */
+export async function addStudent(viewer: Viewer, me: MyTutor, form: FormData): Promise<string | null> {
+  const text = (k: string, max: number) => String(form.get(k) ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+  const classLevel = String(form.get("class_level") ?? "");
+  const classOther = classLevel === "other" ? text("class_other", 60) : "";
+  const areaKey = String(form.get("area") ?? "");
+  const area = areaKey === "__other" ? text("area_other", 60) : AREAS.some((a) => a.key === areaKey) ? areaKey : "";
+  const subjects = [...new Set(form.getAll("subjects").map(String))].filter((s) => SUBJECTS.some((o) => o.key === s));
+  const started = String(form.get("started") ?? ""), endedRaw = String(form.get("ended") ?? "");
+  const ongoing = form.get("ongoing") === "1";
+  const improvement = String(form.get("improvement") ?? "").replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, "").trim();
+  if (!CLASS_CHOICES.some((c) => c.key === classLevel)) return "Pick the student's class.";
+  if (classLevel === "other" && !classOther) return "Write which class.";
+  if (!MONTH.test(started)) return "Pick when you started.";
+  if (!ongoing && !MONTH.test(endedRaw)) return "Pick when you stopped, or tick Still teaching.";
+  const ended = ongoing ? null : endedRaw;
+  if (ended && ended < started) return "The end must be after the start.";
+  if (improvement.length > 600) return "Keep it under 600 characters.";
+  const count = await env.DB.prepare(`SELECT count(*) n FROM tutor_students WHERE tutor_id = ?`).bind(me.id).first<{ n: number }>();
+  if ((count?.n ?? 0) >= MAX_STUDENTS) return `You can list up to ${MAX_STUDENTS} students.`;
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO tutor_students (tutor_id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(me.id, classLevel, classOther || null, area || null, subjects.join(",") || null, started, ended,
+      text("result_before", 20) || null, text("result_after", 20) || null, improvement || null, now()),
+    audit(viewer.id, "tutor_student_added", "tutor", String(me.code), { class_level: classLevel }),
+  ]);
+  return null;
+}
+
+export async function deleteStudent(viewer: Viewer, me: MyTutor, id: number) {
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM tutor_students WHERE id = ? AND tutor_id = ?`).bind(id, me.id),
+    audit(viewer.id, "tutor_student_removed", "tutor", String(me.code), {}),
+  ]);
+}
+
 /** The tutor's experience rows (part B), one per level they wrote about. */
 export async function myLevels(tutorId: number): Promise<Level[]> {
   const r = await env.DB.prepare(
@@ -303,13 +353,14 @@ export async function myLevels(tutorId: number): Promise<Level[]> {
 
 /** Home, top to bottom (owner, 2026-11-04): needs action now, updates, For You (3 newest), profile setup progress. */
 export async function homeView(viewer: Viewer, me: MyTutor) {
-  const [apps, updates, matches, choices, levels] = await Promise.all([
+  const [apps, updates, matches, choices, levels, students] = await Promise.all([
     myApplications(me.id),
     env.DB.prepare(`${UPDATES_SQL} ORDER BY at DESC LIMIT 20`).bind(me.id, now() - UPDATE_DAYS * 86400, viewer.id, String(me.code))
       .all<{ at: number; kind: string; tuition_code: number | null }>(),
     forYou(me),
     myChoices(me.id),
     myLevels(me.id),
+    myStudents(me.id),
   ]);
   const needs: NeedsAction[] = apps
     .filter((a) => a.status === "trial_arranged")
@@ -318,7 +369,7 @@ export async function homeView(viewer: Viewer, me: MyTutor) {
       next: !a.called_at ? "call" : !a.met_at ? "meet" : !a.demo_done_at ? "demo" : "confirm",
     }));
   const seen = me.updates_seen_at ?? 0;
-  const progress = profileSteps(me, choices, levels);
+  const progress = profileSteps(me, choices, levels, students.length);
   return {
     needs,
     updates: updates.results.map((u): Update => ({ at: u.at, kind: UPDATE_KIND[u.kind] ?? "closed", tuition_code: u.tuition_code, unread: u.at > seen })),

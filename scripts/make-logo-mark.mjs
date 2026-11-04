@@ -80,3 +80,35 @@ await (await onCream(192, 168)).toFile("public/brand/icon-192.png");
 await (await onCream(512, 448)).toFile("public/brand/icon-512.png");
 await (await onCream(180, 156)).toFile("public/brand/apple-touch-icon.png");
 console.log("mark box", markBox, "side", side);
+
+// The full logo (mark, "Hikmah Tutors" and the RAJSHAHI pill) on a transparent background, tightly cropped, for the
+// site header (owner, 2026-11-05: the logo itself reads better than the mark with the name typed beside it).
+const all = shapes.map((s) => inMarkArea(s) || (s.x0 >= 440 && s.y0 >= 280 && s.y1 <= 990 && s.n > 50));
+const full = Buffer.alloc(W * H * 4);
+let box = { x0: W, y0: H, x1: 0, y1: 0 };
+for (let y = 0; y < H; y++) {
+  for (let x = 0; x < W; x++) {
+    const p = y * W + x, d = diff(p);
+    if (d < 6) continue;
+    let owner = label[p];
+    if (owner === -1) {
+      let best = R * R + 1;
+      for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const l = label[ny * W + nx], dd = dx * dx + dy * dy;
+        if (l !== -1 && dd < best) { best = dd; owner = l; }
+      }
+    }
+    if (owner === -1 || !all[owner]) continue;
+    const a = Math.min(1, d / 90);
+    for (let c = 0; c < 3; c++) full[p * 4 + c] = Math.max(0, Math.min(255, Math.round((data[p * 4 + c] - (1 - a) * bg[c]) / a)));
+    full[p * 4 + 3] = Math.round(a * 255);
+    if (a > 0.5) box = { x0: Math.min(box.x0, x), y0: Math.min(box.y0, y), x1: Math.max(box.x1, x), y1: Math.max(box.y1, y) };
+  }
+}
+const fp = 6;
+await sharp(full, { raw: { width: W, height: H, channels: 4 } })
+  .extract({ left: box.x0 - fp, top: box.y0 - fp, width: box.x1 - box.x0 + 1 + fp * 2, height: box.y1 - box.y0 + 1 + fp * 2 })
+  .resize({ height: 192 }).webp({ quality: 92, alphaQuality: 100 }).toFile("public/brand/logo.webp");
+console.log("full logo box", box);

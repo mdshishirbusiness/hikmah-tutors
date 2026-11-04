@@ -18,13 +18,10 @@ export type TuitionDraft = {
 
 export function Group({ title, hint, icon = ListChecks, tone, children }: { title: string; hint?: string; icon?: LucideIcon; tone?: SectionTone; children: React.ReactNode }) {
   return (
-    <fieldset className="min-w-0 overflow-hidden rounded-2xl bg-white shadow-ring">
+    <fieldset className={`min-w-0 overflow-hidden rounded-2xl bg-white shadow-card ring-1 ${SECTION_TONES[tone ?? "brand"].frame}`}>
       <legend className="sr-only">{title}</legend>
-      <div aria-hidden className={`h-1 ${SECTION_TONES[tone ?? "brand"].line}`} />
-      <div className="space-y-3 p-4 sm:p-5">
-        <div aria-hidden><SectionHead icon={icon} tone={tone} title={title} hint={hint} /></div>
-        {children}
-      </div>
+      <div aria-hidden><SectionHead icon={icon} tone={tone} title={title} hint={hint} /></div>
+      <div className="space-y-3 p-4 sm:p-5">{children}</div>
     </fieldset>
   );
 }

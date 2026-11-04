@@ -55,12 +55,9 @@ export function SiteHeader() {
     <>
     <header className="sticky top-0 z-40 border-b border-brand-100/60 bg-cream/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex min-w-0 items-center gap-2.5 rounded-lg" aria-label="Hikmah Tutors Rajshahi, home">
-          <img src="/brand/mark.webp" alt="" width={40} height={40} className="size-10 shrink-0" />
-          <span className="min-w-0 leading-none">
-            <span className="block text-[17px] font-extrabold tracking-tight text-forest">Hikmah Tutors<span className="text-brand-600">.</span></span>
-            <span className="mt-1 block truncate text-[10px] font-bold tracking-[0.18em] text-slate-500 uppercase">Rajshahi</span>
-          </span>
+        {/* The full logo, not the mark with the name typed beside it (owner, 2026-11-05). */}
+        <Link to="/" className="flex shrink-0 items-center rounded-lg" aria-label="Hikmah Tutors Rajshahi, home">
+          <img src="/brand/logo.webp" alt="Hikmah Tutors Rajshahi" width={80} height={52} className="h-[52px] w-auto" />
         </Link>
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
           {NAV.map(([to, label]) => <NavLink key={to} to={to} end={to === "/"} className={navClass} viewTransition>{label}</NavLink>)}

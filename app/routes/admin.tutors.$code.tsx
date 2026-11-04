@@ -6,6 +6,7 @@ import { Check, Flag, KeyRound, Mail, MessageCircle, Phone, UserPlus } from "luc
 import type { Route } from "./+types/admin.tutors.$code";
 import { Avatar } from "~/components/Avatar";
 import { LevelSummary } from "~/components/LevelSummary";
+import { StudentTimeline } from "~/components/StudentsCard";
 import { APPLICATION_TONE, Badge, Card, Facts, PageHead, ago, inputClass, num, safeUrl, when } from "~/components/admin";
 import { APPLICATION_STATUS } from "~/lib/admin-labels";
 import { getTutor, reviewTutor, setFlag, setTutorEmail } from "~/lib/admin.server";
@@ -46,7 +47,7 @@ const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical"
 const LEVEL_KINDS = new Set(["junior_strategy", "junior_experience", "ssc_strategy", "ssc_experience", "hsc_strategy", "hsc_experience", "special_skills", "demo_video"]);
 const ghost = "inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring hover:bg-brand-50";
 
-export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, areas, classes }, actionData }: Route.ComponentProps) {
+export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, areas, classes }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const facebook = safeUrl(t.facebook_url);
   const reached = (s: string[]) => applications.filter((a) => s.includes(a.status)).length;
@@ -123,6 +124,13 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
               </ol>
             )}
           </section>
+
+          {students.length > 0 && (
+            <section>
+              <h2 className="mb-2 text-sm font-bold text-slate-500">Students they've taught <span className="text-rose-700">{students.length}</span></h2>
+              <StudentTimeline students={students} />
+            </section>
+          )}
 
           {levels.length > 0 && (
             <section>

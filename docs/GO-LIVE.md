@@ -114,8 +114,12 @@ Checked: public pages 200, admin and tutor pages ask for log in, the guardian fo
 
 ## 9. Part B (tutor Profile: experience per level, progress)
 
-Needs migration 0015 first. It adds `tutor_levels`, prefilled from the sheet's statements (about 1,000 tutors per
-level on the local copy), and the skills and demo-video columns. Nothing existing changes. Then the deploy.
+Needs migrations 0015 and 0016 first. `npm run db:migrate` runs both.
+- 0015 adds `tutor_levels`, prefilled from the sheet's statements (about 1,000 tutors per level on the local copy),
+  and the skills and demo-video columns.
+- 0016 adds `tutor_students`, the students a tutor has taught.
+
+Nothing existing changes. Then the deploy.
 
 ## Before tutors are invited (later)
 

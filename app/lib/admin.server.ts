@@ -4,7 +4,7 @@ import { ADMIN_PAGE_SIZE, TUITION_MOVES, publishGaps } from "./admin-labels";
 import { bandOf } from "./fit";
 import { AREAS, CLASS_CHOICES, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM } from "./options";
 import { parseWindow, requirementKeys } from "./request";
-import type { Level } from "./profile";
+import type { Level, Student } from "./profile";
 
 const PAGE_SIZE = ADMIN_PAGE_SIZE;
 const pageOffset = (page: number) => (Math.max(page, 1) - 1) * PAGE_SIZE;
@@ -564,7 +564,7 @@ export type TutorFull = AdminTutorRow & {
 export async function getTutor(code: number) {
   const tutor = await env.DB.prepare(`SELECT t.*, 0 applications, 0 placements FROM tutors t WHERE t.code = ? AND t.deleted_at IS NULL`).bind(code).first<TutorFull>();
   if (!tutor) return null;
-  const [subjects, statements, applications, placements, areas, classes, levels] = await Promise.all([
+  const [subjects, statements, applications, placements, areas, classes, levels, students] = await Promise.all([
     all<{ band: string; subject: string }>(`SELECT band, subject FROM tutor_subjects WHERE tutor_id = ?`, tutor.id),
     all<{ kind: string; body: string }>(`SELECT kind, body FROM tutor_statements WHERE tutor_id = ?`, tutor.id),
     all<{ id: number; tuition_code: number; status: string; created_at: number; updated_at: number; class_level: string; area: string; salary_amount: number | null; salary_kind: string }>(
@@ -576,8 +576,10 @@ export async function getTutor(code: number) {
     all<{ class_level: string }>(`SELECT class_level FROM tutor_classes WHERE tutor_id = ?`, tutor.id),
     all<Level>(`SELECT band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian FROM tutor_levels WHERE tutor_id = ?
                 ORDER BY CASE band WHEN 'junior' THEN 1 WHEN 'ssc' THEN 2 ELSE 3 END`, tutor.id),
+    all<Student>(`SELECT id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement FROM tutor_students
+                  WHERE tutor_id = ? ORDER BY COALESCE(ended, '9999-12') DESC, started DESC, id DESC`, tutor.id),
   ]);
-  return { tutor, subjects, statements, applications, placements, levels, areas: areas.map((a) => a.area), classes: classes.map((c) => c.class_level) };
+  return { tutor, subjects, statements, applications, placements, levels, students, areas: areas.map((a) => a.area), classes: classes.map((c) => c.class_level) };
 }
 
 // ---------- Guardians ----------

@@ -6,8 +6,8 @@
 import { useEffect, useState } from "react";
 import { Form, Link, useActionData, useNavigation } from "react-router";
 import {
-  ArrowRight, Bike, BookOpen, Check, GraduationCap, Library, Lock, LogOut, MapPin, MessageCircle, NotebookPen, PauseCircle, PenLine, PlayCircle,
-  Presentation, Sparkles, Wallet,
+  Bike, BookOpen, Check, GraduationCap, Library, Lock, LogOut, MapPin, MessageCircle, NotebookPen, PauseCircle, PenLine, PlayCircle,
+  Presentation, Wallet,
 } from "lucide-react";
 import type { Route } from "./+types/me.profile";
 import { Avatar } from "~/components/Avatar";
@@ -17,9 +17,11 @@ import { SitePage } from "~/components/site";
 import { AreaField, ClassField, SalaryField, SubjectField } from "~/components/TeachingFields";
 import { ChoiceChip, TutorBar } from "~/components/tutor";
 import { CONTACT, waLink } from "~/lib/contact";
-import { myChoices, myLevels, requireTutor, saveProfile, setPaused, tutorBadges } from "~/lib/me.server";
+import { addStudent, deleteStudent, myChoices, myLevels, myStudents, requireTutor, saveProfile, setPaused, tutorBadges } from "~/lib/me.server";
 import { MEDIUMS, TRANSPORTS, labelOf } from "~/lib/options";
-import { type Band, type Level, type ProgressStep, bandLabel, bandShort, profilePercent, profileSteps, stepGain, taughtBands } from "~/lib/profile";
+import { type Band, type Level, bandLabel, bandShort, profileSteps, taughtBands } from "~/lib/profile";
+import { ProfileChecklist } from "~/components/ProfileChecklist";
+import { StudentsCard } from "~/components/StudentsCard";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Profile · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
@@ -31,13 +33,21 @@ export function headers(_: Route.HeadersArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { viewer, me } = await requireTutor(request);
-  const [choices, levels, badges] = await Promise.all([myChoices(me.id), myLevels(me.id), tutorBadges(viewer, me)]);
-  return { me, choices, levels, badges };
+  const [choices, levels, students, badges] = await Promise.all([myChoices(me.id), myLevels(me.id), myStudents(me.id), tutorBadges(viewer, me)]);
+  return { me, choices, levels, students, badges };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   const { viewer, me } = await requireTutor(request);
   const form = await request.formData();
+  if (form.get("intent") === "add_student") {
+    const error = await addStudent(viewer, me, form);
+    return { error: null, saved: null, studentSaved: !error, studentError: error };
+  }
+  if (form.get("intent") === "delete_student") {
+    await deleteStudent(viewer, me, Number(form.get("id")) || 0);
+    return { error: null, saved: null };
+  }
   if (form.get("intent") === "pause") {
     await setPaused(viewer, me, form.get("paused") === "1");
     return { error: null, saved: form.get("paused") === "1" ? "Paused. HTR won't suggest tuitions until you turn it back on." : "You're taking tuitions again." };
@@ -55,64 +65,6 @@ const HABITS = [
   ["homework", "gives_homework", "Gives homework"],
   ["reports", "reports_guardian", "Reports to the guardian"],
 ] as const;
-
-/** A number that counts up once, and a bar that fills to it; both stay still when the phone asks for less motion. */
-function useCountUp(target: number) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return setValue(target);
-    let frame = 0;
-    const start = performance.now();
-    const tick = (t: number) => {
-      const k = Math.min(1, (t - start) / 900);
-      setValue(Math.round(target * (1 - (1 - k) ** 3)));
-      if (k < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [target]);
-  return value;
-}
-
-/** Progress, the next step to do, and the true reason to do it: complete profiles come first in HTR's list (part C). */
-function ProgressPanel({ steps, code }: { steps: ProgressStep[]; code: number }) {
-  const percent = profilePercent(steps);
-  const shown = useCountUp(percent);
-  const left = steps.filter((s) => !s.done);
-  const next = left[0];
-  const href = (s: ProgressStep) => (s.key === "photo" ? waLink(CONTACT.whatsapp, `Assalamu alaikum, I'm tutor T-${code}. Here is my photo for my profile.`) : `#${s.section}`);
-  return (
-    <section aria-label="Profile progress" className="mt-5 overflow-hidden rounded-3xl bg-forest p-5 text-cream shadow-lift">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold tracking-[0.14em] text-brand-200 uppercase">Your profile</p>
-          <p className="mt-1 text-5xl leading-none font-extrabold tabular-nums">{shown}<span className="text-2xl text-brand-200">%</span></p>
-        </div>
-        <p className="max-w-[12rem] text-right text-sm text-brand-100">{percent === 100 ? "Complete. HTR sees you first." : "Complete profiles are shown to HTR first."}</p>
-      </div>
-      <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
-        <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-mango transition-[width] duration-700 ease-out" style={{ width: `${shown}%` }} />
-      </div>
-      {next && (
-        <a href={href(next)} {...(next.key === "photo" ? { target: "_blank", rel: "noreferrer" } : {})}
-          className="group mt-4 flex items-center gap-3 rounded-2xl bg-white/10 p-3 transition-colors hover:bg-white/15">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-mango text-forest"><Sparkles size={18} aria-hidden /></span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-xs font-bold tracking-wide text-brand-200 uppercase">Next step · +{stepGain(steps, next)}%</span>
-            <span className="block font-extrabold">{next.label}</span>
-          </span>
-          <ArrowRight size={18} className="shrink-0 text-mango transition-transform group-hover:translate-x-0.5" aria-hidden />
-        </a>
-      )}
-      {left.length > 1 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {left.slice(1, 6).map((s) => <a key={s.key} href={href(s)} className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-brand-50 hover:bg-white/15">+ {s.label}</a>)}
-          {left.length > 6 && <span className="px-1 py-1 text-xs text-brand-200">and {left.length - 6} more</span>}
-        </div>
-      )}
-    </section>
-  );
-}
 
 function Count({ value, max }: { value: string; max: number }) {
   return <p className={`mt-1 text-right text-xs tabular-nums ${value.length > max * 0.9 ? "text-amber-700" : "text-slate-400"}`}>{value.length}/{max}</p>;
@@ -156,11 +108,21 @@ function LevelCard({ band, level }: { band: Band; level?: Level }) {
   );
 }
 
-function GroupTitle({ id, children }: { id: string; children: React.ReactNode }) {
-  return <h2 id={id} className="scroll-mt-28 pt-4 text-xs font-extrabold tracking-[0.16em] text-brand-700 uppercase">{children}</h2>;
+/** A part of the Profile: its number, its name and a hairline, so the four parts read as chapters. */
+function GroupTitle({ id, n, children, hint }: { id: string; n: number; children: React.ReactNode; hint?: React.ReactNode }) {
+  return (
+    <div id={id} className="scroll-mt-28 pt-6">
+      <div className="flex items-center gap-3">
+        <span className="grid size-7 place-items-center rounded-lg bg-forest text-xs font-extrabold text-cream tabular-nums">{String(n).padStart(2, "0")}</span>
+        <h2 className="text-xl font-extrabold tracking-tight text-forest">{children}</h2>
+        <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-brand-200 to-transparent" />
+      </div>
+      {hint && <p className="mt-1.5 text-sm text-slate-600">{hint}</p>}
+    </div>
+  );
 }
 
-export default function Profile({ loaderData: { me, choices, levels, badges } }: Route.ComponentProps) {
+export default function Profile({ loaderData: { me, choices, levels, students, badges } }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
   const busy = nav.state !== "idle";
@@ -176,7 +138,7 @@ export default function Profile({ loaderData: { me, choices, levels, badges } }:
   }, [actionData]);
   const picked = new Set(choices.subjects.map((s) => `${s.band}:${s.subject}`));
   const paused = me.availability_paused === 1;
-  const steps = profileSteps(me, choices, levels);
+  const steps = profileSteps(me, choices, levels, students.length);
   const taught = taughtBands(choices.classes, choices.subjects, levels);
   const bands: Band[] = taught.length ? taught : ["junior", "ssc", "hsc"];
   const editableAcademic = me.review_status !== "approved";
@@ -193,7 +155,7 @@ export default function Profile({ loaderData: { me, choices, levels, badges } }:
           </div>
         </header>
 
-        <ProgressPanel steps={steps} code={me.code} />
+        <ProfileChecklist steps={steps} code={me.code} />
 
         {actionData?.error && <p role="alert" className="mt-4 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
 
@@ -220,7 +182,7 @@ export default function Profile({ loaderData: { me, choices, levels, badges } }:
         <Form method="post" className="space-y-4" onChange={() => setDirty(true)}>
           <input type="hidden" name="intent" value="save" />
 
-          <GroupTitle id="teaching">Teaching</GroupTitle>
+          <GroupTitle id="teaching" n={1}>Teaching</GroupTitle>
           <SectionCard id="areas" icon={MapPin} tone="amber" title="Where you teach" hint="Every area you can reach. No limit.">
             <AreaField picked={choices.areas} anywhere={me.anywhere === 1} />
           </SectionCard>
@@ -247,12 +209,12 @@ export default function Profile({ loaderData: { me, choices, levels, badges } }:
             </SectionCard>
           </div>
 
-          <GroupTitle id="experience">Experience</GroupTitle>
-          <p className="-mt-2 text-sm text-slate-600">HTR এই অংশটাই সবার আগে পড়ে। প্রতিটি লেভেলের জন্য সংক্ষেপে লিখুন।</p>
+          <GroupTitle id="experience" n={2} hint="HTR এই অংশটাই সবার আগে পড়ে। যাদের পড়িয়েছেন তাদের কথা, আর প্রতিটি লেভেলে কীভাবে পড়ান।">Experience</GroupTitle>
+          <StudentsCard students={students} />
           {!taught.length && <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Pick your classes above and save; the levels you teach will show here. Until then, all three are open.</p>}
           {bands.map((b) => <LevelCard key={b} band={b} level={levels.find((l) => l.band === b)} />)}
 
-          <GroupTitle id="academic">Academic</GroupTitle>
+          <GroupTitle id="academic" n={3}>Academic</GroupTitle>
           <SectionCard icon={NotebookPen} tone="slate" title="Study and results" hint={editableAcademic ? "You can change these until HTR checks your profile." : "Locked so guardians can trust them. Wrong? Message HTR."}>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               {([
@@ -281,7 +243,7 @@ export default function Profile({ loaderData: { me, choices, levels, badges } }:
             )}
           </SectionCard>
 
-          <GroupTitle id="about">About & skills</GroupTitle>
+          <GroupTitle id="about" n={4}>About & skills</GroupTitle>
           <SectionCard icon={PenLine} tone="brand" title="About you" hint="Two or three lines HTR can share with guardians: how you teach, what you're good at.">
             <textarea name="about" rows={4} maxLength={500} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="e.g. I explain with examples and give a short test every week." className={`${inputClass} py-3`} />
             <Count value={about} max={500} />
