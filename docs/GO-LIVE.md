@@ -73,4 +73,9 @@ client, and signing in on the domain lands on `/admin`. The workers.dev address 
 
 ## Before tutors are invited (later)
 
-Publish the consent screen (in Testing mode only the test users can sign in) and make a fresh client secret.
+- Consent screen: **published (In production), 2026-11-04**. Branding has the home, privacy and terms links; no
+  logo, so no Google verification is needed. Any Google account can sign in now.
+- Fresh client secret: **done 2026-11-04**. New secret set on Cloudflare with `node scripts/set-google-secret.mjs`,
+  sign-in checked on the site, old secret (`YF5-`) disabled and deleted. The owner accepted that the new secret was
+  seen in a Claude chat. To rotate again: **Add secret** on the "Hikmah live" client, download the JSON, run the
+  script in the Terminal panel, check sign-in, then disable and delete the old one.
