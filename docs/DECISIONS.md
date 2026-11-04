@@ -3,6 +3,20 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-05 (Profile: folding sections and a progress line)
+
+- **Done sections fold** (owner: the Profile looked messy). A section on `/me/profile` folds to one line once every
+  checklist step pointing at it is done: icon with a green check, the title, and a summary of what was picked
+  ("Rani Bazar", "৳3,000 or more", "SSC 4.94 · HSC 4.58"). Tap to open. It folds on load and after a successful
+  save, never while the tutor is typing; any link to its `#id` opens it. Study and results counts as done when both
+  GPAs are in or HTR has checked the profile. Students you've taught never folds: adding students is the point.
+  `SectionCard` folds when given `done`; without it nothing changes, so other pages are untouched.
+- **A completion line, not a scroll bar** (owner asked about a scroll progress bar like Towfique HSC's; Claude
+  proposed this instead and the owner agreed). Sticky above the jump chips: the same percent as the ring, one segment
+  per section (emerald when done), and "Next: …" to the first unfinished step. Reaching 100% shows "Profile complete"
+  for a moment, then only the chips stay. A plain scroll bar may come later on long reading pages only (terms,
+  guides), with CSS scroll-driven animation and no JavaScript.
+
 ## 2026-11-05 (tutor side vs Porao and Tutor Provide)
 
 Context: `docs/research/tutor-side-compare-2026-11-05.md`. The owner picked five ideas (7, 8, 13, 1, 2); the details

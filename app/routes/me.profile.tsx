@@ -12,17 +12,18 @@ import {
 import type { Route } from "./+types/me.profile";
 import { Avatar } from "~/components/Avatar";
 import { inputClass } from "~/components/admin";
-import { SectionCard, type SectionTone } from "~/components/SectionCard";
+import { FoldOnSave, SectionCard, type SectionTone } from "~/components/SectionCard";
 import { SitePage } from "~/components/site";
 import { AreaField, ClassField, SalaryField, SubjectField } from "~/components/TeachingFields";
 import { ChoiceChip, Sheet, TutorBar } from "~/components/tutor";
 import { CONTACT, waLink } from "~/lib/contact";
-import { FREE_TIMES } from "~/lib/fit";
+import { FREE_TIMES, freeLabel } from "~/lib/fit";
 import { guardianSummary } from "~/lib/whatsapp";
 import { addStudent, deleteStudent, myChoices, myLevels, myStudents, requireTutor, saveProfile, setPaused, tutorBadges } from "~/lib/me.server";
-import { MEDIUMS, TRANSPORTS, labelOf } from "~/lib/options";
-import { type Band, type Level, bandLabel, bandShort, profileSteps, taughtBands } from "~/lib/profile";
+import { AREAS, CLASS_LEVELS, MEDIUMS, TRANSPORTS, labelOf } from "~/lib/options";
+import { type Band, type Level, type ProgressStep, bandLabel, bandShort, hasHabits, profileSteps, taughtBands } from "~/lib/profile";
 import { ProfileChecklist } from "~/components/ProfileChecklist";
+import { type BarSection, ProfileBar } from "~/components/ProfileBar";
 import { StudentsCard } from "~/components/StudentsCard";
 
 export function meta(_: Route.MetaArgs) {
@@ -56,7 +57,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
   form.set("paused", me.availability_paused ? "1" : "0");
   const error = await saveProfile(viewer, me, form);
-  return { error, saved: error ? null : "Saved. Your profile and For You are up to date." };
+  return { error, saved: error ? null : "Saved. Your profile and For You are up to date.", profileSaved: !error };
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical", other: "Other" };
@@ -73,12 +74,14 @@ function Count({ value, max }: { value: string; max: number }) {
 }
 
 /** One level's experience: what the owner reads first when picking a tutor for a tuition at this level. */
-function LevelCard({ band, level }: { band: Band; level?: Level }) {
+function LevelCard({ band, level, done }: { band: Band; level?: Level; done: boolean }) {
   const [approach, setApproach] = useState(level?.approach ?? "");
   const [story, setStory] = useState(level?.story ?? "");
   const p = (k: string) => `lv_${band}_${k}`;
+  const habits = level ? HABITS.filter(([, col]) => level[col]).length : 0;
+  const summary = level && [level.students && `${level.students} students`, level.years !== null && `${level.years} yrs`, hasHabits(level) && `${habits} habits`].filter(Boolean).join(" · ");
   return (
-    <SectionCard id={`exp-${band}`} icon={GraduationCap} tone={BAND_TONE[band]} title={`${bandShort(band)} experience`} hint={bandLabel(band)}>
+    <SectionCard id={`exp-${band}`} icon={GraduationCap} tone={BAND_TONE[band]} title={`${bandShort(band)} experience`} hint={bandLabel(band)} done={done} summary={summary || undefined}>
       <input type="hidden" name={`lv_${band}`} value="1" />
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
@@ -180,6 +183,12 @@ function GuardianPreview({ me, choices, levels, bands }: { me: PreviewTutor; cho
   );
 }
 
+/** A section is done when every checklist step pointing at it is. */
+const sectionDone = (steps: ProgressStep[], id: string) => steps.some((s) => s.section === id) && steps.filter((s) => s.section === id).every((s) => s.done);
+
+/** "Kazla, Binodpur +3". */
+const firstFew = (labels: string[], n = 2) => labels.length ? `${labels.slice(0, n).join(", ")}${labels.length > n ? ` +${labels.length - n}` : ""}` : undefined;
+
 /** A part of the Profile: its number, its name and a hairline, so the four parts read as chapters. */
 function GroupTitle({ id, n, children, hint }: { id: string; n: number; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
@@ -214,6 +223,15 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
   const taught = taughtBands(choices.classes, choices.subjects, levels);
   const bands: Band[] = taught.length ? taught : ["junior", "ssc", "hsc"];
   const editableAcademic = me.review_status !== "approved";
+  const done = (id: string) => sectionDone(steps, id);
+  const academicDone = !editableAcademic || !!(me.ssc_result && me.hsc_result);
+  const subjectCounts = (["junior", "ssc", "hsc"] as Band[]).map((b) => [b, choices.subjects.filter((s) => s.band === b).length] as const).filter(([, n]) => n);
+  const sections: BarSection[] = [
+    ...(["areas", "classes", "subjects", "min_salary", "free_times", "transport", "demo", "students"] as const).map((id) => ({ id, label: steps.find((s) => s.section === id)?.label ?? id, done: done(id) })),
+    ...bands.map((b) => ({ id: `exp-${b}`, label: `${bandShort(b)} experience`, done: done(`exp-${b}`) })),
+    { id: "academic", label: "Study and results", done: academicDone },
+    { id: "about", label: "About you", done: done("about") },
+  ];
 
   return (
     <SitePage app>
@@ -246,38 +264,46 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
           </button>
         </Form>
 
-        <nav aria-label="Profile sections" className="sticky top-16 z-20 -mx-4 mt-4 flex gap-2 overflow-x-auto bg-cream/90 px-4 py-2 backdrop-blur scroll-thin sm:mx-0 sm:px-0">
-          {[["teaching", "Teaching"], ["experience", "Experience"], ["academic", "Academic"], ["about", "About & skills"]].map(([id, label]) => (
-            <a key={id} href={`#${id}`} className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-white px-4 text-sm font-bold text-forest shadow-ring hover:bg-brand-50">{label}</a>
-          ))}
-        </nav>
+        <div className="sticky top-16 z-20 -mx-4 mt-4 bg-cream/90 px-4 pt-2 pb-1 backdrop-blur sm:mx-0 sm:px-0">
+          <ProfileBar sections={sections} steps={steps} code={me.code} />
+          <nav aria-label="Profile sections" className="flex gap-2 overflow-x-auto py-1 scroll-thin">
+            {[["teaching", "Teaching"], ["experience", "Experience"], ["academic", "Academic"], ["about", "About & skills"]].map(([id, label]) => (
+              <a key={id} href={`#${id}`} className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-white px-4 text-sm font-bold text-forest shadow-ring hover:bg-brand-50">{label}</a>
+            ))}
+          </nav>
+        </div>
 
+        <FoldOnSave.Provider value={actionData && "profileSaved" in actionData && actionData.profileSaved ? actionData : null}>
         <Form method="post" className="space-y-4" onChange={() => setDirty(true)}>
           <input type="hidden" name="intent" value="save" />
 
           <GroupTitle id="teaching" n={1}>Teaching</GroupTitle>
-          <SectionCard id="areas" icon={MapPin} tone="amber" title="Where you teach" hint="Every area you can reach. No limit.">
+          <SectionCard id="areas" icon={MapPin} tone="amber" title="Where you teach" hint="Every area you can reach. No limit." done={done("areas")}
+            summary={me.anywhere === 1 ? "Anywhere in Rajshahi" : firstFew(choices.areas.map((a) => labelOf(AREAS, a)))}>
             <AreaField picked={choices.areas} anywhere={me.anywhere === 1} />
           </SectionCard>
-          <SectionCard id="classes" icon={BookOpen} tone="violet" title="Classes you want">
+          <SectionCard id="classes" icon={BookOpen} tone="violet" title="Classes you want" done={done("classes")} summary={firstFew(CLASS_LEVELS.filter((c) => choices.classes.includes(c.key)).map((c) => c.label), 3)}>
             <ClassField picked={choices.classes} />
           </SectionCard>
-          <SectionCard id="subjects" icon={Library} tone="sky" title="Subjects you teach" hint="By level, so an SSC tuition only matches your SSC subjects.">
+          <SectionCard id="subjects" icon={Library} tone="sky" title="Subjects you teach" hint="By level, so an SSC tuition only matches your SSC subjects." done={done("subjects")}
+            summary={subjectCounts.map(([b, n]) => `${bandShort(b)} ${n}`).join(" · ") || undefined}>
             <SubjectField picked={picked} />
           </SectionCard>
-          <SectionCard id="min_salary" icon={Wallet} tone="brand" title="Lowest salary you'll take" hint="Per month. Lower ones still show, with a warning.">
+          <SectionCard id="min_salary" icon={Wallet} tone="brand" title="Lowest salary you'll take" hint="Per month. Lower ones still show, with a warning." done={done("min_salary")}
+            summary={me.min_salary !== null ? `৳${me.min_salary.toLocaleString("en-IN")} or more` : undefined}>
             <SalaryField value={me.min_salary} />
           </SectionCard>
-          <SectionCard id="free_times" icon={Clock} tone="amber" title="When you're free" hint="Pick every time you can teach. Tuitions at other times won't show in For You.">
+          <SectionCard id="free_times" icon={Clock} tone="amber" title="When you're free" hint="Pick every time you can teach. Tuitions at other times won't show in For You." done={done("free_times")} summary={freeLabel(me.free_times)}>
             <FreeTimes value={me.free_times} />
           </SectionCard>
           <div className="grid gap-4 sm:grid-cols-2">
-            <SectionCard id="transport" icon={Bike} tone="sky" title="How you travel">
+            <SectionCard id="transport" icon={Bike} tone="sky" title="How you travel" done={done("transport")}
+              summary={me.transport === "none" ? "On foot / rickshaw" : me.transport ? labelOf(TRANSPORTS, me.transport) : undefined}>
               <div className="flex flex-wrap gap-2">
                 {TRANSPORTS.map((t) => <ChoiceChip key={t.key} type="radio" name="transport" value={t.key} checked={me.transport === t.key}>{t.key === "none" ? "On foot / rickshaw" : t.label}</ChoiceChip>)}
               </div>
             </SectionCard>
-            <SectionCard id="demo" icon={Presentation} tone="violet" title="Demo class" hint="Will you take a free trial class?">
+            <SectionCard id="demo" icon={Presentation} tone="violet" title="Demo class" hint="Will you take a free trial class?" done={done("demo")} summary={me.demo_willing === 1 ? "Yes" : me.demo_willing === 0 ? "No" : undefined}>
               <div className="flex flex-wrap gap-2">
                 <ChoiceChip type="radio" name="demo" value="yes" checked={me.demo_willing === 1}>Yes</ChoiceChip>
                 <ChoiceChip type="radio" name="demo" value="no" checked={me.demo_willing === 0}>No</ChoiceChip>
@@ -288,10 +314,11 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
           <GroupTitle id="experience" n={2} hint="HTR এই অংশটাই সবার আগে পড়ে। যাদের পড়িয়েছেন তাদের কথা, আর প্রতিটি লেভেলে কীভাবে পড়ান।">Experience</GroupTitle>
           <StudentsCard students={students} />
           {!taught.length && <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Pick your classes above and save; the levels you teach will show here. Until then, all three are open.</p>}
-          {bands.map((b) => <LevelCard key={b} band={b} level={levels.find((l) => l.band === b)} />)}
+          {bands.map((b) => <LevelCard key={b} band={b} level={levels.find((l) => l.band === b)} done={done(`exp-${b}`)} />)}
 
-          <GroupTitle id="academic" n={3}>Academic</GroupTitle>
-          <SectionCard icon={NotebookPen} tone="slate" title="Study and results" hint={editableAcademic ? "You can change these until HTR checks your profile." : "Locked so guardians can trust them. Wrong? Message HTR."}>
+          <GroupTitle id="academic-part" n={3}>Academic</GroupTitle>
+          <SectionCard id="academic" icon={NotebookPen} tone="slate" title="Study and results" done={academicDone}
+            summary={[me.ssc_result && `SSC ${me.ssc_result}`, me.hsc_result && `HSC ${me.hsc_result}`, !editableAcademic && "Checked by HTR"].filter(Boolean).join(" · ") || undefined} hint={editableAcademic ? "You can change these until HTR checks your profile." : "Locked so guardians can trust them. Wrong? Message HTR."}>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               {([
                 ["University", me.institution], ["Department", me.department], ["Session", me.session_year],
@@ -319,8 +346,8 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
             )}
           </SectionCard>
 
-          <GroupTitle id="about" n={4}>About & skills</GroupTitle>
-          <SectionCard icon={PenLine} tone="brand" title="About you" hint="Two or three lines HTR can share with guardians: how you teach, what you're good at.">
+          <GroupTitle id="about-part" n={4}>About & skills</GroupTitle>
+          <SectionCard id="about" icon={PenLine} tone="brand" title="About you" done={done("about")} summary={me.about?.trim() || undefined} hint="Two or three lines HTR can share with guardians: how you teach, what you're good at.">
             <textarea name="about" rows={4} maxLength={500} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="e.g. I explain with examples and give a short test every week." className={`${inputClass} py-3`} />
             <Count value={about} max={500} />
             <label className="mt-2 block">
@@ -344,6 +371,7 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
             ) : null}
           </div>
         </Form>
+        </FoldOnSave.Provider>
 
         <section className="mt-6 rounded-2xl bg-white p-4 shadow-ring sm:p-5">
           <h2 className="flex items-center gap-2 font-extrabold text-forest"><Lock size={16} aria-hidden />Details HTR keeps</h2>
