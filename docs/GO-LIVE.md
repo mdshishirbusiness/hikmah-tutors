@@ -67,7 +67,9 @@ do: in Google Cloud, on the "Hikmah live" client, add:
 - Authorised JavaScript origins: `https://hikmahtutor.com`
 - Authorised redirect URIs: `https://hikmahtutor.com/auth/google/callback`
 
-Then sign in on `https://hikmahtutor.com/login` and check it lands on `/admin`.
+Then sign in on `https://hikmahtutor.com/login` and check it lands on `/admin`. Done 2026-11-04: both added to the
+client, and signing in on the domain lands on `/admin`. The workers.dev address is now off; the site is only at
+`https://hikmahtutor.com`.
 
 ## Before tutors are invited (later)
 

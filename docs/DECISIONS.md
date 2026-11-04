@@ -7,7 +7,7 @@ Newest first. Each entry: what was decided, by whom, and why.
 
 - **The site's address is `hikmahtutor.com`** (owner bought it; DNS on the Hikmah Cloudflare account). The Worker
   serves it as a custom domain; `www.hikmahtutor.com` redirects to it, so sign-in and the Google callback use one
-  address. `hikmah-tutors.hikmahtutor.workers.dev` stays on until the domain is confirmed working, then is turned off.
+  address. `hikmah-tutors.hikmahtutor.workers.dev` (and preview URLs) turned off once sign-in on the domain worked.
 
 ## 2026-11-04 (Porao comparison)
 
