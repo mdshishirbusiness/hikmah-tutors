@@ -218,6 +218,11 @@ export type Applicant = {
   called_at: number | null; met_at: number | null; demo_done_at: number | null;
   total_apps: number; placed: number; // this tutor's whole record with HTR, for the admin's judgement
   flag_reason: string | null;
+  // Part C (owner, 2026-11-05): what the Strength order reads.
+  level: Level | null; // the tutor's experience at this tuition's level
+  students: Student[]; // students they have taught, this level first
+  demos: number; // demo classes done through HTR
+  dropped: number; // tuitions that didn't work out for the tutor's own reasons
 };
 
 export async function getTuition(code: number) {
@@ -264,7 +269,39 @@ export async function getTuition(code: number) {
       code,
     ),
   ]);
-  return { tuition, priv, applicants, placements, history };
+  // Each applicant's experience at this level, students taught and record: three queries for the whole list.
+  const ids = `SELECT tutor_id FROM applications WHERE tuition_code = ? AND tutor_id IS NOT NULL`;
+  const [levels, students, records] = await Promise.all([
+    band ? all<Level & { tutor_id: number }>(
+      `SELECT tutor_id, band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian
+       FROM tutor_levels WHERE band = ? AND tutor_id IN (${ids})`, band, code,
+    ) : Promise.resolve([] as (Level & { tutor_id: number })[]),
+    all<Student & { tutor_id: number }>(
+      `SELECT tutor_id, id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement
+       FROM tutor_students WHERE tutor_id IN (${ids}) ORDER BY COALESCE(ended, '9999-12') DESC, started DESC`, code,
+    ),
+    all<{ tutor_id: number; demos: number; dropped: number }>(
+      `SELECT x.tutor_id, SUM(x.demo_done_at IS NOT NULL) demos,
+              (SELECT count(*) FROM application_events e JOIN applications y ON y.id = e.application_id
+               WHERE y.tutor_id = x.tutor_id AND e.reason LIKE 'didn''t work out:%' AND e.reason NOT LIKE '%guardian_chose_other%') dropped
+       FROM applications x WHERE x.tutor_id IN (${ids}) GROUP BY x.tutor_id`, code,
+    ),
+  ]);
+  const full: Applicant[] = applicants.map((a) => {
+    const level = levels.find((l) => l.tutor_id === a.tutor_id) ?? null;
+    const mine = students.filter((st) => st.tutor_id === a.tutor_id);
+    const rec = records.find((r) => r.tutor_id === a.tutor_id);
+    return {
+      ...a,
+      level,
+      // This tuition's level first, then the rest.
+      students: [...mine.filter((st) => bandOf(st.class_level) === band), ...mine.filter((st) => bandOf(st.class_level) !== band)],
+      demos: rec?.demos ?? 0,
+      dropped: rec?.dropped ?? 0,
+      experience: level?.story ?? level?.approach ?? a.experience,
+    };
+  });
+  return { tuition, priv, applicants: full, placements, history };
 }
 
 /** Public wording must not carry contact details. Returns an error in Bangla, or null. */

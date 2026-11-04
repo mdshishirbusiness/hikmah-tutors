@@ -112,7 +112,9 @@ Includes:
 
 Checked: public pages 200, admin and tutor pages ask for log in, the guardian form shows the new fields.
 
-## 9. Part B (tutor Profile: experience per level, progress)
+## 9. Parts B and C (tutor Profile and experience; applicants ranked by Strength)
+
+Part C needs no database change of its own; it reads what B adds.
 
 Needs migrations 0015 and 0016 first. `npm run db:migrate` runs both.
 - 0015 adds `tutor_levels`, prefilled from the sheet's statements (about 1,000 tutors per level on the local copy),

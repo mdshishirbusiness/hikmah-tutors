@@ -1,5 +1,6 @@
 // The applicant workspace on a tuition (owner, 2026-11-04: fifty applications must not be a long stack of cards; on a
-// laptop show them in columns, with the tutor's photo). Laptop: a ranked table on the left and the chosen tutor's
+// laptop show them in columns, with the tutor's photo). Ranked by Strength for this tuition (owner, 2026-11-05, part C):
+// experience at its level first, then how much they wrote for it, then their record with HTR; fit only warns. Laptop: a ranked table on the left and the chosen tutor's
 // whole picture on the right, or a board with one column per step. Phone: the same ranked list; a tap opens the
 // picture as a sheet. Moves go through a fetcher, so the list keeps its place and moves on to the next applicant.
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
@@ -8,6 +9,8 @@ import {
   AlertTriangle, Check, ChevronRight, Columns3, Copy, ExternalLink, LayoutList, MessageCircle, Phone, Search, Send, X,
 } from "lucide-react";
 import { Avatar } from "~/components/Avatar";
+import { LevelSummary } from "~/components/LevelSummary";
+import { StudentTimeline } from "~/components/StudentsCard";
 import { APPLICATION_TONE, Badge, ago, num } from "~/components/admin";
 import { Sheet } from "~/components/tutor";
 import { APPLICATION_ACTION, APPLICATION_STATUS } from "~/lib/admin-labels";
@@ -15,6 +18,8 @@ import type { Applicant, TuitionFull } from "~/lib/admin.server";
 import { waLink } from "~/lib/contact";
 import { type Fit, bandOf, fitOf, tutorFromLabel } from "~/lib/fit";
 import { SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
+import { bandShort } from "~/lib/profile";
+import { type Strength, strengthOf, strengthWord } from "~/lib/strength";
 import { taka } from "~/lib/tuition";
 import { guardianSummary, tutorMessage } from "~/lib/whatsapp";
 
@@ -34,7 +39,7 @@ export const STAGES = [
 ] as const;
 const COLUMNS = STAGES.slice(1, 5);
 
-type Row = { a: Applicant; fit: Fit; match: number };
+type Row = { a: Applicant; fit: Fit; match: number; strength: Strength };
 
 /** A 0–100 match from the fit (owner's order: gender, subjects, area, university, then class and salary). */
 export function matchOf(fit: Fit, wantsUniversity: boolean): number {
@@ -61,11 +66,11 @@ function useDesktop() {
 }
 
 function Meter({ value }: { value: number }) {
-  const tone = value >= 75 ? "bg-emerald-500" : value >= 50 ? "bg-amber-500" : "bg-slate-300";
+  const tone = value >= 70 ? "bg-emerald-500" : value >= 40 ? "bg-amber-500" : "bg-slate-300";
   return (
-    <span className="flex items-center gap-2" title={`${value}% match`}>
+    <span className="flex items-center gap-2" title={`Strength ${value}: ${strengthWord(value)}`}>
       <span className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-100"><span className={`block h-full rounded-full ${tone}`} style={{ width: `${Math.max(value, 4)}%` }} /></span>
-      <span className="w-9 text-xs font-bold text-slate-700 tabular-nums">{value}%</span>
+      <span className="w-7 text-xs font-bold text-slate-700 tabular-nums">{value}</span>
     </span>
   );
 }
@@ -76,24 +81,21 @@ const Tick = ({ ok, warn }: { ok: boolean; warn?: boolean }) => (
   </span>
 );
 
-/** Three tiny marks a row can carry: subjects, area, university. Words in the title for hover and screen readers. */
-function FitMarks({ fit }: { fit: Fit }) {
-  const all = fit.subjectTotal > 0 && fit.subjects.length === fit.subjectTotal;
+/** Experience at a glance, then only what is wrong with the fit (a quiet warning, never part of the score). */
+function ExpMarks({ a, fit, strength }: { a: Applicant; fit: Fit; strength: Strength }) {
+  const l = a.level;
+  const warns = [
+    fit.gender === "mismatch" && { tone: "bg-rose-100 text-rose-800", text: "Gender", title: "Gender doesn't match" },
+    fit.subjectTotal > 0 && fit.subjects.length === 0 && { tone: "bg-amber-50 text-amber-800", text: "Subjects", title: "None of the subjects listed for this level" },
+    fit.university === "other" && { tone: "bg-amber-50 text-amber-800", text: "Uni", title: "Not from the university the guardian wants" },
+  ].filter(Boolean) as { tone: string; text: string; title: string }[];
   return (
-    <span className="flex items-center gap-1 text-xs text-slate-600">
-      {fit.gender === "mismatch" ? <Badge tone="red">Gender</Badge> : (
-        <>
-          <span title={`Teaches ${fit.subjects.length} of ${fit.subjectTotal} subjects`} className={`rounded-md px-1.5 py-0.5 font-bold tabular-nums ${all ? "bg-emerald-50 text-emerald-800" : fit.subjects.length ? "bg-amber-50 text-amber-800" : "bg-slate-100 text-slate-500"}`}>
-            {fit.subjects.length}/{fit.subjectTotal || "–"}
-          </span>
-          <span title={fit.area === "listed" ? "Picked this area" : fit.area === "nearby" ? "Lives nearby" : "Area not known"} className={`rounded-md px-1.5 py-0.5 font-semibold ${fit.area === "unknown" ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-800"}`}>
-            {fit.area === "listed" ? "Area" : fit.area === "nearby" ? "Near" : "Area?"}
-          </span>
-          {fit.university && (
-            <span title="University" className={`rounded-md px-1.5 py-0.5 font-semibold ${fit.university === "ok" ? "bg-emerald-50 text-emerald-800" : fit.university === "other" ? "bg-amber-50 text-amber-800" : "bg-slate-100 text-slate-500"}`}>Uni</span>
-          )}
-        </>
-      )}
+    <span className="flex flex-wrap items-center gap-1 text-xs">
+      {l?.students ? <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-bold text-slate-700 tabular-nums" title="Students taught at this level">{l.students} st</span> : null}
+      {l?.years != null ? <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-bold text-slate-700 tabular-nums" title="Years at this level">{l.years} yr</span> : null}
+      {strength.atLevel > 0 && <span className="rounded-md bg-rose-50 px-1.5 py-0.5 font-bold text-rose-800 tabular-nums" title="Students they listed at this level">{strength.atLevel} listed</span>}
+      {!l && !strength.atLevel && <span className="text-slate-400">No experience written</span>}
+      {warns.map((w) => <span key={w.text} title={w.title} className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-bold ${w.tone}`}><AlertTriangle size={10} aria-hidden />{w.text}</span>)}
     </span>
   );
 }
@@ -127,7 +129,8 @@ const ghost = "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-
 // ---------- the detail pane ----------
 
 function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; guardianPhone: string | null; onMoved: (to: string) => void }) {
-  const { a, fit, match } = row;
+  const { a, fit, strength } = row;
+  const [allStudents, setAllStudents] = useState(false);
   const fetcher = useFetcher<{ error?: string | null }>();
   const busy = fetcher.state !== "idle";
   const pending = fetcher.formData?.get("to");
@@ -162,7 +165,7 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
     ["Transport", a.transport ? labelOf(TRANSPORTS, a.transport) : null],
     ["Demo class", a.demo_willing === null ? null : a.demo_willing ? "Willing" : "Not willing"],
     ["Lowest salary", a.min_salary ? taka(a.min_salary) : null],
-    ["With HTR", a.tutor_id ? `${num(a.total_apps)} applications · ${num(a.placed)} placed` : "Not matched to a tutor"],
+    ["With HTR", a.tutor_id ? [`${num(a.total_apps)} applications`, `${num(a.placed)} placed`, a.demos ? `${num(a.demos)} demos` : "", a.dropped ? `${num(a.dropped)} didn't work out` : ""].filter(Boolean).join(" · ") : "Not matched to a tutor"],
   ];
 
   return (
@@ -181,13 +184,46 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
         {a.flag_reason && <p role="alert" className="rounded-xl bg-rose-100 px-3 py-2 text-sm text-rose-900"><b>Flagged:</b> {a.flag_reason}</p>}
         {a.paused === 1 && <p className="rounded-xl bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-900">This tutor has paused new tuitions.</p>}
 
-        <section aria-label="Fit" className="rounded-2xl bg-cream p-4 ring-1 ring-brand-100">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Match</p>
-            <p className={`text-2xl font-extrabold tabular-nums ${match >= 75 ? "text-emerald-700" : match >= 50 ? "text-amber-700" : "text-slate-500"}`}>{match}%</p>
+        <section aria-label="Strength" className="rounded-2xl bg-cream p-4 ring-1 ring-brand-100">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Strength for this tuition</p>
+              <p className="text-sm font-semibold text-slate-600">{strengthWord(strength.score)}{band ? ` · ${bandShort(band)} level` : ""}</p>
+            </div>
+            <p className={`text-3xl leading-none font-extrabold tabular-nums ${strength.score >= 70 ? "text-emerald-700" : strength.score >= 40 ? "text-amber-700" : "text-slate-500"}`}>{strength.score}</p>
           </div>
+          <ul className="mt-3 space-y-1.5">
+            {([["Experience", strength.experience, 50, "bg-rose-500"], ["Written for this level", strength.profile, 30, "bg-sky-500"], ["With HTR", strength.record, 20, "bg-brand-500"]] as const).map(([label, v, max, tone]) => (
+              <li key={label} className="grid grid-cols-[8.5rem_1fr_2.5rem] items-center gap-2 text-xs">
+                <span className="font-semibold text-slate-600">{label}</span>
+                <span className="h-1.5 overflow-hidden rounded-full bg-white ring-1 ring-slate-200"><span className={`block h-full rounded-full ${tone}`} style={{ width: `${(100 * v) / max}%` }} /></span>
+                <span className="text-right font-bold text-slate-700 tabular-nums">{v}/{max}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {(a.level || a.students.length > 0) ? (
+          <section aria-label="Experience" className="space-y-3">
+            {a.level && <LevelSummary level={a.level} compact />}
+            {a.students.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-bold tracking-wide text-slate-500 uppercase">Students they've taught · {a.students.length}</p>
+                <StudentTimeline students={allStudents ? a.students : a.students.slice(0, 2)} />
+                {a.students.length > 2 && !allStudents && (
+                  <button type="button" onClick={() => setAllStudents(true)} className="mt-2 min-h-10 text-sm font-bold text-brand-700">Show all {a.students.length}</button>
+                )}
+              </div>
+            )}
+          </section>
+        ) : a.tutor_id ? (
+          <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-500">No experience written for this level yet.</p>
+        ) : null}
+
+        <section aria-label="Fit" className="rounded-2xl bg-white p-4 shadow-ring">
+          <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Checks</p>
           <ul className="mt-2 space-y-1.5">
-            {fitRows.map((r) => <li key={r.text} className="flex items-start gap-2 text-sm text-slate-800"><Tick ok={r.ok} warn={r.warn} /><span>{r.text}</span></li>)}
+            {[...fitRows.filter((r) => !r.ok), ...fitRows.filter((r) => r.ok)].map((r) => <li key={r.text} className="flex items-start gap-2 text-sm text-slate-800"><Tick ok={r.ok} warn={r.warn} /><span>{r.text}</span></li>)}
           </ul>
         </section>
 
@@ -221,12 +257,7 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
           ))}
         </dl>
 
-        {(a.experience || a.about) && (
-          <section className="space-y-3">
-            {a.experience && <div><p className="text-xs font-bold text-slate-500">Experience{band ? ` (${band === "junior" ? "Class 1–8" : band === "ssc" ? "SSC" : "HSC"})` : ""}</p><p className="mt-1 text-sm whitespace-pre-line text-slate-700">{a.experience}</p></div>}
-            {a.about && <div><p className="text-xs font-bold text-slate-500">About</p><p className="mt-1 text-sm whitespace-pre-line text-slate-700">{a.about}</p></div>}
-          </section>
-        )}
+        {a.about && <section><p className="text-xs font-bold text-slate-500">About</p><p className="mt-1 text-sm whitespace-pre-line text-slate-700">{a.about}</p></section>}
 
         <div className="flex flex-wrap gap-2">
           {a.phone && <a href={`tel:${a.phone}`} className={ghost}><Phone size={16} aria-hidden />Call</a>}
@@ -279,7 +310,7 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
 // ---------- the list ----------
 
 function RowButton({ row, active, onPick, compact }: { row: Row; active: boolean; onPick: () => void; compact?: boolean }) {
-  const { a, fit, match } = row;
+  const { a, fit, strength } = row;
   return (
     <button
       type="button"
@@ -297,16 +328,17 @@ function RowButton({ row, active, onPick, compact }: { row: Row; active: boolean
           {a.note && <span title="Wrote a note" className="size-1.5 shrink-0 rounded-full bg-brand-600" />}
         </span>
         <span className="block truncate text-xs text-slate-500">{who(a)}</span>
+        <span className="mt-1 block lg:hidden"><ExpMarks a={a} fit={fit} strength={strength} /></span>
       </span>
       {compact ? (
-        <span className="flex flex-col items-end gap-1"><Meter value={match} /><Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge></span>
+        <span className="flex flex-col items-end gap-1"><Meter value={strength.score} /><Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge></span>
       ) : (
         <>
-          <span className="hidden lg:block"><Meter value={match} /></span>
-          <span className="hidden lg:block"><FitMarks fit={fit} /></span>
+          <span className="hidden lg:block"><Meter value={strength.score} /></span>
+          <span className="hidden lg:block"><ExpMarks a={a} fit={fit} strength={strength} /></span>
           <span className="hidden text-xs text-slate-500 tabular-nums lg:block">{ago(a.created_at)}</span>
           <span className="flex flex-col items-end gap-1 lg:items-start">
-            <span className="lg:hidden"><Meter value={match} /></span>
+            <span className="lg:hidden"><Meter value={strength.score} /></span>
             <Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge>
           </span>
         </>
@@ -319,7 +351,7 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
   const [sp, setSp] = useSearchParams();
   const desktop = useDesktop();
   const stage = sp.get("stage") ?? "live";
-  const sort = sp.get("sort") ?? "fit";
+  const sort = sp.get("sort") ?? "strength";
   const view = sp.get("view") === "board" ? "board" : "table";
   const picked = Number(sp.get("a")) || null;
   const [q, setQ] = useState("");
@@ -328,7 +360,8 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
   const tutorFrom = (t.tutor_from ?? "").split(",").filter(Boolean);
   const rows: Row[] = useMemo(() => applicants.map((a) => {
     const fit = fitOf({ ...t, subjects, tutor_from: tutorFrom }, a);
-    return { a, fit, match: matchOf(fit, tutorFrom.length > 0) };
+    const strength = strengthOf({ level: a.level, students: a.students, about: a.about, placed: a.placed, demos: a.demos, dropped: a.dropped }, bandOf(t.class_level));
+    return { a, fit, match: matchOf(fit, tutorFrom.length > 0), strength };
     // t and applicants change together with the loader
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [applicants, t]);
@@ -342,7 +375,8 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
     .sort((x, y) =>
       sort === "new" ? y.a.created_at - x.a.created_at
         : sort === "old" ? x.a.created_at - y.a.created_at
-          : STAGE[y.a.status] - STAGE[x.a.status] || y.match - x.match || x.a.created_at - y.a.created_at);
+          : sort === "fit" ? STAGE[y.a.status] - STAGE[x.a.status] || y.match - x.match || x.a.created_at - y.a.created_at
+            : STAGE[y.a.status] - STAGE[x.a.status] || y.strength.score - x.strength.score || y.match - x.match || x.a.created_at - y.a.created_at);
 
   const current = rows.find((r) => r.a.id === picked) ?? (desktop && view === "table" ? list[0] : undefined);
 
@@ -397,7 +431,8 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
           <Search size={15} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" aria-hidden />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find applicant" aria-label="Find applicant" className="min-h-10 w-full rounded-xl bg-white pr-3 pl-8 text-sm shadow-ring outline-none focus:ring-2 focus:ring-brand-200" />
         </label>
-        <select value={sort} onChange={(e) => set({ sort: e.target.value === "fit" ? null : e.target.value })} aria-label="Sort" className="min-h-10 rounded-xl bg-white px-2 text-sm font-semibold text-forest shadow-ring">
+        <select value={sort} onChange={(e) => set({ sort: e.target.value === "strength" ? null : e.target.value })} aria-label="Sort" className="min-h-10 rounded-xl bg-white px-2 text-sm font-semibold text-forest shadow-ring">
+          <option value="strength">Strongest</option>
           <option value="fit">Best fit</option>
           <option value="new">Newest</option>
           <option value="old">Oldest</option>
@@ -441,7 +476,7 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
                             <span className="block truncate text-xs text-slate-500">{who(r.a)}</span>
                           </span>
                         </span>
-                        <span className="mt-2.5 flex items-center justify-between gap-2"><Meter value={r.match} /><FitMarks fit={r.fit} /></span>
+                        <span className="mt-2.5 flex items-center justify-between gap-2"><Meter value={r.strength.score} /><ExpMarks a={r.a} fit={r.fit} strength={r.strength} /></span>
                       </button>
                     </li>
                   ))}
@@ -464,7 +499,7 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
           <div className="overflow-hidden rounded-2xl bg-white shadow-ring">
             <div aria-hidden className="hidden grid-cols-[auto_minmax(0,1.6fr)_7rem_minmax(0,1fr)_5rem_6.5rem] gap-3 border-b border-brand-50 bg-slate-50/70 px-3 py-2 text-[11px] font-bold tracking-wide text-slate-500 uppercase lg:grid">
-              <span className="w-10" /><span>Tutor</span><span>Match</span><span>Fit</span><span>Applied</span><span>Step</span>
+              <span className="w-10" /><span>Tutor</span><span>Strength</span><span>Experience</span><span>Applied</span><span>Step</span>
             </div>
             {list.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">Nobody in this step.</p> : (
               <ul className="divide-y divide-brand-50">

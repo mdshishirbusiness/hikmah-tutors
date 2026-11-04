@@ -3,6 +3,25 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-05 (part C: applicants ranked by Strength)
+
+`app/lib/strength.ts`, out of 100:
+- **Experience at the tuition's level**, up to 50:
+  - students taught there (counts fully at 10)
+  - years (fully at 4)
+  - students listed at that level (fully at 3)
+  - listed students with a result or an improvement (fully at 2)
+- **Written for the level**, up to 30: how they teach 12, a student they helped 8, habits 6, About 4.
+- **With HTR**, up to 20: placements (fully at 3) 14, demos (fully at 3) 6. Minus 5 for each tuition that didn't work
+  out for the tutor's own reasons. "Guardian chose someone else" does not count against them.
+
+Gender, area, subjects and university are not in the score. Only a real problem shows, as a small warning: gender,
+none of the subjects, or not the university asked for. Applicants further along stay first (Selected before New). Within
+a step, the order is Strongest by default; Best fit, Newest and Oldest stay as choices.
+
+The side panel opens with the Strength and its three parts. Then this level's experience (numbers, habits, how they
+teach, the story) and the students they've taught, this level first. Then the checks, problems first.
+
 ## 2026-11-05 (part B, second pass: owner's design feedback)
 
 The owner said the first Profile progress and section headings looked AI-made, and asked again for colour separation.
