@@ -3,17 +3,16 @@
 // phone, gender, university and results are locked and change through HTR.
 import { useEffect, useState } from "react";
 import { Form, Link, useActionData, useNavigation } from "react-router";
-import { Check, Lock, LogOut, MessageCircle, PauseCircle, PlayCircle, Search } from "lucide-react";
+import { Check, Lock, LogOut, MessageCircle, PauseCircle, PlayCircle } from "lucide-react";
 import type { Route } from "./+types/me.profile";
 import { Avatar } from "~/components/Avatar";
 import { inputClass } from "~/components/admin";
 import { SitePage } from "~/components/site";
+import { AreaField, ClassField, SalaryField, SubjectField } from "~/components/TeachingFields";
 import { ChoiceChip, TutorBar } from "~/components/tutor";
 import { CONTACT, waLink } from "~/lib/contact";
-import { bandOf } from "~/lib/fit";
 import { myChoices, requireTutor, saveProfile, setPaused, tutorBadges } from "~/lib/me.server";
-import { AREAS, AREAS_TOP, BANDS, CLASS_CHOICES, MEDIUMS, SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
-import { taka } from "~/lib/tuition";
+import { MEDIUMS, TRANSPORTS, labelOf } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Profile · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
@@ -42,20 +41,6 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical", other: "Other" };
-const SALARIES = [2500, 3000, 4000, 5000, 6000, 8000];
-const CLASS_GROUPS = [
-  { band: "junior", label: "Play–Class 8" },
-  { band: "ssc", label: "Class 9–10 · SSC" },
-  { band: "hsc", label: "Class 11–12 · HSC · Admission" },
-  { band: null, label: "Other" },
-];
-// Subjects that make sense at each band; the rest stay one tap away under "More".
-const BAND_SUBJECTS: Record<string, string[]> = {
-  junior: ["all", "math", "english", "science", "bangla", "bgs", "islam", "quran"],
-  ssc: ["math", "hmath", "physics", "chemistry", "biology", "english", "ict", "bangla", "accounting", "finance", "all-arts", "all-commerce"],
-  hsc: ["physics", "chemistry", "hmath", "math", "biology", "english", "ict", "accounting", "finance", "economics"],
-};
-
 function Section({ id, title, hint, children }: { id: string; title: string; hint?: string; children: React.ReactNode }) {
   return (
     <section id={id} className="scroll-mt-24 rounded-2xl bg-white p-4 shadow-ring sm:p-5 target:ring-2 target:ring-brand-500">
@@ -70,9 +55,6 @@ export default function Profile({ loaderData: { me, choices, badges } }: Route.C
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
   const busy = nav.state !== "idle";
-  const [anywhere, setAnywhere] = useState(me.anywhere === 1);
-  const [areaQuery, setAreaQuery] = useState("");
-  const [showAll, setShowAll] = useState(false);
   const [about, setAbout] = useState(me.about ?? "");
   const [dirty, setDirty] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -84,7 +66,6 @@ export default function Profile({ loaderData: { me, choices, badges } }: Route.C
     return () => clearTimeout(t);
   }, [actionData]);
   const picked = new Set(choices.subjects.map((s) => `${s.band}:${s.subject}`));
-  const q = areaQuery.trim().toLowerCase();
   const paused = me.availability_paused === 1;
 
   return (
@@ -119,58 +100,19 @@ export default function Profile({ loaderData: { me, choices, badges } }: Route.C
           <input type="hidden" name="intent" value="save" />
 
           <Section id="areas" title="Where you teach" hint="Every area you can reach. No limit.">
-            <ChoiceChip name="anywhere" value="1" checked={anywhere} onChange={setAnywhere}>Anywhere in Rajshahi</ChoiceChip>
-            <div className={anywhere ? "pointer-events-none opacity-40" : ""} aria-disabled={anywhere}>
-              <label className="relative mt-3 block">
-                <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" aria-hidden />
-                <input value={areaQuery} onChange={(e) => setAreaQuery(e.target.value)} placeholder="Find an area" aria-label="Find an area" className="min-h-11 w-full rounded-xl bg-cream pr-3 pl-9 text-base outline-none ring-1 ring-brand-100 focus:ring-2 focus:ring-brand-200" />
-              </label>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {AREAS.map((a, i) => {
-                  const on = choices.areas.includes(a.key);
-                  const match = q ? `${a.label} ${a.alt ?? ""}`.toLowerCase().includes(q) : showAll || i < AREAS_TOP || on;
-                  return <ChoiceChip key={a.key} name="areas" value={a.key} checked={on} hidden={!match}>{a.label}</ChoiceChip>;
-                })}
-              </div>
-              {!q && <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-2 min-h-11 text-sm font-bold text-brand-700">{showAll ? "Show fewer" : `Show all ${AREAS.length} areas`}</button>}
-            </div>
+            <AreaField picked={choices.areas} anywhere={me.anywhere === 1} />
           </Section>
 
           <Section id="classes" title="Classes you want">
-            <div className="space-y-3">
-              {CLASS_GROUPS.map((g) => (
-                <div key={g.label}>
-                  <p className="mb-1.5 text-xs font-bold tracking-wide text-slate-500 uppercase">{g.label}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {CLASS_CHOICES.filter((c) => bandOf(c.key) === g.band).map((c) => <ChoiceChip key={c.key} name="classes" value={c.key} checked={choices.classes.includes(c.key)}>{c.label}</ChoiceChip>)}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ClassField picked={choices.classes} />
           </Section>
 
           <Section id="subjects" title="Subjects you teach" hint="By level, so an SSC tuition only matches your SSC subjects.">
-            <div className="space-y-4">
-              {BANDS.map((b) => (
-                <div key={b.key}>
-                  <p className="mb-1.5 text-xs font-bold tracking-wide text-slate-500 uppercase">{b.label}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {SUBJECTS.filter((s) => BAND_SUBJECTS[b.key].includes(s.key) || picked.has(`${b.key}:${s.key}`)).map((s) => (
-                      <ChoiceChip key={s.key} name="subjects" value={`${b.key}:${s.key}`} checked={picked.has(`${b.key}:${s.key}`)}>{s.label}</ChoiceChip>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <SubjectField picked={picked} />
           </Section>
 
           <Section id="min_salary" title="Lowest salary you'll take" hint="Per month. Lower ones still show, with a warning.">
-            <div className="flex flex-wrap gap-2">
-              <ChoiceChip type="radio" name="min_salary" value="" checked={!me.min_salary}>No minimum</ChoiceChip>
-              {[...new Set([...SALARIES, ...(me.min_salary ? [me.min_salary] : [])])].sort((a, b) => a - b).map((s) => (
-                <ChoiceChip key={s} type="radio" name="min_salary" value={String(s)} checked={me.min_salary === s}>{taka(s)}</ChoiceChip>
-              ))}
-            </div>
+            <SalaryField value={me.min_salary} />
           </Section>
 
           <div className="grid gap-4 sm:grid-cols-2">

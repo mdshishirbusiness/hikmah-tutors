@@ -17,11 +17,12 @@ export type MyTutor = {
   demo_willing: number | null; transport: string | null; availability_confirmed_at: number | null; photo_key: string | null;
   university: string | null; min_salary: number | null; anywhere: number; setup_done_at: number | null; terms_accepted_at: number | null;
   availability_paused: number; about: string | null; updates_seen_at: number | null;
+  review_status: "waiting" | "needs_fix" | "approved"; review_note: string | null; created_via: string;
 };
 
 const COLUMNS = `id, code, full_name, gender, email, phone, alt_phone, institution, department, session_year, ssc_school, ssc_year, ssc_result, ssc_group,
   hsc_college, hsc_year, hsc_result, hsc_group, mediums, current_location, home_division, home_district, demo_willing, transport, availability_confirmed_at, photo_key,
-  university, min_salary, anywhere, setup_done_at, terms_accepted_at, availability_paused, about, updates_seen_at`;
+  university, min_salary, anywhere, setup_done_at, terms_accepted_at, availability_paused, about, updates_seen_at, review_status, review_note, created_via`;
 
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -55,13 +56,16 @@ export async function confirmAvailability(userId: number) {
 }
 
 /**
- * Every tutor page loader and action awaits this. A signed-in user with no tutor record goes to /me, which explains;
+ * Every tutor page loader and action awaits this. A signed-in user with no tutor record goes to registration;
  * one who has not finished first sign-in goes to the setup page first, then back here.
  */
 export async function requireTutor(request: Request, { setupDone = true } = {}): Promise<{ viewer: Viewer; me: MyTutor }> {
   const viewer = await requireUser(request);
   const me = await env.DB.prepare(`SELECT ${COLUMNS} FROM tutors WHERE user_id = ? AND deleted_at IS NULL`).bind(viewer.id).first<MyTutor>();
-  if (!me) throw redirect("/me");
+  if (!me) {
+    const url = new URL(request.url);
+    throw redirect(`/me/join?next=${encodeURIComponent(url.pathname.replace(/\.data$/, "") + url.search)}`);
+  }
   if (setupDone && !me.setup_done_at) {
     const url = new URL(request.url);
     throw redirect(`/me/setup?next=${encodeURIComponent(url.pathname.replace(/\.data$/, "") + url.search)}`);
@@ -132,6 +136,8 @@ export async function applyView(me: MyTutor, code: number): Promise<{ t: PublicT
 
 export async function applyTo(viewer: Viewer, me: MyTutor, code: number, note: string): Promise<string | null> {
   const view = await applyView(me, code);
+  // New tutors apply once the owner has checked their registration (owner, 2026-11-04).
+  if (me.review_status !== "approved") return "You can apply once HTR has checked your profile.";
   if (!view || !view.t.is_available || !view.t.accepting_applications) return "This tuition isn't taking applications now.";
   if (view.fit.gender === "mismatch") return "This tuition needs a tutor of a different gender.";
   if (view.applied) return "You've already applied to this tuition.";

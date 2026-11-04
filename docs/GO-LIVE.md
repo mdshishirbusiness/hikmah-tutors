@@ -85,6 +85,21 @@ npm run deploy
 `db:migrate` adds migrations 0011 (tutor About, updates seen) and 0012 (check-in calls, do-not-place flags, notices,
 referrals). Both only add columns and tables; nothing existing changes.
 
+## 7. Site review steps 1 and 2
+
+- **Step 1** (phone menu, Log in button, clean logo, page loader, Quick Pad search): **live since 2026-11-04**, version
+  `8ef1aac3`. No database change.
+- **Step 2** (tutors register on the site; the owner approves): needs migration 0013 first (adds the review status;
+  every existing tutor counts as checked), then the deploy. In the Terminal panel, after `npx wrangler whoami`:
+
+```powershell
+npm run db:migrate
+npm run deploy
+```
+
+After it is live, close the old Google Form, or point it to `https://hikmahtutor.com/login?join=1`. Keep running
+`npm run import:top-up-real` until the form is closed, so late form entries still arrive.
+
 ## Before tutors are invited (later)
 
 - Consent screen: **published (In production), 2026-11-04**. Branding has the home, privacy and terms links; no

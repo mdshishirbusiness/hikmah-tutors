@@ -33,7 +33,7 @@ export async function dashboard() {
 
 /** The admin's to-do list, most urgent first. Steps that come with the tutor's own ticks (3-hour call, demo, confirm) join later. */
 export async function todayList() {
-  const [leads, applications, drafts, selected, tutorConfirmed, checkins] = await Promise.all([
+  const [leads, applications, drafts, selected, tutorConfirmed, checkins, newTutors] = await Promise.all([
     all<{ id: number; status: string; class_level: string; area: string; guardian_name: string | null; created_at: number }>(
       `SELECT id, status, class_level, area, guardian_name, created_at FROM leads WHERE status IN ('new', 'called') ORDER BY status = 'new' DESC, created_at LIMIT 20`,
     ),
@@ -70,8 +70,12 @@ export async function todayList() {
          AND ((pl.checkin7_at IS NULL AND pl.confirmed_at <= unixepoch() - 7 * 86400) OR (pl.checkin30_at IS NULL AND pl.confirmed_at <= unixepoch() - 30 * 86400))
        ORDER BY pl.confirmed_at LIMIT 20`,
     ),
+    // Registrations on the site waiting for the owner's check, oldest first.
+    all<{ code: number; full_name: string; photo_key: string | null; university: string | null; department: string | null; created_at: number }>(
+      `SELECT code, full_name, photo_key, university, department, created_at FROM tutors WHERE review_status = 'waiting' AND deleted_at IS NULL ORDER BY created_at LIMIT 20`,
+    ),
   ]);
-  return { leads, applications, drafts, selected, tutorConfirmed, checkins };
+  return { leads, applications, drafts, selected, tutorConfirmed, checkins, newTutors };
 }
 
 // ---------- Leads ----------
@@ -486,6 +490,7 @@ export type AdminTutorRow = {
   id: number; code: number; full_name: string; gender: string | null; phone: string; institution: string | null; department: string | null; session_year: string | null;
   current_location: string | null; priority: string | null; claim_status: string; applications: number; placements: number;
   photo_key?: string | null; university?: string | null; setup_done_at?: number | null; availability_paused?: number; last_applied?: number | null; flag_reason?: string | null;
+  review_status?: "waiting" | "needs_fix" | "approved";
 };
 
 export async function listTutors(f: { q: string; gender: string; subject: string; band: string; page: number; university?: string; state?: string; area?: string; sort?: string }) {
@@ -498,6 +503,7 @@ export async function listTutors(f: { q: string; gender: string; subject: string
   if (f.state === "placed") where.push("EXISTS (SELECT 1 FROM placements p WHERE p.tutor_id = t.id AND p.status IN ('confirmed', 'joined'))");
   if (f.state === "active") where.push("EXISTS (SELECT 1 FROM applications a WHERE a.tutor_id = t.id AND a.created_at > unixepoch() - 30 * 86400)");
   if (f.state === "flagged") where.push("t.flag_reason IS NOT NULL");
+  if (f.state === "new") where.push("t.review_status <> 'approved'");
   if (f.area) { where.push("(t.anywhere = 1 OR EXISTS (SELECT 1 FROM tutor_areas ar WHERE ar.tutor_id = t.id AND ar.area = ?))"); args.push(f.area); }
   if (f.subject) {
     where.push(`EXISTS (SELECT 1 FROM tutor_subjects s WHERE s.tutor_id = t.id AND s.subject = ?${f.band ? " AND s.band = ?" : ""})`);
@@ -514,7 +520,7 @@ export async function listTutors(f: { q: string; gender: string; subject: string
     count(`SELECT count(*) n ${from}`, ...args),
     all<AdminTutorRow>(
       `SELECT t.id, t.code, t.full_name, t.gender, t.phone, t.institution, t.department, t.session_year, t.current_location, t.priority, t.claim_status,
-              t.photo_key, t.university, t.setup_done_at, t.availability_paused, t.flag_reason,
+              t.photo_key, t.university, t.setup_done_at, t.availability_paused, t.flag_reason, t.review_status,
               (SELECT count(*) FROM applications a WHERE a.tutor_id = t.id) applications,
               (SELECT max(a.created_at) FROM applications a WHERE a.tutor_id = t.id) last_applied,
               (SELECT count(*) FROM placements p WHERE p.tutor_id = t.id AND p.status IN ('confirmed', 'joined', 'ended')) placements
@@ -531,6 +537,7 @@ export type TutorFull = AdminTutorRow & {
   home_district: string | null; demo_willing: number | null; transport: string | null; referral_code: string | null; registered_at: number | null;
   university: string | null; min_salary: number | null; anywhere: number; setup_done_at: number | null; availability_paused: number; about: string | null;
   flag_reason: string | null; user_id: number | null;
+  review_status: "waiting" | "needs_fix" | "approved"; review_note: string | null; reviewed_at: number | null; created_via: string; created_at: number;
 };
 
 export async function getTutor(code: number) {
@@ -710,10 +717,11 @@ export async function navCounts() {
             (SELECT count(*) FROM applications a JOIN tuitions t ON t.code = a.tuition_code
               WHERE a.status = 'submitted' AND t.status IN ('available', 'processing')) applications,
             (SELECT count(*) FROM tuitions WHERE status IN ('available', 'processing')) open,
-            (SELECT count(*) FROM applications WHERE status = 'trial_arranged') selected`,
-  ).first<{ leads: number; applications: number; open: number; selected: number }>();
+            (SELECT count(*) FROM applications WHERE status = 'trial_arranged') selected,
+            (SELECT count(*) FROM tutors WHERE review_status = 'waiting' AND deleted_at IS NULL) new_tutors`,
+  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number }>();
   const review = await reviewCounts();
-  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0 }), review: review.tutors + review.tuitions + review.held };
+  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0 }), review: review.tutors + review.tuitions + review.held };
 }
 
 export type SearchHit = { kind: "tuition" | "tutor" | "guardian" | "lead"; to: string; title: string; sub: string; photo?: { code: number; has: boolean } };
@@ -829,6 +837,38 @@ export async function setFlag(kind: "tutor" | "guardian", id: number, reason: st
     env.DB.prepare(`UPDATE ${table} SET flag_reason = ? WHERE id = ?`).bind(text, id),
     // Its own entity type: a flag must never show up as a "profile changed" update on the tutor's Home.
     audit(actorId, text ? "flag_set" : "flag_cleared", `${kind}_flag`, String(id), {}),
+  ]);
+  return null;
+}
+
+/**
+ * The owner's check of a registration made on the site (owner, 2026-11-04): approve, so the tutor can apply, or ask
+ * for a fix with a note the tutor sees on Home. Audited under its own type so it never reads as a profile change.
+ */
+export async function reviewTutor(id: number, op: "approve" | "fix", note: string, actorId: number | null): Promise<string | null> {
+  const text = note.trim().slice(0, 300);
+  if (op === "fix" && text.length < 3) return "Write what the tutor should fix.";
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE tutors SET review_status = ?, review_note = ?, reviewed_at = ?, updated_at = ? WHERE id = ?`)
+      .bind(op === "approve" ? "approved" : "needs_fix", op === "approve" ? null : text, now(), now(), id),
+    audit(actorId, op === "approve" ? "tutor_approved" : "tutor_fix_asked", "tutor_review", String(id), op === "fix" ? { note: text } : {}),
+  ]);
+  return null;
+}
+
+/**
+ * Sets the Google email a tutor signs in with, for one who registered before under another account (the phone check
+ * on registration sends them to HTR). Only while no account is linked; the tutor then logs in again with that email.
+ */
+export async function setTutorEmail(id: number, raw: string, actorId: number | null): Promise<string | null> {
+  const email = raw.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Write a valid email.";
+  const row = await env.DB.prepare(`SELECT user_id FROM tutors WHERE id = ?`).bind(id).first<{ user_id: number | null }>();
+  if (row?.user_id) return "This tutor already signs in with a Google account.";
+  if (await count(`SELECT count(*) n FROM tutors WHERE email = ? AND id <> ? AND deleted_at IS NULL`, email, id)) return "Another tutor has this email.";
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE tutors SET email = ?, updated_at = ? WHERE id = ?`).bind(email, now(), id),
+    audit(actorId, "tutor_email_set", "tutor_review", String(id), {}),
   ]);
   return null;
 }

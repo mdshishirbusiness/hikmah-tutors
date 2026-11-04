@@ -17,10 +17,12 @@ export default [
   route("auth/google/callback", "routes/auth.google.callback.ts"),
   route("me", "routes/me.tsx"),
   route("me/setup", "routes/me.setup.tsx"),
+  route("me/join", "routes/me.join.tsx"),
   route("me/profile", "routes/me.profile.tsx"),
   route("me/refer", "routes/me.refer.tsx"),
   route("applied", "routes/applied.tsx"),
   route("dev/tutor/:code", "routes/dev.tutor.$code.ts"),
+  route("dev/new/:n", "routes/dev.new.$n.ts"),
   route("admin/quick", "routes/admin.quick.tsx"),
   layout("routes/admin.layout.tsx", [
     route("admin", "routes/admin.home.tsx"),

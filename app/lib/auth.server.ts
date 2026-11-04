@@ -79,7 +79,8 @@ export async function requireUser(request: Request): Promise<Viewer> {
 }
 
 // A tutor lands on the board once set up (owner, 2026-11-04); the setup page sends them there when it is done.
-export const homeFor = (viewer: Viewer) => (viewer.role === "owner" ? "/admin" : "/me/setup");
+// A tutor's Home sends a new account to registration and an unfinished one to first sign-in.
+export const homeFor = (viewer: Viewer) => (viewer.role === "owner" ? "/admin" : "/me");
 
 /**
  * `npm run dev` only: sign in as a synthetic test tutor (code 99000 and up, added by staff), so the tutor pages can be
@@ -102,6 +103,20 @@ export async function devSignInAsTutor(request: Request, code: number) {
   ]);
   const next = safeNext(new URL(request.url).searchParams.get("next")) ?? "/me/setup";
   return redirect(next, { headers: { "Set-Cookie": cookie(request, SESSION_COOKIE, token, SESSION_SECONDS), "Cache-Control": "no-store" } });
+}
+
+/** `npm run dev` only: /dev/new/1 signs in as a new Google account with no tutor record, to try registration. */
+export async function devSignInAsNewUser(request: Request, n: number) {
+  if (!import.meta.env.DEV || !Number.isInteger(n) || n < 1 || n > 999) throw new Response("Not found", { status: 404 });
+  const t = now();
+  const user = await env.DB.prepare(
+    `INSERT INTO users (google_sub, email, name, role, created_at, last_login_at) VALUES (?, ?, ?, 'tutor', ?, ?)
+     ON CONFLICT (google_sub) DO UPDATE SET last_login_at = excluded.last_login_at RETURNING id`,
+  ).bind(`dev-new-${n}`, `newtutor${n}@dev.test`, `New Tutor ${n}`, t, t).first<{ id: number }>();
+  if (!user) throw new Response("Not found", { status: 404 });
+  const token = randomToken();
+  await env.DB.prepare(`INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)`).bind(await hashToken(token), user.id, t, t + SESSION_SECONDS).run();
+  return redirect("/me", { headers: { "Set-Cookie": cookie(request, SESSION_COOKIE, token, SESSION_SECONDS), "Cache-Control": "no-store" } });
 }
 
 export const googleConfigured = () => Boolean(authEnv.GOOGLE_CLIENT_ID && authEnv.GOOGLE_CLIENT_SECRET);

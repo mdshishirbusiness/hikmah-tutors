@@ -2,12 +2,12 @@
 // numbers, every application as a timeline, what they picked on the site, their education and statements, and a
 // private do-not-place flag (warning only). This page is never public.
 import { Form, Link, data, useNavigation } from "react-router";
-import { Flag, Mail, MessageCircle, Phone } from "lucide-react";
+import { Check, Flag, KeyRound, Mail, MessageCircle, Phone, UserPlus } from "lucide-react";
 import type { Route } from "./+types/admin.tutors.$code";
 import { Avatar } from "~/components/Avatar";
 import { APPLICATION_TONE, Badge, Card, Facts, PageHead, ago, inputClass, num, safeUrl, when } from "~/components/admin";
 import { APPLICATION_STATUS } from "~/lib/admin-labels";
-import { getTutor, setFlag } from "~/lib/admin.server";
+import { getTutor, reviewTutor, setFlag, setTutorEmail } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
 import { AREAS, BANDS, CLASS_LEVELS, MEDIUMS, SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
@@ -29,6 +29,9 @@ export async function action({ request, params }: Route.ActionArgs) {
   const found = await getTutor(Number(params.code) || -1);
   if (!found) throw data("Tutor not found", { status: 404 });
   const form = await request.formData();
+  const intent = form.get("intent");
+  if (intent === "approve" || intent === "fix") return { error: await reviewTutor(found.tutor.id, intent, String(form.get("note") ?? ""), viewer?.id ?? null) };
+  if (intent === "email") return { error: await setTutorEmail(found.tutor.id, String(form.get("email") ?? ""), viewer?.id ?? null) };
   return { error: await setFlag("tutor", found.tutor.id, form.get("intent") === "clear" ? "" : String(form.get("reason") ?? ""), viewer?.id ?? null) };
 }
 
@@ -40,7 +43,7 @@ const STATEMENTS: Record<string, string> = {
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical", other: "Other" };
 const ghost = "inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring hover:bg-brand-50";
 
-export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, areas, classes } }: Route.ComponentProps) {
+export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, areas, classes }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const facebook = safeUrl(t.facebook_url);
   const reached = (s: string[]) => applications.filter((a) => s.includes(a.status)).length;
@@ -55,6 +58,19 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
   return (
     <>
       <PageHead back={{ to: "/admin/tutors", label: "Tutors" }} eyebrow={`T-${t.code}`} title={t.full_name} />
+      {actionData?.error && <p role="alert" className="mb-4 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
+      {t.review_status !== "approved" && (
+        // A registration made on the site (owner, 2026-11-04): check the photo and details, then approve or ask for a fix.
+        <section className="mb-5 rounded-2xl bg-mango p-5 text-forest">
+          <p className="flex items-center gap-2 text-lg font-extrabold"><UserPlus size={20} aria-hidden />{t.review_status === "waiting" ? "New tutor: check this registration" : "Asked to fix"}</p>
+          <p className="mt-0.5 text-sm">{t.review_status === "waiting" ? `Registered on the site ${ago(t.created_at)}. They can apply once you approve.` : `You asked: “${t.review_note}”. Waiting for them to send it again.`}</p>
+          <Form method="post" className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-start">
+            <button name="intent" value="approve" disabled={busy} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-forest px-5 text-sm font-bold text-cream disabled:opacity-60"><Check size={16} aria-hidden />Approve</button>
+            <input name="note" maxLength={300} placeholder="Or what to fix, e.g. use a clear photo of your face" className="min-h-11 min-w-0 flex-1 rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-forest/20 focus:ring-2 focus:ring-forest" />
+            <button name="intent" value="fix" disabled={busy} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-white/70 px-4 text-sm font-bold text-forest disabled:opacity-60">Ask to fix</button>
+          </Form>
+        </section>
+      )}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-5">
           <section className="rounded-2xl bg-white p-5 shadow-ring sm:p-6">
@@ -153,6 +169,17 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
               ["Registered", when(t.registered_at)], ["Email", t.email],
             ]} />
           </Card>
+          {!t.user_id && (
+            <Card>
+              <h2 className="flex items-center gap-1.5 text-sm font-bold text-forest"><KeyRound size={15} aria-hidden />Sign-in email</h2>
+              <p className="mt-1 text-xs text-slate-500">Not linked to a Google account yet. If they use another Gmail, put it here; they log in again with it.</p>
+              <Form method="post" className="mt-3 flex gap-2">
+                <input type="hidden" name="intent" value="email" />
+                <input name="email" type="email" defaultValue={t.email ?? ""} placeholder="name@gmail.com" className={`${inputClass} min-h-11 text-sm`} />
+                <button disabled={busy} className="inline-flex min-h-11 shrink-0 items-center rounded-xl bg-forest px-4 text-sm font-bold text-cream disabled:opacity-60">Save</button>
+              </Form>
+            </Card>
+          )}
           <Card className={t.flag_reason ? "ring-2 ring-rose-200" : ""}>
             <h2 className="flex items-center gap-1.5 text-sm font-bold text-forest"><Flag size={15} aria-hidden />Do-not-place flag</h2>
             <p className="mt-1 text-xs text-slate-500">Private. Shows a warning on their applications; nothing is blocked.</p>

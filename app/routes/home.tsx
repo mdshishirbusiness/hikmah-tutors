@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, redirect, useNavigation, useSearchParams } from "react-router";
-import { Sparkles, Timer, Users } from "lucide-react";
+import { ArrowRight, Sparkles, Timer, Users } from "lucide-react";
 import type { Route } from "./+types/home";
 import { FilterSheet } from "~/components/FilterSheet";
 import { SiteFooter, SiteHeader } from "~/components/site";
 import { TuitionCard } from "~/components/TuitionCard";
 import { TutorBar } from "~/components/tutor";
 import { getViewer } from "~/lib/auth.server";
+import { JOIN } from "~/lib/join";
 import { forYou, tutorBadges, tutorForUser } from "~/lib/me.server";
 import { AREAS, CLASS_LEVELS, MEDIUMS, MODES, SUBJECTS, TUTOR_GENDERS, labelOf } from "~/lib/options";
 import { applyFilters, readFilters, taka } from "~/lib/tuition";
@@ -53,7 +54,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   else if (chip) items = items.filter((t) => t.tutor_from.includes(chip));
 
   const [booked, badges] = await Promise.all([recentlyBooked(), me?.setup_done_at && viewer ? tutorBadges(viewer, me) : null]);
-  return { items, chip, tab, booked: tab === "booked" ? booked : [], bookedCount: booked.length, openCount: all.length, badges, now: Math.floor(Date.now() / 1000) };
+  return { items, chip, tab, booked: tab === "booked" ? booked : [], bookedCount: booked.length, openCount: all.length, badges, signedIn: !!viewer, now: Math.floor(Date.now() / 1000) };
 }
 
 export function headers(_: Route.HeadersArgs) {
@@ -64,7 +65,7 @@ const FILTER_PARAMS = ["area", "class", "subject", "medium", "gender", "mode", "
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };
 const fast = (h: number | null) => (h === null ? "" : h < 1 ? "Booked within an hour" : h < 48 ? `Booked in ${h} h` : `Booked in ${Math.round(h / 24)} days`);
 
-export default function Home({ loaderData: { items, chip, tab, booked, bookedCount, openCount, badges, now } }: Route.ComponentProps) {
+export default function Home({ loaderData: { items, chip, tab, booked, bookedCount, openCount, badges, signedIn, now } }: Route.ComponentProps) {
   const [sp, setSp] = useSearchParams();
   const filters = readFilters(sp);
   const navigation = useNavigation();
@@ -148,6 +149,11 @@ export default function Home({ loaderData: { items, chip, tab, booked, bookedCou
               <button type="submit" className="min-h-12 shrink-0 rounded-xl bg-brand-700 px-4 text-sm font-semibold text-white transition-colors duration-150 hover:bg-forest">Search</button>
             </form>
             {!badges && <p className="mt-2 text-xs text-brand-200">e.g. Saheb Bazar, Math</p>}
+            {!signedIn && (
+              <Link to={JOIN} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-mango px-4 text-sm font-extrabold text-forest transition-transform duration-150 hover:translate-x-0.5">
+                New tutor? Join in 3 minutes<ArrowRight size={16} aria-hidden />
+              </Link>
+            )}
           </div>
         </section>
 

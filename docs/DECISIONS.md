@@ -3,6 +3,32 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-04 (site review, step 2: tutors register on the site)
+
+The owner approved step 2 of `docs/REVIEW-2026-11-04.md`. Choices Claude made:
+
+- **One button for new and old tutors.** "Join as a tutor" (header, phone menu, board hero, footer, How it works) opens
+  the same Google sign-in as Log in. A Google account that matches a tutor from the sheet opens Home; any other goes
+  to `/me/join`. "Profile not found" is gone.
+- **One registration page** (`/me/join`), in six numbered parts: photo, name, mobile and gender; university,
+  department and session; areas; classes and subjects by level; lowest salary and transport; terms. It replaces first
+  sign-in for new tutors, so subjects are asked up front (match % weighs them most).
+- **Photo required.** The browser shrinks it to a 512 px square (WebP, or JPEG on Safari) before upload. This also
+  drops the hidden photo details, such as where it was taken. The server keeps only real JPEG/PNG/WebP files under
+  900 KB, in the private bucket as `tutors/T<code>.<ext>`.
+- **Codes from 5001.** The sheet's codes run 1001–2488 and still grow with top-ups, so site sign-ups never meet them.
+- **The owner checks every new tutor** (`review_status`: waiting → approved, or needs fix with a note). Tutors from the
+  sheet and ones staff made count as checked.
+  - While waiting, a tutor can browse and see For You, but not apply. The server refuses too.
+  - Home shows "HTR is checking your profile", or the owner's note with "Fix my registration".
+  - Everything stays editable until the owner approves; after that, details lock as for every tutor.
+- **Owner side.** New registrations appear in a "New tutors" section on Today, as a mango count on Tutors, and under a
+  "New" tab in Tutors. The tutor's admin page has Approve, or a note with Ask to fix.
+- **One number, one tutor.** A mobile already on file (main or second number) is refused, with "Message HTR to link it".
+  The owner then puts the tutor's new Gmail into **Sign-in email** on their admin page (only when no account is linked
+  yet). The tutor logs in again and the old profile opens.
+- `/dev/new/<n>` (dev only) signs in as a new Google account, to try registration on invented data.
+
 ## 2026-11-04 (site review, step 1)
 
 The owner asked for a deep review of every page (`docs/REVIEW-2026-11-04.md`) and approved its step 1:

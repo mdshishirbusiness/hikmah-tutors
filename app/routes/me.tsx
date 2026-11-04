@@ -3,7 +3,7 @@
 // Private: only this tutor sees it.
 import { Link, redirect } from "react-router";
 import {
-  ArrowRight, BadgeCheck, Bell, CircleSlash, ClipboardCheck, Megaphone, PartyPopper, PauseCircle, PhoneCall, Sparkles, Star, UserPen, XCircle,
+  ArrowRight, BadgeCheck, Bell, CircleSlash, ClipboardCheck, Hourglass, Megaphone, PartyPopper, PauseCircle, PhoneCall, Sparkles, Star, UserPen, XCircle,
 } from "lucide-react";
 import type { Route } from "./+types/me";
 import { Avatar } from "~/components/Avatar";
@@ -29,12 +29,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const viewer = await requireUser(request);
   if (viewer.role === "owner") throw redirect("/admin");
   const me = await tutorForUser(viewer.id);
-  if (!me) return { missing: viewer.email } as const;
+  if (!me) throw redirect("/me/join"); // a Google account with no tutor record registers first
   if (!me.setup_done_at) throw redirect("/me/setup?next=/me");
   const [view, notice, apps, badges] = await Promise.all([homeView(viewer, me), liveNotice(), myApplications(me.id), tutorBadges(viewer, me)]);
   // Drawn once with the dots, then marked seen, so the next visit starts clean.
   await markUpdatesSeen(me);
-  return { missing: null, me, view, notice, apps, badges, now: Math.floor(Date.now() / 1000) } as const;
+  return { me, view, notice, apps, badges, now: Math.floor(Date.now() / 1000) };
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };
@@ -70,17 +70,6 @@ function Ring({ done, total }: { done: number; total: number }) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  if (loaderData.missing !== null) {
-    return (
-      <SitePage>
-        <div className="mx-auto max-w-md space-y-4 px-4 py-16">
-          <p className="text-xs font-semibold text-brand-700">Tutor panel</p>
-          <h1 className="text-3xl font-bold text-forest">Profile not found</h1>
-          <p className="break-words text-slate-700">{loaderData.missing} দিয়ে কোনো টিউটর রেকর্ড মেলেনি। যে Google অ্যাকাউন্ট দিয়ে ফর্ম পূরণ করেছিলেন, সেটি দিয়ে লগইন করে দেখুন।</p>
-        </div>
-      </SitePage>
-    );
-  }
   const { me, view, notice, apps, badges, now } = loaderData;
   const open = apps.filter((a) => ["submitted", "under_review", "shortlisted", "trial_arranged"].includes(a.status));
   const stats = [
@@ -109,6 +98,22 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
         <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
           <div className="min-w-0 space-y-5">
+            {me.review_status !== "approved" && (
+              // A new registration waits for the owner's check before the tutor can apply (owner, 2026-11-04).
+              <div className={`animate-rise rounded-3xl p-5 ${me.review_status === "needs_fix" ? "bg-mango text-forest" : "bg-forest text-cream"}`}>
+                <p className="flex items-center gap-2 text-xl font-extrabold">
+                  {me.review_status === "needs_fix" ? <UserPen size={22} aria-hidden /> : <Hourglass size={22} className="text-mango" aria-hidden />}
+                  {me.review_status === "needs_fix" ? "HTR asked you to fix something" : "HTR is checking your profile"}
+                </p>
+                <p className={`mt-1 text-sm ${me.review_status === "needs_fix" ? "" : "text-brand-100"}`}>
+                  {me.review_status === "needs_fix" ? me.review_note || "Open your registration to see what to change." : "Usually within a day. Look around the board meanwhile; you can apply once it's checked."}
+                </p>
+                <Link to="/me/join" className={`mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-4 text-sm font-extrabold ${me.review_status === "needs_fix" ? "bg-forest text-cream" : "bg-white/10 text-cream"}`}>
+                  {me.review_status === "needs_fix" ? "Fix my registration" : "See or change my registration"}<ArrowRight size={16} aria-hidden />
+                </Link>
+              </div>
+            )}
+
             {view.paused && (
               <Link to="/me/profile#availability" className="flex items-center gap-3 rounded-2xl bg-amber-100 px-4 py-3 text-sm text-amber-900">
                 <PauseCircle size={20} className="shrink-0" aria-hidden /><span><b>You're paused.</b> HTR won't suggest tuitions to you. Turn it off in Profile.</span>

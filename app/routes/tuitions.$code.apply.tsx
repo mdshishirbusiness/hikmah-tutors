@@ -26,7 +26,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const { me } = await requireTutor(request);
   const view = await applyView(me, codeOf(params.code));
   if (!view) throw data("Tuition not found", { status: 404 });
-  return { ...view, minSalary: me.min_salary, paused: me.availability_paused === 1 };
+  return { ...view, minSalary: me.min_salary, paused: me.availability_paused === 1, review: me.review_status };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -73,7 +73,7 @@ const ICON = {
   bad: { icon: X, tone: "bg-rose-100 text-rose-800" },
 };
 
-export default function Apply({ loaderData: { t, fit, applied, minSalary, paused }, actionData }: Route.ComponentProps) {
+export default function Apply({ loaderData: { t, fit, applied, minSalary, paused, review }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const rows = fitRows(t, fit, minSalary);
   const blocked = fit.gender === "mismatch";
@@ -98,6 +98,15 @@ export default function Apply({ loaderData: { t, fit, applied, minSalary, paused
             <div className="mt-3 space-y-4">
               <p className="text-slate-700">HTR has your application. You'll see every step in Applied.</p>
               <Link to="/applied" className={`${primaryButton} w-full`}>Go to Applied</Link>
+            </div>
+          ) : review !== "approved" ? (
+            // New tutors apply after the owner checks their registration (owner, 2026-11-04).
+            <div className="mt-3 space-y-4">
+              <p className="rounded-xl bg-mango px-4 py-3 text-forest">
+                <span className="block font-extrabold">{review === "needs_fix" ? "HTR asked you to fix your profile" : "HTR is checking your profile"}</span>
+                <span className="text-sm">{review === "needs_fix" ? "Fix it, and you can apply once it's checked." : "You can apply as soon as it's checked, usually within a day."}</span>
+              </p>
+              <Link to={review === "needs_fix" ? "/me/join" : "/me"} className={`${primaryButton} w-full`}>{review === "needs_fix" ? "Fix my profile" : "Go to My home"}</Link>
             </div>
           ) : !open ? (
             <p className="mt-3 rounded-xl bg-slate-100 px-4 py-3 font-semibold text-slate-800">This tuition isn't taking applications now.</p>

@@ -6,6 +6,7 @@ import { Link, NavLink, useLocation, useRouteLoaderData } from "react-router";
 import { ArrowUpRight, Menu, MessageCircle, Phone, UserRound, X } from "lucide-react";
 import { Avatar } from "~/components/Avatar";
 import { CONTACT, telLink, waLink } from "~/lib/contact";
+import { JOIN } from "~/lib/join";
 import { firstName } from "~/lib/whatsapp";
 
 const NAV: [string, string][] = [
@@ -68,8 +69,8 @@ export function SiteHeader() {
           <div className="hidden items-center gap-2 lg:flex">
             <Account viewer={viewer} />
             {!viewer && (
-              <Link to="/request-tutor" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-forest px-4 text-sm font-bold text-white transition-colors hover:bg-forest-mid">
-                Find a tutor<ArrowUpRight size={16} aria-hidden />
+              <Link to={JOIN} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-forest px-4 text-sm font-bold text-white transition-colors hover:bg-forest-mid">
+                Join as a tutor<ArrowUpRight size={16} aria-hidden />
               </Link>
             )}
           </div>
@@ -104,8 +105,9 @@ export function SiteHeader() {
               <Link to="/admin" className="flex min-h-13 items-center justify-center rounded-2xl bg-forest text-base font-bold text-cream">Admin</Link>
             ) : (
               <>
-                <Link to="/request-tutor" className="flex min-h-13 items-center justify-center rounded-2xl bg-mango text-base font-extrabold text-forest">Find a tutor</Link>
+                <Link to={JOIN} className="flex min-h-13 items-center justify-center rounded-2xl bg-forest text-base font-extrabold text-cream">Join as a tutor</Link>
                 <Link to="/login" className="flex min-h-13 items-center justify-center rounded-2xl bg-white text-base font-bold text-forest shadow-ring">Tutor log in</Link>
+                <Link to="/request-tutor" className="flex min-h-13 items-center justify-center rounded-2xl bg-mango text-base font-extrabold text-forest">Find a tutor (guardians)</Link>
               </>
             )}
             <a href={waLink(CONTACT.whatsapp, HELLO)} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-center gap-2 text-sm font-semibold text-brand-700"><MessageCircle size={16} aria-hidden />WhatsApp us</a>
@@ -118,7 +120,7 @@ export function SiteHeader() {
 
 const FOOTER_GROUPS: { title: string; links: [string, string][] }[] = [
   { title: "Explore", links: [["/", "Tuition board"], ["/how-it-works", "How it works"], ["/fees", "Fees"], ["/request-tutor", "For guardians"]] },
-  { title: "For tutors", links: [["/me", "My home"], ["/login", "Log in"], ["/contact", "Contact"]] },
+  { title: "For tutors", links: [[JOIN, "Join as a tutor"], ["/login", "Log in"], ["/me", "My home"], ["/contact", "Contact"]] },
 ];
 
 export function SiteFooter() {
@@ -132,12 +134,15 @@ export function SiteFooter() {
           <p className="mt-1 max-w-sm text-sm">ক্লাস, বিষয় আর এলাকা জানান। উপযুক্ত টিউটর নিয়ে আমরা ফোন করব।</p>
           <span className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-forest px-4 text-sm font-bold text-cream transition-transform duration-150 group-hover:translate-x-1">Find a tutor<ArrowUpRight size={16} aria-hidden /></span>
         </Link>
-        <Link to="/" className="group rounded-3xl bg-brand-700 p-6 text-white sm:p-8">
+        <div className="rounded-3xl bg-brand-700 p-6 text-white sm:p-8">
           <p className="text-xs font-extrabold tracking-[0.16em] text-brand-100 uppercase">For tutors</p>
           <p className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">Tuitions near you, every day.</p>
           <p className="mt-1 max-w-sm text-sm text-brand-50">Salary, area and class up front. Apply in one tap and follow every step.</p>
-          <span className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-forest transition-transform duration-150 group-hover:translate-x-1">See tuitions<ArrowUpRight size={16} aria-hidden /></span>
-        </Link>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link to={JOIN} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-forest transition-transform duration-150 hover:translate-x-0.5">Join as a tutor<ArrowUpRight size={16} aria-hidden /></Link>
+            <Link to="/" className="inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-bold text-white ring-1 ring-white/40 hover:bg-white/10">See tuitions</Link>
+          </div>
+        </div>
       </div>
       <div className="mt-10 bg-forest text-cream">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:px-8">

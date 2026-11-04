@@ -1,18 +1,19 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/how-it-works";
 import { GuardianPanel, PageShell, buttonClass } from "~/components/site";
+import { JOIN } from "~/lib/join";
 
 export function meta(_: Route.MetaArgs) {
   return [
     { title: "How it works · Hikmah Tutors" },
-    { name: "description", content: "Hikmah Tutors-এ টিউটরদের জন্য চারটি ছোট ধাপ: লগইন, প্রোফাইল, আবেদন, শর্টলিস্ট ও ট্রায়াল।" },
+    { name: "description", content: "Hikmah Tutors-এ টিউটরদের জন্য চারটি ছোট ধাপ: যোগ দিন, যাচাই, আবেদন, শর্টলিস্ট ও ট্রায়াল।" },
   ];
 }
 
 const STEPS = [
-  ["Sign in with Google", "আগে Hikmah Tutors-এর ফর্ম পূরণ করে থাকলে সেই Google অ্যাকাউন্ট দিয়ে লগইন করুন। আপনার প্রোফাইল নিজে থেকেই খুলে যাবে।"],
-  ["Check your profile", "বিষয়, ক্লাস ও পড়াশোনার তথ্য ঠিক আছে কি না দেখুন, আর এখনো পড়াতে আগ্রহী হলে নিশ্চিত করুন। প্রোফাইল পাবলিক নয়।"],
-  ["Apply", "বোর্ড থেকে পছন্দের টিউশন বেছে নিন। সাইটে আবেদন শিগগিরই চালু হবে। ফি-শর্ত আবেদনের আগেই দেখানো হয়।"],
+  ["Join with Google", "নতুন হলে Google দিয়ে ঢুকে ছোট একটি ফর্ম পূরণ করুন: ছবি, পড়াশোনা, কোথায় ও কী পড়াবেন। আগে ফর্ম পূরণ করে থাকলে সেই Google অ্যাকাউন্ট দিয়ে ঢুকলেই প্রোফাইল খুলবে।"],
+  ["HTR checks your profile", "নতুন প্রোফাইল HTR সাধারণত এক দিনের মধ্যে যাচাই করে। কিছু ঠিক করতে হলে Home-এ লেখা থাকবে। প্রোফাইল পাবলিক নয়।"],
+  ["Apply", "বোর্ড থেকে পছন্দের টিউশন বেছে এক ট্যাপে আবেদন করুন। ফি-শর্ত আবেদনের আগেই দেখানো হয়।"],
   ["Shortlist and demo", "HTR অভিভাবকের সাথে কথা বলে শর্টলিস্ট করে, ট্রায়াল ক্লাস ঠিক করে। প্রতিটি ধাপ আপনি প্রোফাইলে দেখতে পাবেন।"],
 ];
 
@@ -31,7 +32,8 @@ export default function HowItWorks() {
         ))}
       </ol>
       <div className="flex flex-wrap gap-2">
-        <Link to="/" className={buttonClass("primary")}>Tuition board</Link>
+        <Link to={JOIN} className={buttonClass("primary")}>Join as a tutor</Link>
+        <Link to="/" className={buttonClass("secondary")}>Tuition board</Link>
         <Link to="/fees" className={buttonClass("secondary")}>Fees</Link>
       </div>
       <GuardianPanel />

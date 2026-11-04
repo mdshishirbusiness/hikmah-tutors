@@ -43,6 +43,7 @@ enforced with SQLite triggers. Roles: Owner only for now.
   (`app/lib/lead-queue.ts`) and is sent when the net is back. `client_id` makes retries safe (no duplicates).
 - Tutor pages call `requireTutor` (`app/lib/me.server.ts`). To try them in `npm run dev`, open `/dev/tutor/<code>` for a
   synthetic test tutor (code ≥ 99000, created_via 'staff'); it never works for real tutors or in a production build.
+  `/dev/new/<n>` signs in as a new Google account with no tutor record, to try registration (`/me/join`).
 - Try and screenshot on invented data: `npm run synthetic:seed` once, then `npm run dev:synthetic` (launch config
   `hikmah-synthetic`, port 5174). The plain `npm run dev` uses `.wrangler/state`, which holds a copy of the real data.
 - Admin pieces: `app/components/Applicants.tsx` (applicant table/board/detail), `charts.tsx` (no chart library),

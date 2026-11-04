@@ -67,7 +67,7 @@ function Marks({ t }: { t: AdminTutorRow }) {
     <span className="flex flex-wrap gap-1">
       {t.flag_reason && <span title={t.flag_reason} className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-900"><Flag size={11} aria-hidden />Flag</span>}
       {t.availability_paused ? <Badge tone="amber">Paused</Badge> : null}
-      {t.setup_done_at ? <Badge tone="green">On site</Badge> : null}
+      {t.review_status === "waiting" ? <Badge tone="amber">New · check</Badge> : t.review_status === "needs_fix" ? <Badge tone="grey">Asked to fix</Badge> : t.setup_done_at ? <Badge tone="green">On site</Badge> : null}
       {t.priority === "urgent" && <Badge tone="dark">Urgent</Badge>}
     </span>
   );
@@ -75,7 +75,7 @@ function Marks({ t }: { t: AdminTutorRow }) {
 
 export default function AdminTutors({ loaderData: { total, items, f, notice }, actionData }: Route.ComponentProps) {
   const tabs = [
-    { key: "", label: "All" }, { key: "active", label: "Applied in 30 days" }, { key: "setup", label: "Signed in" },
+    { key: "", label: "All" }, { key: "new", label: "New" }, { key: "active", label: "Applied in 30 days" }, { key: "setup", label: "Signed in" },
     { key: "placed", label: "Placed" }, { key: "paused", label: "Paused" }, { key: "flagged", label: "Flagged" },
   ];
   return (

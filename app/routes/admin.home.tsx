@@ -2,7 +2,7 @@
 // with their trend, posted against booked by week, the funnel and where demand is. Phone: numbers, then the to-do
 // list, then the charts.
 import { Link } from "react-router";
-import { BadgeCheck, ChevronRight, ClipboardList, FilePen, FileText, Inbox, ListChecks, PhoneCall, PhoneMissed, Plus } from "lucide-react";
+import { BadgeCheck, ChevronRight, ClipboardList, FilePen, FileText, Inbox, ListChecks, PhoneCall, PhoneMissed, Plus, UserPlus } from "lucide-react";
 import type { Route } from "./+types/admin.home";
 import { PageHead, ago, num } from "~/components/admin";
 import { BarList, CHART, ColumnChart, StatTile } from "~/components/charts";
@@ -95,8 +95,12 @@ export default function AdminHome({ loaderData: { counts: c, list, p, now } }: R
     key: `chk-${x.id}-${x.day}`, to: "/admin/placements", icon: PhoneCall, tone: "bg-sky-100 text-sky-900",
     title: `HTR-${x.code}: day ${x.day} check-in call`, sub: `${where(x.class_level, x.area)} · confirmed ${ago(x.confirmed_at)}`,
   }));
+  const newTutors: Task[] = list.newTutors.map((x) => ({
+    key: `new-${x.code}`, to: `/admin/tutors/${x.code}`, icon: UserPlus, tone: "bg-mango text-forest",
+    title: `Check new tutor: ${x.full_name}`, sub: `T-${x.code} · ${[x.university?.toUpperCase(), x.department].filter(Boolean).join(" · ")} · ${ago(x.created_at)}`, late: late(x.created_at, 24),
+  }));
   const review: Task[] = c.held > 0 ? [{ key: "review", to: "/admin/review", icon: ListChecks, tone: "bg-amber-100 text-amber-900", title: `To review: ${num(c.held)}`, sub: "Tutors, tuitions and rows from the sheet" }] : [];
-  const nothing = !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length && !checkins.length;
+  const nothing = !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length && !checkins.length && !newTutors.length;
 
   const date = new Date(now * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", weekday: "long", day: "numeric", month: "long" });
   const weekLabel = (i: number) => new Date((now - (p.weeks - i) * 7 * 86400 + 86400) * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short" });
@@ -131,6 +135,7 @@ export default function AdminHome({ loaderData: { counts: c, list, p, now } }: R
           <Section title="Selected tutors" tasks={[...confirmed, ...notCalled]} more={{ to: "/admin/placements", label: "Placements" }} />
           <Section title="Check-in calls" tasks={checkins} more={{ to: "/admin/placements", label: "Placements" }} />
           <Section title="Check applications" tasks={applications} more={{ to: "/admin/applications?status=submitted&open=1", label: "All new" }} />
+          <Section title="New tutors" tasks={newTutors} more={{ to: "/admin/tutors?state=new", label: "All new" }} />
           <Section title="Post tuitions" tasks={[...toPost, ...drafts]} more={{ to: "/admin/leads?status=called", label: "Called leads" }} />
           <Section title="Review" tasks={review} />
         </main>

@@ -44,7 +44,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: "People",
     items: [
-      { to: "/admin/tutors", label: "Tutors", icon: Users },
+      { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors, hot: true },
       { to: "/admin/guardians", label: "Guardians", icon: UserRound },
     ],
   },
@@ -62,7 +62,7 @@ const TABS: Item[] = [
   { to: "/admin", label: "Today", icon: LayoutDashboard, end: true },
   { to: "/admin/leads", label: "Leads", icon: Inbox, count: (c) => c.leads, hot: true },
   { to: "/admin/tuitions", label: "Tuitions", icon: ClipboardList },
-  { to: "/admin/tutors", label: "Tutors", icon: Users },
+  { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors, hot: true },
 ];
 const MORE: Item[] = [
   { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications },
