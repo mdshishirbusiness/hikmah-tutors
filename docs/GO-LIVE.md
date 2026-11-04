@@ -139,6 +139,12 @@ experience notes, tutors without a note left out) ran with `wrangler d1 execute 
 275 entries for 237 tutors, tagged `source = 'sheet'` ("From your sheet notes" on the profile). The file begins by
 deleting `source = 'sheet'` rows, so it can be run again safely; it looks tutors up by code, not by id.
 
+## 11. Part E (Premium) and registration documents: live 2026-11-05 (version 9b6b2e38)
+
+Migrations 0019 (`premium_members`, `premium_problems`, with triggers) and 0020 (`tutor_documents`) ran on the real
+database first, then the deploy. `/me/premium` and `/admin/premium` answer and ask for sign-in. No Premium term exists
+yet; the first real one starts when a tutor applies. HTR's payment number shows to a tutor only after HTR accepts them.
+
 ## Before tutors are invited (later)
 
 - Consent screen: **published (In production), 2026-11-04**. Branding has the home, privacy and terms links; no
