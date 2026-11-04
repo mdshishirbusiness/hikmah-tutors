@@ -1,12 +1,16 @@
-// Public guardian request form. Saves a lead (private, admin only) with lead_source "website".
+// Public guardian request form. Saves a lead (private, admin only) with lead_source "website". The same fields as the
+// Quick Pad (owner, 2026-11-04, review step 3), in five short parts; only name, phone, area, class and a subject are
+// needed. Helper lines are in Bangla, where a guardian reads them most easily.
 import { Form, Link, useNavigation } from "react-router";
 import { CheckCircle2, MessageCircle, Phone } from "lucide-react";
 import type { Route } from "./+types/request-tutor";
+import { AreaPicker, ClassPicker, RequirementPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
 import { GUARDIAN_WA_TEXT, PageShell, buttonClass } from "~/components/site";
+import { ChoiceChip } from "~/components/tutor";
 import { CONTACT, telLink, waLink } from "~/lib/contact";
-import { parseLead } from "~/lib/lead";
+import { leadFromForm, parseLead } from "~/lib/lead";
 import { insertLead, recentWebsiteLeads } from "~/lib/leads.server";
-import { AREAS, CLASS_CHOICES, SUBJECTS, TUTOR_GENDERS } from "~/lib/options";
+import { DAYS_PER_WEEK, MEDIUMS, STUDENT_GENDERS } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -15,7 +19,7 @@ export function meta(_: Route.MetaArgs) {
   ];
 }
 
-type Errors = Partial<Record<"name" | "phone" | "area" | "class_level" | "subjects" | "consent" | "form", string>>;
+type Errors = Partial<Record<"name" | "phone" | "area" | "class_level" | "subjects" | "time" | "salary" | "consent" | "form", string>>;
 
 const PER_PHONE_PER_DAY = 3;
 
@@ -32,27 +36,16 @@ export async function action({ request }: Route.ActionArgs) {
   const errors: Errors = {};
   const name = String(f.get("guardian_name") ?? "").trim();
   if (name.length < 2) errors.name = "নাম লিখুন (কমপক্ষে 2 অক্ষর)।";
-  const areaKey = String(f.get("area") ?? "");
-  const area = areaKey === "__other" ? String(f.get("area_other") ?? "").trim() : areaKey;
-  const subjects = f.getAll("subjects").map(String);
-  if (subjects.length === 0) errors.subjects = "অন্তত একটি বিষয় বেছে নিন।";
+  if (f.getAll("subjects").length === 0) errors.subjects = "অন্তত একটি বিষয় বেছে নিন।";
   if (f.get("consent") !== "on") errors.consent = "এগিয়ে যেতে সম্মতি দিন।";
 
-  const { lead, errors: leadErrors } = parseLead({
-    client_id: f.get("client_id"),
-    created_at: Math.floor(Date.now() / 1000),
-    phone: f.get("phone"),
-    guardian_name: name,
-    class_level: f.get("class_level"),
-    tutor_gender: f.get("tutor_gender"),
-    subjects,
-    area,
-    notes: f.get("notes"),
-    lead_source: "website",
-  });
+  // The same fields and checks as the Quick Pad; a guardian never gives a full address here.
+  const { lead, errors: leadErrors } = parseLead(leadFromForm(f, { client_id: f.get("client_id"), created_at: Math.floor(Date.now() / 1000), address: "", lead_source: "website" }));
   if (leadErrors?.phone) errors.phone = "সঠিক মোবাইল নম্বর দিন (013–019 দিয়ে শুরু, 11 ডিজিট)।";
   if (leadErrors?.area) errors.area = "এলাকা বেছে নিন বা লিখুন।";
   if (leadErrors?.class_level) errors.class_level = "ক্লাস বেছে নিন।";
+  if (leadErrors?.time) errors.time = "শুরু ও শেষ দুটো সময়ই দিন, আর শেষ সময় শুরুর পরে হতে হবে।";
+  if (leadErrors?.salary) errors.salary = "বেতন ৳500 থেকে ৳2,00,000-এর মধ্যে লিখুন।";
   if (leadErrors?.form) errors.form = "ফর্মটি আবার খুলে চেষ্টা করুন।";
   if (!lead || Object.keys(errors).length) return { errors };
 
@@ -64,18 +57,25 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 const field = "min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-base outline-none transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
-const chip = "inline-flex min-h-11 cursor-pointer items-center rounded-full border border-brand-100 bg-white px-4 text-sm font-semibold text-forest transition-colors has-checked:border-brand-600 has-checked:bg-brand-600 has-checked:text-white has-focus-visible:ring-2 has-focus-visible:ring-brand-500";
+const Chips = ({ children }: { children: React.ReactNode }) => <div className="flex flex-wrap gap-2">{children}</div>;
 
-function SectionHead({ n, title, hint }: { n: string; title: string; hint?: string }) {
+function Part({ n, title, hint, error, children }: { n: number; title: string; hint?: string; error?: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-3 pb-2">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-sm font-bold text-brand-700">{n}</span>
-      <div>
-        <h2 className="text-lg font-bold text-forest">{title}</h2>
-        {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
+    <section className={`space-y-5 rounded-2xl bg-white p-5 shadow-ring sm:p-7 ${error ? "ring-2 ring-rose-300" : ""}`}>
+      <div className="flex items-start gap-3">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-mango text-sm font-extrabold text-forest">{n}</span>
+        <div>
+          <h2 className="text-lg font-extrabold text-forest">{title}</h2>
+          {hint && <p className="mt-0.5 text-sm text-slate-500">{hint}</p>}
+        </div>
       </div>
-    </div>
+      {children}
+    </section>
   );
+}
+
+function Q({ children, optional }: { children: React.ReactNode; optional?: boolean }) {
+  return <p className="mb-2 font-bold text-forest">{children}{optional && <span className="ml-1 text-sm font-normal text-slate-500">(optional)</span>}</p>;
 }
 
 function ContactRow() {
@@ -90,7 +90,7 @@ function ContactRow() {
 export default function RequestTutor({ loaderData: { clientId }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state === "submitting";
   const errors: Errors = (actionData && "errors" in actionData && actionData.errors) || {};
-  const err = (k: keyof Errors) => errors[k] && <p role="alert" className="mt-1 text-sm text-red-700">{errors[k]}</p>;
+  const err = (k: keyof Errors) => errors[k] && <p role="alert" className="mt-2 text-sm font-semibold text-rose-700">{errors[k]}</p>;
 
   if (actionData && "done" in actionData) {
     return (
@@ -107,84 +107,65 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
   }
 
   return (
-    <PageShell title="Request a tutor" sub="ছোট ফর্মটি পূরণ করুন, আমরা ফোন করে বাকিটা জেনে নেব। পূর্ণ ঠিকানা এখানে লাগবে না।">
-      <Form method="post" noValidate className="space-y-6">
+    <PageShell title="Request a tutor" sub="কয়েকটা ট্যাপেই হয়ে যাবে। বাকিটা আমরা ফোন করে জেনে নেব। পূর্ণ ঠিকানা এখানে লাগবে না।">
+      <Form method="post" noValidate className="space-y-4">
         <input type="hidden" name="client_id" value={clientId} />
-        <section className="space-y-5 rounded-2xl border border-brand-100 bg-white p-5 sm:p-7">
-          <SectionHead n="01" title="Your contact details" hint="আপনার অনুরোধ নিয়ে কথা বলতে এই তথ্য লাগবে।" />
+        {Object.keys(errors).length > 0 && <p role="alert" className="rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{errors.form ?? "লাল দাগ দেওয়া অংশগুলো ঠিক করুন।"}</p>}
+
+        <Part n={1} title="Your contact" hint="এই নম্বরে আমরা ফোন করব। কোনো টিউটর বা অন্য কেউ এটি দেখবে না।" error={!!(errors.name || errors.phone)}>
           <div>
-            <label htmlFor="rq-name" className="mb-1 block font-semibold text-forest">Your name</label>
+            <label htmlFor="rq-name" className="mb-1 block font-bold text-forest">Your name</label>
             <input id="rq-name" name="guardian_name" className={field} autoComplete="name" maxLength={60} aria-invalid={!!errors.name} />
             {err("name")}
           </div>
           <div>
-            <label htmlFor="rq-phone" className="mb-1 block font-semibold text-forest">Mobile number</label>
-            <input id="rq-phone" name="phone" className={field} inputMode="tel" autoComplete="tel" placeholder="e.g. 017XXXXXXXX" aria-invalid={!!errors.phone} />
+            <label htmlFor="rq-phone" className="mb-1 block font-bold text-forest">Mobile number</label>
+            <input id="rq-phone" name="phone" className={field} inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" aria-invalid={!!errors.phone} />
             {err("phone")}
           </div>
+        </Part>
+
+        <Part n={2} title="Where" hint="শুধু এলাকা, পূর্ণ ঠিকানা নয়।" error={!!errors.area}>
+          <AreaPicker allowOther />
+          {err("area")}
+        </Part>
+
+        <Part n={3} title="Your child" error={!!(errors.class_level || errors.subjects)}>
+          <div><Q>Class</Q><ClassPicker />{err("class_level")}</div>
+          <div><Q>Subjects</Q><SubjectPicker />{err("subjects")}</div>
+          <div><Q optional>Medium</Q><Chips>{MEDIUMS.map((m) => <ChoiceChip key={m.key} type="radio" name="medium" value={m.key}>{m.label}</ChoiceChip>)}</Chips></div>
+          <div><Q optional>Student</Q><Chips>{STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key}>{g.key === "boy" ? "Son" : "Daughter"}</ChoiceChip>)}</Chips></div>
+        </Part>
+
+        <Part n={4} title="When" hint="জানা না থাকলে খালি রাখুন, ফোনে ঠিক করে নেব।" error={!!errors.time}>
+          <div><Q optional>Days per week</Q><Chips>{DAYS_PER_WEEK.map((d) => <ChoiceChip key={d} type="radio" name="days_per_week" value={String(d)}>{d} days</ChoiceChip>)}</Chips></div>
+          <div><Q optional>Time</Q><TimePicker />{err("time")}</div>
+        </Part>
+
+        <Part n={5} title="The tutor you want" error={!!(errors.salary || errors.consent)}>
+          <TutorPicker genderName="tutor_gender" />
+          <div><Q optional>যা যা চান</Q><RequirementPicker /></div>
           <div>
-            <label htmlFor="rq-area" className="mb-1 block font-semibold text-forest">Area</label>
-            <select id="rq-area" name="area" defaultValue="" className={field} aria-invalid={!!errors.area}>
-              <option value="">Choose an area</option>
-              {AREAS.filter((a) => a.key !== "online").map((a) => <option key={a.key} value={a.key}>{a.label}</option>)}
-              <option value="__other">Other area</option>
-            </select>
-            <input name="area_other" className={`${field} mt-2`} placeholder="অন্য এলাকা হলে নাম লিখুন" aria-label="Other area name" maxLength={60} />
-            {err("area")}
+            <label htmlFor="rq-salary" className="mb-1 block font-bold text-forest">Salary per month <span className="text-sm font-normal text-slate-500">(optional)</span></label>
+            <input id="rq-salary" name="salary" inputMode="numeric" placeholder="e.g. 4000" className={field} aria-invalid={!!errors.salary} />
+            {err("salary")}
           </div>
-        </section>
-
-        <section className="space-y-5 rounded-2xl border border-brand-100 bg-white p-5 sm:p-7">
-          <SectionHead n="02" title="What does your child need?" hint="নির্দিষ্ট ক্লাস, বিষয় ও টিউটরের পছন্দ বেছে নিন।" />
-          <fieldset>
-            <legend className="mb-2 font-semibold text-forest">Class</legend>
-            <div className="flex flex-wrap gap-2">
-              {CLASS_CHOICES.map((c) => (
-                <label key={c.key} className={chip}><input type="radio" name="class_level" value={c.key} className="sr-only" />{c.label}</label>
-              ))}
-            </div>
-            {err("class_level")}
-          </fieldset>
-          <fieldset>
-            <legend className="mb-2 font-semibold text-forest">Tutor preference</legend>
-            <div className="grid grid-cols-3 gap-2">
-              {TUTOR_GENDERS.map((g) => (
-                <label key={g.key} className={`${chip} justify-center rounded-xl`}>
-                  <input type="radio" name="tutor_gender" value={g.key} defaultChecked={g.key === "any"} className="sr-only" />{g.label}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <fieldset>
-            <legend className="mb-2 font-semibold text-forest">Subjects <span className="text-sm font-normal text-slate-500">— one or more</span></legend>
-            <div className="flex flex-wrap gap-2">
-              {SUBJECTS.map((s) => (
-                <label key={s.key} className={chip}><input type="checkbox" name="subjects" value={s.key} className="sr-only" />{s.label}</label>
-              ))}
-            </div>
-            {err("subjects")}
-          </fieldset>
-        </section>
-
-        <section className="space-y-5 rounded-2xl border border-brand-100 bg-white p-5 sm:p-7">
-          <SectionHead n="03" title="Anything else?" />
           <div>
-            <label htmlFor="rq-note" className="mb-1 block font-semibold text-forest">Notes (optional)</label>
-            <textarea id="rq-note" name="notes" rows={3} maxLength={300} className={`${field} py-3`} placeholder="যেমন: সপ্তাহে 3 দিন, সন্ধ্যায়" />
+            <label htmlFor="rq-note" className="mb-1 block font-bold text-forest">Anything else <span className="text-sm font-normal text-slate-500">(optional)</span></label>
+            <textarea id="rq-note" name="notes" rows={3} maxLength={500} className={`${field} py-3`} placeholder="যেমন: ইংরেজিতে দুর্বল, একটু বেশি সময় দিতে হবে" />
           </div>
           <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
           <div>
             <label className="flex min-h-11 cursor-pointer items-start gap-3">
-              <input type="checkbox" name="consent" className="mt-1 size-5 accent-brand-600" aria-invalid={!!errors.consent} />
+              <input type="checkbox" name="consent" className="mt-1 size-5 shrink-0 accent-forest" aria-invalid={!!errors.consent} />
               <span className="text-sm text-slate-700">
                 আমি <Link to="/privacy" className="text-brand-700 underline">গোপনীয়তা নোটিশ</Link> পড়েছি এবং HTR আমাকে ফোন বা WhatsApp-এ যোগাযোগ করতে পারে।
               </span>
             </label>
             {err("consent")}
           </div>
-          {errors.form && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{errors.form}</p>}
           <button type="submit" disabled={busy} className={buttonClass("forest", "w-full rounded-xl")}>{busy ? "Sending…" : "Send request"}</button>
-        </section>
+        </Part>
       </Form>
       <div>
         <p className="mb-2 text-sm text-slate-600">Or reach us directly</p>
@@ -193,4 +174,3 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
     </PageShell>
   );
 }
-

@@ -3,6 +3,41 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-04 (site review, step 3: one set of request fields)
+
+The owner approved step 3. They asked for the forms to reflect what guardians actually ask, Bangla where it sounds
+better and English where it is clearer, and a time window such as "2:00 PM to 6:00 PM". Choices:
+
+- **One set of pickers** (`app/components/RequestFields.tsx`) for Quick Pad, the guardian form and the tuition
+  editor (New tuition and Details):
+  - classes grouped by level, with **Other + a box** for the guardian's words (shown on the board, e.g. "Hifz class");
+  - subjects with **Other + a box**; tutors never pick Other, and fit ignores it;
+  - one area search (English or Bangla) with the top 12 as chips; "Other area" only on leads;
+  - time of day plus an optional **Between** window in half hours, 6:00 AM–11:00 PM. Picking a start suggests an end
+    two hours later. Shown as "2:00–6:00 PM", and it wins over the time of day on the card;
+  - **requirement quick picks** plus the free text;
+  - tutor gender and **Tutor from**.
+- **Requirement picks come from the sheet.** Counted in the notes and qualifications of 615 past tuitions:
+  - experience, about 150
+  - subject's department or expert, about 40
+  - teaches with care, about 34
+  - regular tests, about 25
+  - "পড়া আদায়", 19
+  - regular, 15
+  - 3rd/4th year, 6
+  - English medium experience, 9
+  - polite, 11
+
+  Labels are Bangla where they are a guardian's sentence ("আগে পড়ানোর অভিজ্ঞতা", "নিয়মিত পরীক্ষা নেবেন") and English
+  where they are a fact ("3rd/4th year student", "From the subject's department"). This refines the 2026-11-04 rule
+  that option labels are English, by the owner's request.
+- **Rajshahi College and Varendra University** join Tutor from (about 60 past tuitions asked for RC or VU). A tutor
+  counts as RC or VU when their institution names it.
+- **Leads now store** time of day, window, session length, tutor from, requirement picks and the Other texts
+  (migration 0014). "Post" carries them into the draft tuition, so nothing is typed twice.
+- The guardian form is five numbered parts. Only name, phone, area, class and one subject are needed; the rest is
+  marked optional. The tuition page now also shows "Tutor from".
+
 ## 2026-11-04 (site review, step 2: tutors register on the site)
 
 The owner approved step 2 of `docs/REVIEW-2026-11-04.md`. Choices Claude made:

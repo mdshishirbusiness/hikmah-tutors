@@ -72,6 +72,8 @@ export const SUBJECTS: Option[] = [
   { key: "islam", label: "Islamic Studies", alt: "ইসলাম শিক্ষা" },
   { key: "economics", label: "Economics", alt: "অর্থনীতি" },
   { key: "finance", label: "Finance", alt: "ফিন্যান্স" },
+  // Typed in a box beside it (class_other / subject_other); tutors never pick it.
+  { key: "other", label: "Other" },
 ];
 
 // How a tutor gets to a home tuition (tutors.transport).
@@ -89,11 +91,14 @@ export const BANDS: Option[] = [
   { key: "hsc", label: "HSC / Admission" },
 ];
 
-// Where the guardian wants the tutor from (owner, 2026-11-04). None picked means any university.
+// Where the guardian wants the tutor from (owner, 2026-11-04). None picked means any university. RC and VU were asked
+// for in about 60 of the sheet's tuitions (review step 3).
 export const TUTOR_FROM: Option[] = [
   { key: "ru", label: "RU", alt: "Rajshahi University রাবি" },
   { key: "ruet", label: "RUET", alt: "রুয়েট" },
   { key: "medical", label: "Medical", alt: "মেডিকেল RMC" },
+  { key: "rc", label: "Rajshahi College", alt: "RC রাজশাহী কলেজ" },
+  { key: "vu", label: "Varendra University", alt: "VU বরেন্দ্র" },
 ];
 
 export const MODES: Option[] = [

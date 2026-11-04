@@ -1,6 +1,7 @@
 // Tuition rules and formatting shared by the server and the pages. Ported from the Emergent reference
 // (backend/logic/fees.py, logic/text.py, frontend/src/lib/format.ts).
 import { AREAS, CLASS_LEVELS, MEDIUMS, SUBJECTS, TIMES_OF_DAY, labelOf } from "./options";
+import { requirementLabels, windowLabel } from "./request";
 
 export type PublicTuition = {
   code: number;
@@ -22,6 +23,11 @@ export type PublicTuition = {
   tutor_gender_pref: "any" | "male" | "female";
   tutor_from: string[]; // ru, ruet, medical; empty = any university
   requirements_public: string;
+  requirement_keys: string[]; // quick picks (app/lib/request.ts), shown before the free text
+  class_other: string | null; // the guardian's words when the class is Other
+  subject_other: string | null; // the guardian's words when a subject is Other
+  time_from: number | null; // minutes after midnight; a window like 2:00–6:00 PM
+  time_to: number | null;
   start_note: string;
   posted_at: number | null;
   is_available: boolean; // on the board
@@ -91,9 +97,11 @@ function searchBlob(t: PublicTuition): string {
       area?.alt,
       cls?.label,
       cls?.alt,
+      t.class_other,
+      t.subject_other,
       labelOf(MEDIUMS, t.medium),
       ...t.subjects.flatMap((s) => [labelOf(SUBJECTS, s), SUBJECTS.find((o) => o.key === s)?.alt]),
-      t.requirements_public,
+      needText(t),
     ].join(" "),
   );
 }
@@ -178,9 +186,14 @@ export const GENDER_STYLE: Record<PublicTuition["tutor_gender_pref"], { strip: s
 /** "1.5 hours" from minutes. */
 export const sessionLength = (minutes: number) => `${minutes / 60} ${minutes === 60 ? "hour" : "hours"}`;
 
-/** "1.5 hours · Afternoon", or only the part that is known, or "". */
-export const scheduleNote = (t: Pick<PublicTuition, "session_minutes" | "time_of_day">) =>
-  [t.session_minutes && sessionLength(t.session_minutes), t.time_of_day && labelOf(TIMES_OF_DAY, t.time_of_day)].filter(Boolean).join(" · ");
+/** "1.5 hours · 2:00–6:00 PM", "1.5 hours · Afternoon", only the part that is known, or "". A window says more than
+ * the time of day, so it wins. */
+export const scheduleNote = (t: Pick<PublicTuition, "session_minutes" | "time_of_day"> & Partial<Pick<PublicTuition, "time_from" | "time_to">>) =>
+  [t.session_minutes && sessionLength(t.session_minutes), windowLabel(t.time_from, t.time_to) || (t.time_of_day && labelOf(TIMES_OF_DAY, t.time_of_day))].filter(Boolean).join(" · ");
+
+/** The tutor requirement as one line: quick picks first, then the admin's own words. */
+export const needText = (t: Pick<PublicTuition, "requirements_public"> & Partial<Pick<PublicTuition, "requirement_keys">>) =>
+  [...requirementLabels(t.requirement_keys ?? []), t.requirements_public.trim()].filter(Boolean).join(" · ");
 
 /** Monthly salary per class, rounded to ৳10, or null when there is no fixed monthly salary. A month counts as 4 weeks
  * (owner: 3 days a week = 12 classes, 4 = 16, 5 = 20). */

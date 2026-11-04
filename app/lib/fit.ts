@@ -25,6 +25,17 @@ export function universityOf(institution: string | null): string | null {
   return "other";
 }
 
+/** The key a tutor counts as for "Tutor from": their university, or Rajshahi College / Varendra University read from
+ * the institution they typed. */
+export function fromKeyOf(university: string | null | undefined, institution: string | null): string | null {
+  const uni = university ?? universityOf(institution);
+  if (uni !== "other") return uni;
+  const s = (institution ?? "").toLowerCase().trim();
+  if (/rajshahi college|^r\.?c\.?$/.test(s)) return "rc";
+  if (/varendra|^v\.?u\.?$/.test(s)) return "vu";
+  return "other";
+}
+
 /** True when a free-text address names the area, in English or Bangla. */
 function mentionsArea(text: string, areaKey: string): boolean {
   const area = AREAS.find((a) => a.key === areaKey);
@@ -57,17 +68,18 @@ export type Fit = {
 export function fitOf(t: FitTuition, a: FitTutor): Fit {
   const gender = t.tutor_gender_pref !== "any" && a.gender && a.gender !== t.tutor_gender_pref ? "mismatch" : "ok";
   const subjects = (a.subject_fit ?? "").split(",").filter(Boolean);
+  const wanted = t.subjects.filter((s) => s !== "other"); // an Other subject is the guardian's words; no tutor lists it
   const area = a.anywhere || (a.areas ?? "").split(",").includes(t.area) ? "listed" : mentionsArea(a.location ?? "", t.area) ? "nearby" : "unknown";
-  const uni = a.university ?? universityOf(a.institution);
+  const uni = fromKeyOf(a.university, a.institution);
   const university = !t.tutor_from.length ? null : !uni ? "unknown" : t.tutor_from.includes(uni) ? "ok" : "other";
   const classes = (a.classes ?? "").split(",").filter(Boolean);
   const cls = !classes.length ? "unknown" : classes.includes(t.class_level) ? "ok" : "other";
   const pay = t.salary_kind === "fixed" ? t.salary_amount : null;
   const salary = !pay || !a.min_salary ? null : pay >= a.min_salary ? "ok" : "low";
-  const score = (gender === "mismatch" ? -100 : 0) + (t.subjects.length ? (2 * subjects.length) / t.subjects.length : 0)
+  const score = (gender === "mismatch" ? -100 : 0) + (wanted.length ? (2 * subjects.length) / wanted.length : 0)
     + (area === "listed" ? 1 : area === "nearby" ? 0.5 : 0) + (university === "ok" ? 1 : university === "other" ? -1 : 0)
     + (cls === "ok" ? 0.5 : cls === "other" ? -0.5 : 0) + (salary === "low" ? -0.5 : 0);
-  return { gender, subjects, subjectTotal: t.subjects.length, area, university, class: cls, salary, score };
+  return { gender, subjects, subjectTotal: wanted.length, area, university, class: cls, salary, score };
 }
 
 export const tutorFromLabel = (keys: string[]) => keys.map((k) => TUTOR_FROM.find((o) => o.key === k)?.label ?? k).join(" · ");

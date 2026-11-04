@@ -1,6 +1,7 @@
 // One lead (guardian request) and its validation. Shared by the phone (before saving or queueing)
 // and the server (before writing to D1), so a queued lead is always one the server will accept.
-import { CLASS_CHOICES, DAYS_PER_WEEK, LEAD_SOURCES, MEDIUMS, STUDENT_GENDERS, SUBJECTS, TUTOR_GENDERS } from "./options";
+import { CLASS_CHOICES, DAYS_PER_WEEK, LEAD_SOURCES, MEDIUMS, SESSION_MINUTES, STUDENT_GENDERS, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM, TUTOR_GENDERS } from "./options";
+import { parseWindow, requirementKeys } from "./request";
 
 export type LeadInput = {
   client_id: string;
@@ -18,9 +19,33 @@ export type LeadInput = {
   days_per_week: number | null;
   notes: string;
   lead_source: string;
+  // Added with the shared request fields (review step 3); a lead queued on a phone before that simply lacks them.
+  class_other?: string;
+  subject_other?: string;
+  time_of_day?: string;
+  time_from?: number | null;
+  time_to?: number | null;
+  session_minutes?: number | null;
+  tutor_from?: string[];
+  requirement_keys?: string[];
 };
 
-export type LeadErrors = Partial<Record<"phone" | "class_level" | "area" | "salary" | "form", string>>;
+export type LeadErrors = Partial<Record<"phone" | "class_level" | "area" | "salary" | "time" | "form", string>>;
+
+/** A lead's fields from a form built with RequestFields (Quick Pad and the guardian form use the same names). */
+export function leadFromForm(f: FormData, extra: Record<string, unknown> = {}) {
+  const one = (k: string) => String(f.get(k) ?? "");
+  const area = one("area");
+  return {
+    phone: one("phone"), guardian_name: one("guardian_name"), class_level: one("class_level"), class_other: one("class_other"),
+    medium: one("medium"), student_gender: one("student_gender"), tutor_gender: one("tutor_gender"),
+    subjects: f.getAll("subjects").map(String), subject_other: one("subject_other"),
+    area: area === "__other" ? one("area_other") : area, address: one("address"), salary: one("salary"), days_per_week: one("days_per_week"),
+    time_of_day: one("time_of_day"), time_from: one("time_from"), time_to: one("time_to"), session_minutes: one("session_minutes"),
+    tutor_from: f.getAll("tutor_from").map(String), requirement_keys: f.getAll("requirements").map(String),
+    notes: one("notes"), lead_source: one("lead_source"), ...extra,
+  };
+}
 
 /** Bangla digits (০-৯) → 0-9 */
 const enDigits = (s: string) => s.replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d)));
@@ -81,6 +106,11 @@ export function parseLead(body: unknown): { lead: LeadInput; errors: null } | { 
     ? [...new Set(b.subjects.map(String).filter((s) => SUBJECT_KEYS.has(s)))]
     : [];
 
+  const window = parseWindow(b.time_from, b.time_to);
+  if (window.error) errors.time = window.error;
+  const minutes = Number(b.session_minutes);
+  const list = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
+
   if (Object.keys(errors).length) return { lead: null, errors };
   return {
     lead: {
@@ -99,6 +129,14 @@ export function parseLead(body: unknown): { lead: LeadInput; errors: null } | { 
       days_per_week,
       notes: text(b.notes, 500),
       lead_source: oneOf(b.lead_source, SOURCE_KEYS),
+      class_other: class_level === "other" ? text(b.class_other, 60) : "",
+      subject_other: subjects.includes("other") ? text(b.subject_other, 60) : "",
+      time_of_day: oneOf(b.time_of_day, keys(TIMES_OF_DAY)),
+      time_from: window.time_from,
+      time_to: window.time_to,
+      session_minutes: (SESSION_MINUTES as readonly number[]).includes(minutes) ? minutes : null,
+      tutor_from: [...new Set(list(b.tutor_from))].filter((k) => TUTOR_FROM.some((o) => o.key === k)),
+      requirement_keys: requirementKeys(list(b.requirement_keys)),
     },
     errors: null,
   };

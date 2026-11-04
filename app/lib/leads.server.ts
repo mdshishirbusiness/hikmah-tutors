@@ -14,8 +14,9 @@ export async function recentWebsiteLeads(phone: string): Promise<number> {
 export async function insertLead(lead: LeadInput): Promise<{ duplicate: boolean }> {
   const r = await env.DB.prepare(
     `INSERT INTO leads (client_id, phone, guardian_name, class_level, medium, student_gender, tutor_gender, subjects,
-                        area, address, salary, days_per_week, notes, lead_source, created_at, synced_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        area, address, salary, days_per_week, notes, lead_source, created_at, synced_at,
+                        class_other, subject_other, time_of_day, time_from, time_to, session_minutes, tutor_from, requirement_keys)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (client_id) DO NOTHING`,
   )
     .bind(
@@ -35,6 +36,14 @@ export async function insertLead(lead: LeadInput): Promise<{ duplicate: boolean 
       lead.lead_source || null,
       lead.created_at,
       Math.floor(Date.now() / 1000),
+      lead.class_other || null,
+      lead.subject_other || null,
+      lead.time_of_day || null,
+      lead.time_from ?? null,
+      lead.time_to ?? null,
+      lead.session_minutes ?? null,
+      lead.tutor_from?.join(",") || null,
+      lead.requirement_keys?.join(",") || null,
     )
     .run();
   return { duplicate: r.meta.changes === 0 };

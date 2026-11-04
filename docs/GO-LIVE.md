@@ -102,6 +102,11 @@ npm run deploy
 After it is live, close the old Google Form, or point it to `https://hikmahtutor.com/login?join=1`. Keep running
 `npm run import:top-up-real` until the form is closed, so late form entries still arrive.
 
+## 8. Site review step 3 (one set of request fields)
+
+Needs migration 0014 first (adds optional columns to leads and tuitions; nothing existing changes), then the deploy:
+`npm run db:migrate`, then `npm run deploy`, in the Terminal panel after `npx wrangler whoami`.
+
 ## Before tutors are invited (later)
 
 - Consent screen: **published (In production), 2026-11-04**. Branding has the home, privacy and terms links; no

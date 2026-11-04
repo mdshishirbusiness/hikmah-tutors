@@ -10,7 +10,8 @@ import type { Fit } from "~/lib/fit";
 import { tutorFromLabel } from "~/lib/fit";
 import { applyTo, applyView, requireTutor } from "~/lib/me.server";
 import { CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
-import { type PublicTuition, taka } from "~/lib/tuition";
+import { type PublicTuition, needText, taka } from "~/lib/tuition";
+import { classLabel } from "~/lib/request";
 
 export function meta({ params }: Route.MetaArgs) {
   return [{ title: `Apply · ${params.code} · Hikmah Tutors` }, { name: "robots", content: "noindex" }];
@@ -45,7 +46,7 @@ function fitRows(t: PublicTuition, fit: Fit, minSalary: number | null): Row[] {
   const rows: Row[] = [];
   const wanted = t.tutor_gender_pref === "female" ? "a female tutor" : "a male tutor";
   if (t.tutor_gender_pref !== "any") rows.push(fit.gender === "ok" ? { tone: "ok", text: `Wants ${wanted}: you match` } : { tone: "bad", text: `This tuition needs ${wanted}` });
-  const cls = labelOf(CLASS_LEVELS, t.class_level);
+  const cls = classLabel(t.class_level, t.class_other);
   if (fit.class !== "unknown") rows.push(fit.class === "ok" ? { tone: "ok", text: `${cls} is in your classes` } : { tone: "warn", text: `${cls} isn't in your classes` });
   if (fit.subjectTotal) {
     const all = fit.subjects.length === fit.subjectTotal;
@@ -86,7 +87,7 @@ export default function Apply({ loaderData: { t, fit, applied, minSalary, paused
         <div className="mx-auto max-w-lg px-4 pt-3 pb-10 text-cream">
           <Link to={`/tuitions/${t.code_label}`} className="inline-flex min-h-11 items-center text-sm text-brand-200 hover:text-mango">← {t.code_label}</Link>
           <p className="mt-1 text-3xl leading-tight font-semibold text-mango"><SalaryText t={t} unitClass="text-base text-brand-200" /></p>
-          <p className="mt-1 text-lg font-semibold">{labelOf(CLASS_LEVELS, t.class_level)} · {placeLabel(t)}</p>
+          <p className="mt-1 text-lg font-semibold">{classLabel(t.class_level, t.class_other)} · {placeLabel(t)}</p>
           <p className="text-sm text-brand-200">{subjectList(t)} · {t.days_per_week} days/week</p>
         </div>
 
@@ -136,10 +137,10 @@ export default function Apply({ loaderData: { t, fit, applied, minSalary, paused
                 {!blocked && rows.some((r) => r.tone === "warn") && <p className="mt-2 text-sm text-slate-500">Warnings don't stop you. HTR sees them too.</p>}
               </section>
 
-              {t.requirements_public && (
+              {needText(t) && (
                 <p className="rounded-2xl border-l-4 border-brand-600 bg-brand-50 px-4 py-3 text-sm">
                   <span className="block text-xs font-semibold text-brand-700">Tutor requirement</span>
-                  <span className="font-semibold text-forest">{t.requirements_public}</span>
+                  <span className="font-semibold text-forest">{needText(t)}</span>
                 </p>
               )}
 

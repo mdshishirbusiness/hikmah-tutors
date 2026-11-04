@@ -46,6 +46,9 @@ enforced with SQLite triggers. Roles: Owner only for now.
   `/dev/new/<n>` signs in as a new Google account with no tutor record, to try registration (`/me/join`).
 - Try and screenshot on invented data: `npm run synthetic:seed` once, then `npm run dev:synthetic` (launch config
   `hikmah-synthetic`, port 5174). The plain `npm run dev` uses `.wrangler/state`, which holds a copy of the real data.
+- Request fields (class with Other, subjects, area search, time window, requirement picks, tutor wanted) live in
+  `app/components/RequestFields.tsx` and `app/lib/request.ts`; Quick Pad, the guardian form and TuitionFields share
+  them, and `leadFromForm` reads them.
 - Admin pieces: `app/components/Applicants.tsx` (applicant table/board/detail), `charts.tsx` (no chart library),
   `TuitionFields.tsx` (new and edit tuition), `Avatar.tsx` (private photos via `/photos/tutor/:code`).
 - Database changes: a new numbered file in `migrations/`, then `npm run db:migrate:local` (and `db:migrate` for the

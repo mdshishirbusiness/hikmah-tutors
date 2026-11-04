@@ -15,7 +15,8 @@ import { requireAdmin } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
 import { tutorFromLabel } from "~/lib/fit";
 import { AREAS, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, STUDENT_GENDERS, SUBJECTS, labelOf } from "~/lib/options";
-import { GENDER_CHIP, SUBJECT_TONE, SUBJECT_TONE_OTHER, scheduleNote } from "~/lib/tuition";
+import { GENDER_CHIP, SUBJECT_TONE, SUBJECT_TONE_OTHER, needText, scheduleNote } from "~/lib/tuition";
+import { classLabel, requirementKeys, subjectLabel } from "~/lib/request";
 import { tuitionPost } from "~/lib/whatsapp";
 
 export function meta({ params }: Route.MetaArgs) {
@@ -116,7 +117,7 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
       <PageHead
         back={{ to: "/admin/tuitions", label: "Tuitions" }}
         eyebrow={<>HTR-{t.code}{t.posted_at ? ` · posted ${ago(t.posted_at)}` : " · not posted yet"}</>}
-        title={<>{labelOf(CLASS_LEVELS, t.class_level) || "No class"}<span className="text-slate-300"> · </span>{t.mode === "online" ? "Online" : labelOf(AREAS, t.area) || "No area"}</>}
+        title={<>{classLabel(t.class_level, t.class_other) || "No class"}<span className="text-slate-300"> · </span>{t.mode === "online" ? "Online" : labelOf(AREAS, t.area) || "No area"}</>}
         action={
           <>
             <Badge tone={TUITION_TONE[t.status]}>{TUITION_STATUS[t.status]}</Badge>
@@ -139,11 +140,11 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
             <div className="mt-3 flex flex-wrap gap-1.5">
               <Chip tone={gender.tone}>{gender.label}</Chip>
               {tutorFrom.length > 0 && <Chip tone="bg-brand-50 text-brand-700 ring-1 ring-brand-100">From {tutorFromLabel(tutorFrom)}</Chip>}
-              {subjects.map((s) => <Chip key={s} tone={`ring-1 ${SUBJECT_TONE[s] ?? SUBJECT_TONE_OTHER}`}>{labelOf(SUBJECTS, s)}</Chip>)}
+              {subjects.map((s) => <Chip key={s} tone={`ring-1 ${SUBJECT_TONE[s] ?? SUBJECT_TONE_OTHER}`}>{subjectLabel(s, t.subject_other)}</Chip>)}
               {t.student_gender && <Chip tone="bg-slate-50 text-slate-700 ring-1 ring-slate-200">{labelOf(STUDENT_GENDERS, t.student_gender)}</Chip>}
               {t.medium && <Chip tone="bg-slate-50 text-slate-700 ring-1 ring-slate-200">{labelOf(MEDIUMS, t.medium)}</Chip>}
             </div>
-            {t.requirements_public && <p className="mt-3 border-l-[3px] border-brand-600 pl-2.5 text-sm font-semibold text-forest">{t.requirements_public}</p>}
+            {needText({ ...t, requirement_keys: requirementKeys(t.requirement_keys) }) && <p className="mt-3 border-l-[3px] border-brand-600 pl-2.5 text-sm font-semibold text-forest">{needText({ ...t, requirement_keys: requirementKeys(t.requirement_keys) })}</p>}
 
             <dl className="mt-5 grid grid-cols-3 gap-2 border-t border-brand-50 pt-4 text-center">
               {[["Applied", applicants.length], ["Open", live], ["New", fresh]].map(([k, v]) => (

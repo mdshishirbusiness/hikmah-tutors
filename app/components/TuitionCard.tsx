@@ -2,9 +2,10 @@ import type { CSSProperties } from "react";
 import { Link } from "react-router";
 import { Icon } from "~/components/Icon";
 import { tutorFromLabel } from "~/lib/fit";
-import { AREAS, CLASS_LEVELS, MEDIUMS, STUDENT_GENDERS, SUBJECTS, labelOf } from "~/lib/options";
+import { AREAS, MEDIUMS, STUDENT_GENDERS, labelOf } from "~/lib/options";
+import { classLabel, subjectLabel } from "~/lib/request";
 import {
-  GENDER_CHIP, SUBJECT_TONE, SUBJECT_TONE_OTHER, isNew, perClass, scheduleNote, taka, timeAgo,
+  GENDER_CHIP, SUBJECT_TONE, SUBJECT_TONE_OTHER, isNew, needText, perClass, scheduleNote, taka, timeAgo,
   type PublicTuition,
 } from "~/lib/tuition";
 
@@ -20,7 +21,7 @@ export function SalaryText({ t, unitClass }: { t: PublicTuition; unitClass: stri
   return <>{t.salary_kind === "negotiable" ? "Salary negotiable" : "Salary not given"}</>;
 }
 
-export const subjectList = (t: PublicTuition) => t.subjects.map((s) => labelOf(SUBJECTS, s)).join(", ");
+export const subjectList = (t: Pick<PublicTuition, "subjects" | "subject_other">) => t.subjects.map((s) => subjectLabel(s, t.subject_other)).join(", ");
 export const placeLabel = (t: PublicTuition) => (t.mode === "online" ? "Online" : labelOf(AREAS, t.area));
 
 export function StatusBadges({ t, now }: { t: PublicTuition; now: number }) {
@@ -43,11 +44,11 @@ export function GenderChip({ t }: { t: Pick<PublicTuition, "tutor_gender_pref"> 
   );
 }
 
-export function SubjectChips({ t }: { t: Pick<PublicTuition, "subjects"> }) {
+export function SubjectChips({ t }: { t: Pick<PublicTuition, "subjects" | "subject_other"> }) {
   return (
     <ul className="flex flex-wrap gap-1.5">
       {t.subjects.map((s) => (
-        <li key={s} className={`rounded-md px-2 py-0.5 text-[13px] font-semibold ring-1 ${SUBJECT_TONE[s] ?? SUBJECT_TONE_OTHER}`}>{labelOf(SUBJECTS, s)}</li>
+        <li key={s} className={`rounded-md px-2 py-0.5 text-[13px] font-semibold ring-1 ${SUBJECT_TONE[s] ?? SUBJECT_TONE_OTHER}`}>{subjectLabel(s, t.subject_other)}</li>
       ))}
     </ul>
   );
@@ -136,13 +137,13 @@ export function TuitionCard({ t, now, index = 0 }: { t: PublicTuition; now: numb
   const stubColour = open ? "#fed262" : "#e2e8f0";
   const line = open ? "border-forest/25" : "border-slate-400/50";
   const href = `/tuitions/${t.code_label}`;
-  const need = t.requirements_public;
+  const need = needText(t);
   return (
     <article className="animate-rise relative [filter:drop-shadow(0_8px_14px_rgb(9_51_42/0.13))]" style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}>
       <div className="flex">
         <div className={`flex min-w-0 flex-1 flex-col bg-white pt-4 pr-2 pb-3 pl-4 ${need ? "rounded-tl-[22px]" : "rounded-l-[22px]"}`}>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded-md bg-cream px-2 py-0.5 text-xs font-semibold text-forest ring-1 ring-forest/25">{labelOf(CLASS_LEVELS, t.class_level)}</span>
+            <span className="rounded-md bg-cream px-2 py-0.5 text-xs font-semibold text-forest ring-1 ring-forest/25">{classLabel(t.class_level, t.class_other)}</span>
             <GenderChip t={t} />
             {t.tutor_from.length > 0 && (
               <span className="inline-flex items-center gap-1 rounded-md bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700 ring-1 ring-brand-100">

@@ -4,16 +4,18 @@ import { FeeBox } from "~/components/FeeBox";
 import { Icon } from "~/components/Icon";
 import { SiteFooter, SiteHeader, Toast, useShare } from "~/components/site";
 import { SalaryText, StatusBadges, TuitionCard, placeLabel, subjectList } from "~/components/TuitionCard";
-import { CLASS_LEVELS, MEDIUMS, MODES, STUDENT_GENDERS, labelOf } from "~/lib/options";
+import { MEDIUMS, MODES, STUDENT_GENDERS, labelOf } from "~/lib/options";
 import { GENDER_NEED, GENDER_STYLE, feeDisplay, formatDate, scheduleNote } from "~/lib/tuition";
+import { classLabel, requirementLabels } from "~/lib/request";
+import { tutorFromLabel } from "~/lib/fit";
 import { similarTuitions, visibleTuition } from "~/lib/tuitions.server";
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Tuition not found · Hikmah Tutors" }];
   const { t } = loaderData;
   return [
-    { title: `${labelOf(CLASS_LEVELS, t.class_level)}, ${placeLabel(t)} · ${t.code_label} · Hikmah Tutors` },
-    { name: "description", content: `${labelOf(CLASS_LEVELS, t.class_level)}: ${subjectList(t)}. ${placeLabel(t)}, Rajshahi.` },
+    { title: `${classLabel(t.class_level, t.class_other)}, ${placeLabel(t)} · ${t.code_label} · Hikmah Tutors` },
+    { name: "description", content: `${classLabel(t.class_level, t.class_other)}: ${subjectList(t)}. ${placeLabel(t)}, Rajshahi.` },
   ];
 }
 
@@ -50,6 +52,7 @@ export default function TuitionDetail({ loaderData: { t, similar, now } }: Route
   ];
   if (t.student_gender) rows.push({ icon: "user", label: "Student", value: labelOf(STUDENT_GENDERS, t.student_gender) });
   if (t.medium) rows.push({ icon: "book", label: "Medium", value: labelOf(MEDIUMS, t.medium) });
+  if (t.tutor_from.length) rows.push({ icon: "cap", label: "Tutor from", value: tutorFromLabel(t.tutor_from) });
   if (t.start_note) rows.push({ icon: "arrow", label: "Start", value: t.start_note });
 
   return (
@@ -77,7 +80,7 @@ export default function TuitionDetail({ loaderData: { t, similar, now } }: Route
               <SalaryText t={t} unitClass="text-base text-brand-200" />
             </p>
             <p className="mt-3 inline-flex rounded-full bg-cream px-4 py-1.5 text-lg font-semibold text-forest">{placeLabel(t)}</p>
-            <h1 className="mt-4 text-2xl leading-snug font-semibold sm:text-3xl">{labelOf(CLASS_LEVELS, t.class_level)} · {subjectList(t)}</h1>
+            <h1 className="mt-4 text-2xl leading-snug font-semibold sm:text-3xl">{classLabel(t.class_level, t.class_other)} · {subjectList(t)}</h1>
           </div>
         </section>
 
@@ -92,10 +95,15 @@ export default function TuitionDetail({ loaderData: { t, similar, now } }: Route
           </div>
 
           {/* The guardian's tutor requirement leads the details, since it decides who should apply (owner, 2026-11-04). */}
-          {t.requirements_public && (
+          {(t.requirements_public || t.requirement_keys.length > 0) && (
             <section className="rounded-2xl border-l-4 border-brand-600 bg-brand-50 px-5 py-4">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-brand-700"><Icon name="cap" className="size-4" />Tutor requirement</h2>
-              <p className="mt-1.5 text-lg leading-snug font-semibold whitespace-pre-line text-forest">{t.requirements_public}</p>
+              {t.requirement_keys.length > 0 && (
+                <ul className="mt-2 flex flex-wrap gap-1.5">
+                  {requirementLabels(t.requirement_keys).map((r) => <li key={r} className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-forest ring-1 ring-brand-100">{r}</li>)}
+                </ul>
+              )}
+              {t.requirements_public && <p className="mt-2 text-lg leading-snug font-semibold whitespace-pre-line text-forest">{t.requirements_public}</p>}
             </section>
           )}
 

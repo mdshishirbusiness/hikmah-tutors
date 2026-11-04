@@ -9,7 +9,7 @@ export type Plan = "standard" | "early";
 
 export const ME = { name: "নুসরাত জাহান", first: "নুসরাত", from: "বিনোদপুর" };
 
-const base = { status: "open", accepting_applications: true, mode: "home", salary_kind: "fixed", salary_period: "per_month", is_available: true, posted_at: null, session_minutes: null, time_of_day: null, applicants: 0 } as const;
+const base = { status: "open", accepting_applications: true, mode: "home", salary_kind: "fixed", salary_period: "per_month", is_available: true, posted_at: null, session_minutes: null, time_of_day: null, applicants: 0, requirement_keys: [] as string[], class_other: null, subject_other: null, time_from: null, time_to: null } as const;
 
 export const T1: LabTuition = {
   ...base,

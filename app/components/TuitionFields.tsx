@@ -1,16 +1,18 @@
-// The tuition's own fields, shared by "New tuition" and the tuition page's Details tab. Small sets are tap-chips
-// (radios and checkboxes underneath, so the form works without JavaScript); long lists stay native selects.
-import { ChoiceChip } from "~/components/tutor";
+// The tuition's own fields, shared by "New tuition" and the tuition page's Details tab. They use the same pickers as the
+// Quick Pad and the guardian form (owner, 2026-11-04, review step 3): class by level with Other, subjects with Other, an
+// area search, a time window, requirement quick picks and the universities wanted. Radios and checkboxes underneath.
 import { inputClass } from "~/components/admin";
-import {
-  AREAS, CLASS_CHOICES, CLASS_LEVELS, DAYS_PER_WEEK, MEDIUMS, SALARY_PRESETS, SESSION_MINUTES, STUDENT_GENDERS, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM, TUTOR_GENDERS, labelOf,
-} from "~/lib/options";
+import { AreaPicker, ClassPicker, RequirementPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
+import { ChoiceChip } from "~/components/tutor";
+import { CLASS_LEVELS, DAYS_PER_WEEK, MEDIUMS, SALARY_PRESETS, SESSION_MINUTES, STUDENT_GENDERS, labelOf } from "~/lib/options";
+import { requirementKeys } from "~/lib/request";
 import { sessionLength } from "~/lib/tuition";
 
 export type TuitionDraft = {
   class_level?: string; medium?: string; subjects?: string; area?: string; days_per_week?: number; session_minutes?: number | null; time_of_day?: string | null;
   tutor_gender_pref?: string; salary_kind?: string; salary_amount?: number | null; tutor_from?: string; requirements_public?: string; start_note?: string;
-  student_gender?: string | null;
+  student_gender?: string | null; class_other?: string | null; subject_other?: string | null; time_from?: number | null; time_to?: number | null;
+  requirement_keys?: string | null;
 };
 
 export function Group({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
@@ -36,70 +38,49 @@ export function Label({ text, children, hint }: { text: string; children: React.
 }
 
 const Chips = ({ children }: { children: React.ReactNode }) => <div className="flex flex-wrap gap-1.5">{children}</div>;
+const Sub = ({ children }: { children: React.ReactNode }) => <p className="mb-1 text-xs font-semibold text-slate-600">{children}</p>;
 
 export function TuitionFields({ t = {} }: { t?: TuitionDraft }) {
-  const subjects = (t.subjects ?? "").split(",").filter(Boolean);
-  const from = (t.tutor_from ?? "").split(",").filter(Boolean);
-  const legacy = CLASS_LEVELS.some((c) => c.key === t.class_level && c.legacy);
+  const legacy = CLASS_LEVELS.find((c) => c.key === t.class_level && c.legacy);
   const days = t.days_per_week ?? 4;
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Group title="Student">
-        <div className="grid grid-cols-2 gap-3">
-          <Label text="Class">
-            <select name="class_level" defaultValue={t.class_level && t.class_level !== "other" ? t.class_level : ""} required className={inputClass}>
-              <option value="" disabled>Pick a class</option>
-              {legacy && <option value={t.class_level}>{labelOf(CLASS_LEVELS, t.class_level)} (old, change it)</option>}
-              {CLASS_CHOICES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-            </select>
-          </Label>
-          <Label text="Medium">
-            <select name="medium" defaultValue={t.medium ?? ""} className={inputClass}>
-              <option value="">Not known</option>
-              {MEDIUMS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
-            </select>
-          </Label>
+        {legacy && <p className="rounded-xl bg-amber-100 px-3 py-2 text-sm text-amber-900">Old class “{legacy.label}”. Pick one class or batch below before it goes on the board.</p>}
+        <ClassPicker value={legacy ? "" : t.class_level} other={t.class_other} />
+        {legacy && <input type="hidden" name="class_level" value={t.class_level} />}
+        <div>
+          <Sub>Medium</Sub>
+          <Chips>{MEDIUMS.map((m) => <ChoiceChip key={m.key} type="radio" name="medium" value={m.key} checked={t.medium === m.key}>{m.label}</ChoiceChip>)}</Chips>
         </div>
         <div>
-          <p className="mb-1 text-xs font-semibold text-slate-600">Student</p>
-          <Chips>
-            {STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key} checked={t.student_gender === g.key}>{g.label}</ChoiceChip>)}
-          </Chips>
+          <Sub>Student</Sub>
+          <Chips>{STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key} checked={t.student_gender === g.key}>{g.label}</ChoiceChip>)}</Chips>
         </div>
         <div>
-          <p className="mb-1 text-xs font-semibold text-slate-600">Subjects</p>
-          <Chips>
-            {SUBJECTS.map((s) => <ChoiceChip key={s.key} name="subjects" value={s.key} checked={subjects.includes(s.key)}>{s.label}</ChoiceChip>)}
-          </Chips>
+          <Sub>Subjects</Sub>
+          <SubjectPicker picked={(t.subjects ?? "").split(",").filter(Boolean)} other={t.subject_other} />
         </div>
       </Group>
 
       <Group title="Place and time">
-        <Label text="Area">
-          <select name="area" defaultValue={t.area ?? ""} required className={inputClass}>
-            <option value="" disabled>Pick an area</option>
-            {AREAS.map((a) => <option key={a.key} value={a.key}>{a.label}</option>)}
-          </select>
-        </Label>
         <div>
-          <p className="mb-1 text-xs font-semibold text-slate-600">Days per week</p>
+          <Sub>Area</Sub>
+          <AreaPicker value={t.area} />
+        </div>
+        <div>
+          <Sub>Days per week</Sub>
           <Chips>
             {[...new Set([...DAYS_PER_WEEK, days])].sort().map((d) => <ChoiceChip key={d} type="radio" name="days_per_week" value={String(d)} checked={days === d}>{d} days</ChoiceChip>)}
           </Chips>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Label text="Session length">
-            <select name="session_minutes" defaultValue={t.session_minutes ?? ""} className={inputClass}>
-              <option value="">Not known</option>
-              {SESSION_MINUTES.map((m) => <option key={m} value={m}>{sessionLength(m)}</option>)}
-            </select>
-          </Label>
-          <Label text="Time of day">
-            <select name="time_of_day" defaultValue={t.time_of_day ?? ""} className={inputClass}>
-              <option value="">Not known</option>
-              {TIMES_OF_DAY.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-            </select>
-          </Label>
+        <div>
+          <Sub>Time</Sub>
+          <TimePicker timeOfDay={t.time_of_day} from={t.time_from} to={t.time_to} />
+        </div>
+        <div>
+          <Sub>Each session</Sub>
+          <Chips>{SESSION_MINUTES.map((m) => <ChoiceChip key={m} type="radio" name="session_minutes" value={String(m)} checked={t.session_minutes === m}>{sessionLength(m)}</ChoiceChip>)}</Chips>
         </div>
       </Group>
 
@@ -116,19 +97,15 @@ export function TuitionFields({ t = {} }: { t?: TuitionDraft }) {
       </Group>
 
       <Group title="Tutor wanted">
-        <Chips>
-          {TUTOR_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="tutor_gender_pref" value={g.key} checked={(t.tutor_gender_pref ?? "any") === g.key}>{g.key === "any" ? "Male or female" : `${g.label} tutor`}</ChoiceChip>)}
-        </Chips>
-        <div>
-          <p className="mb-1 text-xs font-semibold text-slate-600">From <span className="font-normal text-slate-400">· none picked = any university</span></p>
-          <Chips>
-            {TUTOR_FROM.map((u) => <ChoiceChip key={u.key} name="tutor_from" value={u.key} checked={from.includes(u.key)}>{u.label}</ChoiceChip>)}
-          </Chips>
-        </div>
+        <TutorPicker genderName="tutor_gender_pref" gender={t.tutor_gender_pref} from={(t.tutor_from ?? "").split(",").filter(Boolean)} />
       </Group>
 
       <Group title="Public wording" hint="Shown on the board. No family names, address or phone numbers.">
-        <Label text="Tutor requirement">
+        <div>
+          <Sub>Guardian asks (quick picks)</Sub>
+          <RequirementPicker picked={requirementKeys(t.requirement_keys)} />
+        </div>
+        <Label text="Tutor requirement" hint="anything else, in the guardian's words">
           <textarea name="requirements_public" rows={2} maxLength={500} defaultValue={t.requirements_public ?? ""} placeholder="e.g. Science background, patient with young students" className={`${inputClass} py-3`} />
         </Label>
         <Label text="Start">

@@ -1,6 +1,7 @@
 // Ready-made WhatsApp texts for the admin (owner, 2026-11-04). The guardian's summary never carries a photo, Facebook,
 // address or (before Selected) the tutor's phone, so a guardian cannot go round HTR.
-import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "./options";
+import { AREAS, SUBJECTS, labelOf } from "./options";
+import { classLabel, requirementLabels, subjectLabel, windowLabel } from "./request";
 import { taka } from "./tuition";
 
 const PREFIX = /^(md\.?|mohammad|mohammed|muhammad|mohd\.?|mst\.?|most\.?|mosammat|sk\.?|sheikh)$/i;
@@ -11,7 +12,7 @@ export function firstName(full: string | null): string {
   return words.find((w) => !PREFIX.test(w)) ?? words[0] ?? "";
 }
 
-type Tuition = { code: number; class_level: string; area: string; salary_kind: string; salary_amount: number | null };
+type Tuition = { code: number; class_level: string; class_other?: string | null; area: string; salary_kind: string; salary_amount: number | null };
 type Tutor = {
   tutor_code: number | null; name: string | null; phone: string | null; institution: string | null; department: string | null;
   session_year: string | null; ssc_group: string | null; ssc_result: string | null; hsc_group: string | null; hsc_result: string | null;
@@ -19,7 +20,7 @@ type Tutor = {
 };
 
 const what = (t: Tuition) =>
-  [labelOf(CLASS_LEVELS, t.class_level), labelOf(AREAS, t.area), t.salary_kind === "fixed" && t.salary_amount ? `${taka(t.salary_amount)}/month` : ""]
+  [classLabel(t.class_level, t.class_other), labelOf(AREAS, t.area), t.salary_kind === "fixed" && t.salary_amount ? `${taka(t.salary_amount)}/month` : ""]
     .filter(Boolean).join(" · ");
 
 const result = (group: string | null, gpa: string | null) => [group, gpa && `GPA ${gpa}`].filter(Boolean).join(", ");
@@ -50,18 +51,25 @@ export function tutorMessage(t: Tuition, a: Pick<Tutor, "name">, step: "shortlis
     : `${hello} You're selected for HTR-${t.code} (${what(t)}). We'll send the guardian's number next; please call them within 3 hours.`;
 }
 
-type Post = Tuition & { subjects: string; days_per_week: number; tutor_gender_pref: string; requirements_public: string; medium: string };
+type Post = Tuition & {
+  subjects: string; days_per_week: number; tutor_gender_pref: string; requirements_public: string; medium: string;
+  subject_other?: string | null; requirement_keys?: string | null; time_from?: number | null; time_to?: number | null;
+};
 
 /** A ready post for Facebook or WhatsApp groups: the public facts and the link to apply. No guardian details. */
 export function tuitionPost(t: Post, origin: string): string {
-  const subjects = t.subjects.split(",").filter(Boolean).map((s) => labelOf(SUBJECTS, s)).join(", ");
+  const subjects = t.subjects.split(",").filter(Boolean).map((s) => subjectLabel(s, t.subject_other)).join(", ");
+  const asks = requirementLabels((t.requirement_keys ?? "").split(",").filter(Boolean));
+  const time = windowLabel(t.time_from, t.time_to);
   const tutor = t.tutor_gender_pref === "female" ? "Female tutor" : t.tutor_gender_pref === "male" ? "Male tutor" : "Male or female tutor";
   return [
     `📚 Tuition HTR-${t.code}`,
-    `${labelOf(CLASS_LEVELS, t.class_level)} · ${labelOf(AREAS, t.area)}`,
+    `${classLabel(t.class_level, t.class_other)} · ${labelOf(AREAS, t.area)}`,
     t.salary_kind === "fixed" && t.salary_amount ? `💰 ${taka(t.salary_amount)}/month · ${t.days_per_week} days/week` : `${t.days_per_week} days/week`,
     subjects ? `Subjects: ${subjects}` : "",
+    time ? `🕑 ${time}` : "",
     `👤 ${tutor}`,
+    ...asks.map((a) => `✅ ${a}`),
     t.requirements_public ? `✅ ${t.requirements_public}` : "",
     "",
     `Apply: ${origin}/tuitions/HTR-${t.code}`,

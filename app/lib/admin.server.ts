@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { ADMIN_PAGE_SIZE, TUITION_MOVES, publishGaps } from "./admin-labels";
 import { bandOf } from "./fit";
 import { AREAS, CLASS_CHOICES, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM } from "./options";
+import { parseWindow, requirementKeys } from "./request";
 
 const PAGE_SIZE = ADMIN_PAGE_SIZE;
 const pageOffset = (page: number) => (Math.max(page, 1) - 1) * PAGE_SIZE;
@@ -85,6 +86,8 @@ export type AdminLead = {
   tutor_gender: string | null; subjects: string | null; area: string; address: string | null; salary: number | null; days_per_week: number | null;
   notes: string | null; lead_source: string | null; status: string; created_at: number; tuitions: string | null;
   referred_code: number | null; flag_reason: string | null; past: number;
+  class_other: string | null; subject_other: string | null; time_of_day: string | null; time_from: number | null; time_to: number | null;
+  session_minutes: number | null; tutor_from: string | null; requirement_keys: string | null;
 };
 
 export async function listLeads(status: string) {
@@ -92,7 +95,8 @@ export async function listLeads(status: string) {
     all<{ status: string; n: number }>(`SELECT status, count(*) n FROM leads GROUP BY status`),
     all<AdminLead>(
       `SELECT l.id, l.phone, l.guardian_name, l.class_level, l.medium, l.student_gender, l.tutor_gender, l.subjects, l.area, l.address, l.salary,
-              l.days_per_week, l.notes, l.lead_source, l.status, l.created_at,
+              l.days_per_week, l.notes, l.lead_source, l.status, l.created_at, l.class_other, l.subject_other, l.time_of_day, l.time_from, l.time_to,
+              l.session_minutes, l.tutor_from, l.requirement_keys,
               (SELECT group_concat(p.tuition_code) FROM tuition_private p WHERE p.lead_id = l.id) tuitions,
               (SELECT code FROM tutors WHERE id = l.referred_by) referred_code,
               (SELECT flag_reason FROM guardians g WHERE g.phone = l.phone) flag_reason,
@@ -131,10 +135,12 @@ export async function postLeadAsTuition(id: number, actorId: number | null): Pro
     env.DB.prepare(`INSERT OR IGNORE INTO guardians (phone, name, created_at) VALUES (?, ?, ?)`).bind(l.phone, l.guardian_name, t),
     env.DB.prepare(
       `INSERT INTO tuitions (code, status, is_public, class_level, medium, subjects, area, salary_kind, salary_amount, days_per_week,
-                             student_gender, tutor_gender_pref)
-       SELECT COALESCE(MAX(code), 0) + 1, 'draft', 0, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM tuitions`,
+                             student_gender, tutor_gender_pref, class_other, subject_other, time_of_day, time_from, time_to, session_minutes, tutor_from, requirement_keys)
+       SELECT COALESCE(MAX(code), 0) + 1, 'draft', 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM tuitions`,
     ).bind(l.class_level, l.medium ?? "", l.subjects ?? "", areaKnown ? l.area : "", l.salary ? "fixed" : "unspecified", l.salary || null,
-      l.days_per_week && l.days_per_week >= 1 && l.days_per_week <= 7 ? l.days_per_week : 3, l.student_gender, l.tutor_gender || "any"),
+      l.days_per_week && l.days_per_week >= 1 && l.days_per_week <= 7 ? l.days_per_week : 3, l.student_gender, l.tutor_gender || "any",
+      // Everything the Quick Pad took down carries over (review step 3), so the admin only checks the wording.
+      l.class_other, l.subject_other, l.time_of_day, l.time_from, l.time_to, l.session_minutes, l.tutor_from ?? "", l.requirement_keys ?? ""),
     env.DB.prepare(
       `INSERT INTO tuition_private (tuition_code, guardian_id, guardian_label, exact_address, lead_source, private_notes, lead_id, created_at, updated_at)
        VALUES (${code}, (SELECT id FROM guardians WHERE phone = ?), ?, ?, ?, ?, ?, ?, ?)`,
@@ -192,7 +198,7 @@ export async function listTuitions(f: { q: string; status: string; visibility: s
 export type TuitionFull = AdminTuitionRow & {
   medium: string; mode: string; salary_period: string; days_per_week: number; student_gender: string | null; accepting_applications: number;
   requirements_public: string; start_note: string; closed_at: number | null; session_minutes: number | null; time_of_day: string | null;
-  tutor_from: string;
+  tutor_from: string; class_other: string | null; subject_other: string | null; time_from: number | null; time_to: number | null; requirement_keys: string;
 };
 export type TuitionPrivate = {
   guardian_id: number | null; guardian_label: string | null; guardian_phone: string | null; exact_address: string | null; lead_source: string | null;
@@ -285,7 +291,13 @@ export function tuitionFieldsProblem(form: FormData): string | null {
   if (salaryKind === "fixed" && (!Number.isInteger(amount) || amount <= 0)) return "Enter the salary.";
   if (!["any", "male", "female"].includes(genderPref)) return "Tutor choice not valid.";
   if (requirements.length > 500 || startNote.length > 100) return "Text is too long.";
-  return publicTextProblem(`${requirements} ${startNote}`);
+  const classOther = text("class_other"), subjectOther = text("subject_other");
+  if (classLevel === "other" && !classOther) return "Write which class (it shows on the board).";
+  if (form.getAll("subjects").includes("other") && !subjectOther) return "Write which subject (it shows on the board).";
+  if (classOther.length > 60 || subjectOther.length > 60) return "Class or subject text is too long.";
+  const window = parseWindow(form.get("time_from"), form.get("time_to"));
+  if (window.error) return window.error;
+  return publicTextProblem(`${requirements} ${startNote} ${classOther} ${subjectOther}`);
 }
 
 export async function updateTuition(code: number, form: FormData, actorId: number | null): Promise<string | null> {
@@ -301,6 +313,8 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   const sessionMinutes = Number(text("session_minutes")) || null, timeOfDay = text("time_of_day") || null;
   const tutorFrom = form.getAll("tutor_from").map(String).filter((k) => TUTOR_FROM.some((o) => o.key === k));
   const studentGender = ["boy", "girl"].includes(text("student_gender")) ? text("student_gender") : null;
+  const window = parseWindow(form.get("time_from"), form.get("time_to"));
+  const asks = requirementKeys(form.getAll("requirements").map(String));
 
   if (status !== current.status && !TUITION_MOVES[current.status]?.includes(status)) return "Can't move to that status.";
   const problem = tuitionFieldsProblem(form);
@@ -320,10 +334,13 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
     env.DB.prepare(
       `UPDATE tuitions SET status = ?, is_public = ?, accepting_applications = ?, medium = ?, class_level = ?, subjects = ?, area = ?, days_per_week = ?,
               session_minutes = ?, time_of_day = ?, salary_kind = ?, salary_amount = ?, tutor_gender_pref = ?, tutor_from = ?, requirements_public = ?, start_note = ?, posted_at = ?,
-              student_gender = COALESCE(?, student_gender), closed_at = CASE WHEN ? IS NULL THEN NULL ELSE COALESCE(closed_at, ?) END
+              student_gender = COALESCE(?, student_gender), closed_at = CASE WHEN ? IS NULL THEN NULL ELSE COALESCE(closed_at, ?) END,
+              class_other = ?, subject_other = ?, time_from = ?, time_to = ?, requirement_keys = ?
        WHERE code = ?`,
     ).bind(status, publish ? 1 : 0, publish && form.get("accepting") === "1" ? 1 : 0, medium, classLevel, subjects.join(","), area, days, sessionMinutes, timeOfDay, salaryKind, salaryKind === "fixed" ? amount : null,
-      genderPref, tutorFrom.join(","), requirements, startNote, postedAt, studentGender, closedAt, closedAt, code),
+      genderPref, tutorFrom.join(","), requirements, startNote, postedAt, studentGender, closedAt, closedAt,
+      classLevel === "other" ? text("class_other") || null : null, subjects.includes("other") ? text("subject_other") || null : null,
+      window.time_from, window.time_to, asks.join(","), code),
     audit(actorId, "tuition_updated", "tuition", String(code), { status, is_public: publish }),
   ]);
   return null;
