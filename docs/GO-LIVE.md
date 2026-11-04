@@ -102,10 +102,15 @@ npm run deploy
 After it is live, close the old Google Form, or point it to `https://hikmahtutor.com/login?join=1`. Keep running
 `npm run import:top-up-real` until the form is closed, so late form entries still arrive.
 
-## 8. Site review step 3 (one set of request fields)
+## 8. Site review step 3 and part A
 
-Needs migration 0014 first (adds optional columns to leads and tuitions; nothing existing changes), then the deploy:
-`npm run db:migrate`, then `npm run deploy`, in the Terminal panel after `npx wrangler whoami`.
+**Live since 2026-11-05**, version `de3cc46d`, after migration 0014 (optional columns on leads and tuitions).
+Includes:
+- the shared request fields (class and medium dropdowns, subjects tick list, time window, address details for the
+  Selected tutor, requirement picks, RC/VU)
+- part A: Bangla reasons, typed lowest salary, new section headings
+
+Checked: public pages 200, admin and tutor pages ask for log in, the guardian form shows the new fields.
 
 ## Before tutors are invited (later)
 
