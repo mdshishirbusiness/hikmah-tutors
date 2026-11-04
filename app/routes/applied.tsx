@@ -9,7 +9,7 @@ import { SiteHeader } from "~/components/site";
 import { Sheet, TutorBar } from "~/components/tutor";
 import { APPLICATION_STATUS, DIDNT_WORK_OUT } from "~/lib/admin-labels";
 import { waLink } from "~/lib/contact";
-import { type MyApplication, didntWorkOut, guardianPhone, myApplications, requireTutor, tick, tutorConfirm, withdraw } from "~/lib/me.server";
+import { type MyApplication, didntWorkOut, guardianPhone, myApplications, requireTutor, tick, tutorBadges, tutorConfirm, withdraw } from "~/lib/me.server";
 import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
 import { feeDisplay, taka } from "~/lib/tuition";
 
@@ -22,8 +22,9 @@ export function headers(_: Route.HeadersArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { me } = await requireTutor(request);
-  return { applications: await myApplications(me.id), name: me.full_name };
+  const { viewer, me } = await requireTutor(request);
+  const [applications, badges] = await Promise.all([myApplications(me.id), tutorBadges(viewer, me)]);
+  return { applications, name: me.full_name, dot: badges.home };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -220,7 +221,7 @@ function ActiveCard({ a, busy }: { a: MyApplication; busy: boolean }) {
   );
 }
 
-export default function Applied({ loaderData: { applications }, actionData }: Route.ComponentProps) {
+export default function Applied({ loaderData: { applications, dot }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const [sp] = useSearchParams();
   const [showClosed, setShowClosed] = useState(false);
@@ -278,7 +279,7 @@ export default function Applied({ loaderData: { applications }, actionData }: Ro
           </section>
         )}
       </main>
-      <TutorBar active="applied" count={selected.filter((a) => a.status !== "confirmed").length} />
+      <TutorBar active="applied" count={selected.filter((a) => a.status !== "confirmed").length} dot={dot} />
     </>
   );
 }

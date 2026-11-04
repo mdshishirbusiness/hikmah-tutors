@@ -1,12 +1,12 @@
 // Every tutor (owner, 2026-11-04: "tracking tutors"). Quick filters for who is active, set up, placed, paused or
 // flagged; university, gender, subject, level and area below. Laptop: a table with photos; phone: rows.
-import { Form, Link } from "react-router";
-import { Flag, Search } from "lucide-react";
+import { Form, Link, useNavigation } from "react-router";
+import { Flag, Megaphone, Search } from "lucide-react";
 import type { Route } from "./+types/admin.tutors";
 import { Avatar } from "~/components/Avatar";
 import { Badge, Empty, PageHead, Pager, StageTabs, ago, num } from "~/components/admin";
 import { ADMIN_PAGE_SIZE } from "~/lib/admin-labels";
-import { type AdminTutorRow, listTutors } from "~/lib/admin.server";
+import { type AdminTutorRow, currentNotice, endNotice, listTutors, setNotice } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { AREAS, BANDS, SUBJECTS } from "~/lib/options";
 
@@ -21,7 +21,42 @@ export async function loader({ request }: Route.LoaderArgs) {
     q: sp.get("q")?.trim() ?? "", gender: sp.get("gender") ?? "", subject: sp.get("subject") ?? "", band: sp.get("band") ?? "", page: Number(sp.get("page")) || 1,
     university: sp.get("university") ?? "", state: sp.get("state") ?? "", area: sp.get("area") ?? "", sort: sp.get("sort") ?? "",
   };
-  return { ...(await listTutors(f)), f };
+  const [list, notice] = await Promise.all([listTutors(f), currentNotice()]);
+  return { ...list, f, notice };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const viewer = await requireAdmin(request);
+  const form = await request.formData();
+  if (form.get("intent") === "end") {
+    await endNotice(viewer?.id ?? null);
+    return { error: null };
+  }
+  return { error: await setNotice(String(form.get("body") ?? ""), Number(form.get("days")), viewer?.id ?? null) };
+}
+
+function NoticeCard({ notice, error }: { notice: { body: string; ends_at: number } | null; error?: string | null }) {
+  const busy = useNavigation().state === "submitting";
+  return (
+    <details className="group rounded-2xl bg-white shadow-ring" open={!!error}>
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 [&::-webkit-details-marker]:hidden">
+        <Megaphone size={18} className="shrink-0 text-brand-600" aria-hidden />
+        <span className="min-w-0 flex-1 text-sm">
+          <b className="text-forest">Notice to tutors</b>
+          <span className="block truncate text-slate-500">{notice ? `Showing: “${notice.body}” until ${new Date(notice.ends_at * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "None showing. Tap to write one for every tutor's Home."}</span>
+        </span>
+      </summary>
+      <Form method="post" className="space-y-2 border-t border-brand-50 p-4">
+        {error && <p role="alert" className="rounded-lg bg-rose-100 px-3 py-2 text-sm font-semibold text-rose-900">{error}</p>}
+        <textarea name="body" rows={2} maxLength={300} defaultValue={notice?.body ?? ""} placeholder="e.g. Eid break: tuitions resume on 15 June." className="w-full rounded-xl bg-cream px-3 py-2 text-base outline-none ring-1 ring-brand-100 focus:ring-2 focus:ring-brand-200" />
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-sm text-slate-600">Show for <select name="days" defaultValue="7" className="min-h-10 rounded-lg bg-white px-2 font-semibold shadow-ring">{[1, 3, 7, 14, 30].map((d) => <option key={d} value={d}>{d} {d === 1 ? "day" : "days"}</option>)}</select></label>
+          <button disabled={busy} className="min-h-11 rounded-xl bg-forest px-4 text-sm font-bold text-cream disabled:opacity-60">{notice ? "Replace notice" : "Show notice"}</button>
+          {notice && <button name="intent" value="end" disabled={busy} className="min-h-11 rounded-xl bg-white px-4 text-sm font-bold text-forest shadow-ring">End now</button>}
+        </div>
+      </Form>
+    </details>
+  );
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical", other: "Other" };
@@ -38,7 +73,7 @@ function Marks({ t }: { t: AdminTutorRow }) {
   );
 }
 
-export default function AdminTutors({ loaderData: { total, items, f } }: Route.ComponentProps) {
+export default function AdminTutors({ loaderData: { total, items, f, notice }, actionData }: Route.ComponentProps) {
   const tabs = [
     { key: "", label: "All" }, { key: "active", label: "Applied in 30 days" }, { key: "setup", label: "Signed in" },
     { key: "placed", label: "Placed" }, { key: "paused", label: "Paused" }, { key: "flagged", label: "Flagged" },
@@ -47,6 +82,7 @@ export default function AdminTutors({ loaderData: { total, items, f } }: Route.C
     <>
       <PageHead title="Tutors" sub={`${num(total)} tutors${f.state ? " in this list" : ""}`} />
       <div className="space-y-3">
+        <NoticeCard notice={notice} error={actionData?.error} />
         <Form method="get" className="space-y-2">
           {f.state && <input type="hidden" name="state" value={f.state} />}
           <div className="flex gap-2">

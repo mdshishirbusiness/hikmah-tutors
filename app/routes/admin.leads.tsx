@@ -67,14 +67,14 @@ export default function Leads({ loaderData: { status, counts, items }, actionDat
         {actionData?.error && <p role="alert" className="rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
 
         {items.length === 0 ? <Empty>No leads in this step.</Empty> : (
-          <ul className="space-y-3">
+          <ul className="grid gap-3 xl:grid-cols-2">
             {items.map((l) => {
               const subjects = (l.subjects ?? "").split(",").filter(Boolean).map((s) => labelOf(SUBJECTS, s)).join(", ");
               const details = [l.student_gender && labelOf(STUDENT_GENDERS, l.student_gender), l.medium && labelOf(MEDIUMS, l.medium), subjects,
                 l.tutor_gender && l.tutor_gender !== "any" && `${labelOf(TUTOR_GENDERS, l.tutor_gender)} tutor`].filter(Boolean).join(" · ");
               const tuitions = (l.tuitions ?? "").split(",").filter(Boolean);
               return (
-                <li key={l.id} className="rounded-2xl border border-brand-100 bg-white p-4 shadow-card sm:p-5">
+                <li key={l.id} className="rounded-2xl bg-white p-4 shadow-ring sm:p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-lg leading-snug font-bold text-forest">{labelOf(CLASS_LEVELS, l.class_level)} · {labelOf(AREAS, l.area)}</p>
@@ -87,6 +87,13 @@ export default function Leads({ loaderData: { status, counts, items }, actionDat
                     {l.days_per_week ? ` · ${l.days_per_week} days/week` : ""}
                   </p>
                   {l.address && <p className="mt-1 flex items-start gap-1.5 text-sm text-slate-600"><MapPin size={15} className="mt-0.5 shrink-0" aria-hidden />{l.address}</p>}
+                  {l.flag_reason && <p role="alert" className="mt-2 rounded-xl bg-rose-100 px-3 py-2 text-sm text-rose-900"><b>Flagged guardian:</b> {l.flag_reason}</p>}
+                  {(l.referred_code || l.past > 0) && (
+                    <p className="mt-2 flex flex-wrap gap-1.5">
+                      {l.referred_code && <Link to={`/admin/tutors/${l.referred_code}`} className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-bold text-sky-900">Referred by T-{l.referred_code}</Link>}
+                      {l.past > 0 && <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-bold text-brand-700">Known guardian · {l.past} {l.past === 1 ? "tuition" : "tuitions"}</span>}
+                    </p>
+                  )}
                   {l.notes && <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-sm whitespace-pre-line text-slate-700">{l.notes}</p>}
                   <p className="mt-2 text-xs text-slate-500">
                     {l.guardian_name && <span className="font-semibold text-slate-700">{l.guardian_name} · </span>}

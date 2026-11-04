@@ -3,24 +3,28 @@ import { useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { ClipboardCheck, House, LayoutList, UserRound } from "lucide-react";
 
-// Home · Tuitions · Applied · Profile (owner, 2026-11-04). Home and Profile point at /me until step 3 splits them.
+// Home · Tuitions · Applied · Profile (owner, 2026-11-04).
 const TABS = [
   { key: "home", to: "/me", label: "Home", icon: House },
   { key: "tuitions", to: "/", label: "Tuitions", icon: LayoutList },
   { key: "applied", to: "/applied", label: "Applied", icon: ClipboardCheck },
-  { key: "profile", to: "/me#profile", label: "Profile", icon: UserRound },
+  { key: "profile", to: "/me/profile", label: "Profile", icon: UserRound },
 ] as const;
 
-/** `count` is the applications waiting on the tutor (a selected tuition), shown as a badge on Applied. */
-export function TutorBar({ active, count = 0 }: { active: (typeof TABS)[number]["key"]; count?: number }) {
+/**
+ * `count` is the applications waiting on the tutor (a selected tuition), shown as a badge on Applied; `dot` is Home's
+ * red dot (something needs action or an update is unread).
+ */
+export function TutorBar({ active, count = 0, dot = false }: { active: (typeof TABS)[number]["key"]; count?: number; dot?: boolean }) {
   return (
     <nav aria-label="Tutor" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-brand-100 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       {TABS.map((t) => {
         const on = t.key === active;
         return (
-          <Link key={t.key} to={t.to} aria-current={on ? "page" : undefined} className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-colors ${on ? "text-forest" : "text-slate-500"}`}>
+          <Link key={t.key} to={t.to} viewTransition prefetch="intent" aria-current={on ? "page" : undefined} className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-colors ${on ? "text-forest" : "text-slate-500"}`}>
             <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition-colors ${on ? "bg-brand-100" : ""}`}>
               <t.icon size={20} aria-hidden />
+              {t.key === "home" && dot && !on && <span aria-label="New" className="absolute top-0 right-2.5 size-2.5 rounded-full bg-rose-600 ring-2 ring-white" />}
               {t.key === "applied" && count > 0 && (
                 <span className="absolute -top-1 right-1 grid min-w-4.5 place-items-center rounded-full bg-rose-600 px-1 text-[10px] leading-4.5 text-white">{count}</span>
               )}

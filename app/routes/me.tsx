@@ -1,17 +1,24 @@
-// The signed-in tutor's own data. Private: only this tutor and the admin can see it.
-import { Form, Link } from "react-router";
-import { ArrowUpRight, Check, LogOut, ShieldCheck } from "lucide-react";
+// The tutor's Home (owner, 2026-11-04), top to bottom: what needs action now, the owner's notice, updates from HTR
+// (a dot while unread), For You (tuitions that fit, newest first) and how complete the profile is. Empty parts hide.
+// Private: only this tutor sees it.
+import { Link, redirect } from "react-router";
+import {
+  ArrowRight, BadgeCheck, Bell, CircleSlash, ClipboardCheck, Megaphone, PartyPopper, PauseCircle, PhoneCall, Sparkles, Star, UserPen, XCircle,
+} from "lucide-react";
 import type { Route } from "./+types/me";
-import { APPLICATION_TONE, Badge, Card, Facts, num, primaryButton, when } from "~/components/admin";
+import { Avatar } from "~/components/Avatar";
+import { ago, num } from "~/components/admin";
 import { SitePage } from "~/components/site";
+import { GenderChip, SalaryText, placeLabel } from "~/components/TuitionCard";
 import { TutorBar } from "~/components/tutor";
-import { APPLICATION_STATUS } from "~/lib/admin-labels";
 import { requireUser } from "~/lib/auth.server";
-import { confirmAvailability, myProfile } from "~/lib/me.server";
-import { AREAS, CLASS_LEVELS, MEDIUMS, SUBJECTS, labelOf } from "~/lib/options";
+import { homeView, liveNotice, markUpdatesSeen, myApplications, tutorBadges, tutorForUser } from "~/lib/me.server";
+import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
+import { timeAgo } from "~/lib/tuition";
+import { firstName } from "~/lib/whatsapp";
 
 export function meta(_: Route.MetaArgs) {
-  return [{ title: "My profile · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
+  return [{ title: "Home · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
 }
 
 export function headers(_: Route.HeadersArgs) {
@@ -20,191 +27,215 @@ export function headers(_: Route.HeadersArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const viewer = await requireUser(request);
-  return { email: viewer.email, profile: await myProfile(viewer.id) };
+  if (viewer.role === "owner") throw redirect("/admin");
+  const me = await tutorForUser(viewer.id);
+  if (!me) return { missing: viewer.email } as const;
+  if (!me.setup_done_at) throw redirect("/me/setup?next=/me");
+  const [view, notice, apps, badges] = await Promise.all([homeView(viewer, me), liveNotice(), myApplications(me.id), tutorBadges(viewer, me)]);
+  // Drawn once with the dots, then marked seen, so the next visit starts clean.
+  await markUpdatesSeen(me);
+  return { missing: null, me, view, notice, apps, badges, now: Math.floor(Date.now() / 1000) } as const;
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const viewer = await requireUser(request);
-  await confirmAvailability(viewer.id);
-  return { confirmed: true };
+const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };
+const NEXT_STEP = {
+  call: { title: "Call the guardian now", sub: "Selected tutors call within 2–3 hours. The number is in Applied.", icon: PhoneCall },
+  meet: { title: "Tick Met after you meet", sub: "Then do the demo class.", icon: ClipboardCheck },
+  demo: { title: "Tick Demo done", sub: "After the demo class, then confirm.", icon: ClipboardCheck },
+  confirm: { title: "Confirm the tuition", sub: "If the guardian continues after the demo.", icon: BadgeCheck },
+};
+const UPDATE = {
+  shortlisted: { text: "You're shortlisted", icon: Star, tone: "bg-sky-100 text-sky-900" },
+  selected: { text: "You're selected!", icon: PartyPopper, tone: "bg-mango text-forest" },
+  not_selected: { text: "Not selected this time", icon: XCircle, tone: "bg-slate-100 text-slate-600" },
+  closed: { text: "Tuition closed", icon: CircleSlash, tone: "bg-slate-100 text-slate-600" },
+  profile: { text: "HTR updated your profile", icon: UserPen, tone: "bg-brand-50 text-brand-700" },
+};
+
+function greeting(now: number) {
+  const h = Number(new Date(now * 1000).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", hour: "numeric", hour12: false }));
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-const BANDS: Record<string, string> = { junior: "Class 1–8", ssc: "Class 9–10", hsc: "Class 11–12" };
-const STATEMENTS: Record<string, string> = {
-  junior_strategy: "Junior: teaching approach", junior_experience: "Junior: experience", ssc_strategy: "SSC: skills and approach", ssc_experience: "SSC: experience",
-  hsc_strategy: "HSC: skills and approach", hsc_experience: "HSC: experience", english_experience: "English medium / version experience", special_skills: "Special skills",
-  skills_detail: "Skills in detail", demo_video: "Demo video",
-};
-const TRANSPORT: Record<string, string> = { none: "None", bicycle: "Bicycle", motorbike: "Motorbike", other: "Other" };
-
-// Application steps a tutor can see, in order (APPLICATION_STATUS has the words).
-const STEPS = ["submitted", "under_review", "shortlisted", "trial_arranged", "confirmed"];
-const STEP_LABEL = ["Applied", "In review", "Shortlisted", "Selected", "Confirmed"];
-const NEXT: Record<string, string> = {
-  submitted: "HTR will review your application.",
-  under_review: "HTR will talk to the guardian and shortlist.",
-  shortlisted: "You'll hear the demo class time.",
-  trial_arranged: "Confirmation comes after the demo.",
-  confirmed: "Congratulations! HTR will call you with the details.",
-};
-
-const SignOut = () => (
-  <Form method="post" action="/logout">
-    <button className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-100 bg-white px-4 text-sm font-semibold text-forest hover:bg-brand-50">
-      <LogOut size={16} aria-hidden />Log out
-    </button>
-  </Form>
-);
-
-function Timeline({ status }: { status: string }) {
-  const at = STEPS.indexOf(status);
-  if (at < 0) return null;
+/** The profile ring: an SVG circle, so it costs nothing and animates with one CSS transition. */
+function Ring({ done, total }: { done: number; total: number }) {
+  const r = 26, c = 2 * Math.PI * r, pct = done / total;
   return (
-    <ol className="mt-4 grid grid-cols-5 gap-1">
-      {STEPS.map((s, i) => (
-        <li key={s} className="flex flex-col items-center text-center">
-          <span className={`flex size-8 items-center justify-center rounded-full text-xs font-bold ${i <= at ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-400"}`}>
-            {i <= at ? <Check size={16} aria-hidden /> : num(i + 1)}
-          </span>
-          <span className={`mt-1 text-[11px] font-semibold ${i <= at ? "text-forest" : "text-slate-400"}`}>{STEP_LABEL[i]}</span>
-        </li>
-      ))}
-    </ol>
+    <svg width="68" height="68" viewBox="0 0 68 68" role="img" aria-label={`${done} of ${total} done`} className="shrink-0 -rotate-90">
+      <circle cx="34" cy="34" r={r} fill="none" stroke="var(--color-brand-100)" strokeWidth="7" />
+      <circle cx="34" cy="34" r={r} fill="none" stroke="var(--color-brand-600)" strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} className="transition-[stroke-dashoffset] duration-700" />
+      <text x="34" y="34" transform="rotate(90 34 34)" textAnchor="middle" dominantBaseline="central" className="fill-forest text-sm font-extrabold">{done}/{total}</text>
+    </svg>
   );
 }
 
-export default function Me({ loaderData: { email, profile } }: Route.ComponentProps) {
-  if (!profile) {
+export default function Home({ loaderData }: Route.ComponentProps) {
+  if (loaderData.missing !== null) {
     return (
       <SitePage>
         <div className="mx-auto max-w-md space-y-4 px-4 py-16">
           <p className="text-xs font-semibold text-brand-700">Tutor panel</p>
           <h1 className="text-3xl font-bold text-forest">Profile not found</h1>
-          <p className="break-words text-slate-700">{email} দিয়ে কোনো টিউটর রেকর্ড মেলেনি। যে Google অ্যাকাউন্ট দিয়ে ফর্ম পূরণ করেছিলেন, সেটি দিয়ে লগইন করে দেখুন।</p>
-          <SignOut />
+          <p className="break-words text-slate-700">{loaderData.missing} দিয়ে কোনো টিউটর রেকর্ড মেলেনি। যে Google অ্যাকাউন্ট দিয়ে ফর্ম পূরণ করেছিলেন, সেটি দিয়ে লগইন করে দেখুন।</p>
         </div>
       </SitePage>
     );
   }
-  const { tutor: t, subjects, statements, applications } = profile;
-  const active = applications.filter((a) => STEPS.indexOf(a.status) >= 0 && a.status !== "confirmed").length;
+  const { me, view, notice, apps, badges, now } = loaderData;
+  const open = apps.filter((a) => ["submitted", "under_review", "shortlisted", "trial_arranged"].includes(a.status));
+  const stats = [
+    ["Open", open.length], ["Shortlisted", apps.filter((a) => a.status === "shortlisted").length],
+    ["Selected", apps.filter((a) => a.status === "trial_arranged").length], ["Confirmed", apps.filter((a) => a.status === "confirmed").length],
+  ] as const;
+  const done = view.progress.filter((p) => p.done).length;
+  const missing = view.progress.filter((p) => !p.done);
+  const unread = view.updates.filter((u) => u.unread).length;
+
   return (
-    <SitePage>
-      <div className="mx-auto max-w-5xl space-y-6 px-4 pt-6 pb-24 sm:px-6 lg:py-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-4">
-            {t.photo_key && <img src={`/photos/tutor/${t.code}`} alt="" width={64} height={64} className="size-16 shrink-0 rounded-2xl object-cover" />}
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-brand-700">Tutor panel · {t.code}</p>
-              <h1 className="mt-1 text-2xl font-bold break-words text-forest sm:text-3xl">{t.full_name}</h1>
-            </div>
+    <SitePage app>
+      <div className="mx-auto max-w-5xl px-4 pt-6 pb-28 sm:px-6 lg:pb-12">
+        <header className="flex animate-rise items-center gap-4">
+          <Avatar code={me.code} name={me.full_name} hasPhoto={!!me.photo_key} size="lg" className="shadow-card" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-slate-500">{greeting(now)},</p>
+            <h1 className="truncate text-[28px] leading-tight font-extrabold tracking-tight text-forest">{firstName(me.full_name)}</h1>
+            <p className="truncate text-xs text-slate-500">T-{me.code} · {[me.university && UNI[me.university], me.department].filter(Boolean).join(" · ")}</p>
           </div>
-          <SignOut />
-        </div>
+          <Link to="/me/profile#availability" className={`hidden shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold sm:inline-flex ${view.paused ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"}`}>
+            {view.paused ? <PauseCircle size={14} aria-hidden /> : <span aria-hidden className="size-2 rounded-full bg-emerald-600" />}
+            {view.paused ? "Paused" : "Taking tuitions"}
+          </Link>
+        </header>
 
-        <div className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
-          <Card>
-            <p className="text-xs font-semibold text-brand-700">Your readiness</p>
-            {t.availability_confirmed_at ? (
-              <>
-                <h2 className="mt-2 text-2xl font-bold text-forest sm:text-3xl">Ready to apply!</h2>
-                <p className="mt-2 text-sm text-slate-500">পড়াতে আগ্রহী বলে নিশ্চিত করেছেন। তথ্য বদলালে HTR-কে জানান।</p>
-              </>
-            ) : (
-              <>
-                <h2 className="mt-2 text-2xl font-bold text-forest sm:text-3xl">Do you still want to tutor?</h2>
-                <p className="mt-2 text-sm text-slate-500">নিচের তথ্য দেখে নিন। এখনো পড়াতে আগ্রহী হলে নিশ্চিত করুন।</p>
-                <Form method="post" className="mt-4">
-                  <button className={`${primaryButton} w-full sm:w-auto`}>Yes, I'm interested</button>
-                </Form>
-              </>
+        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-5">
+            {view.paused && (
+              <Link to="/me/profile#availability" className="flex items-center gap-3 rounded-2xl bg-amber-100 px-4 py-3 text-sm text-amber-900">
+                <PauseCircle size={20} className="shrink-0" aria-hidden /><span><b>You're paused.</b> HTR won't suggest tuitions to you. Turn it off in Profile.</span>
+              </Link>
             )}
-            <p className="mt-5 flex items-start gap-2 rounded-xl bg-brand-50 px-3 py-2 text-xs text-slate-600">
-              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-brand-700" aria-hidden />এই তথ্য পাবলিক নয়। শুধু আপনি ও Hikmah Tutors-এর অ্যাডমিন দেখতে পান।
-            </p>
-          </Card>
-          <div className="flex flex-col justify-between gap-5 rounded-2xl bg-forest p-6 text-cream">
-            <div>
-              <p className="text-xs font-semibold text-brand-200">Your teaching journey</p>
-              <p className="mt-3 text-base font-semibold">Don't miss the right tuition.</p>
-            </div>
-            <div className="space-y-1">
-              <Link to="/applied" className="flex min-h-12 items-center justify-between gap-2 border-b border-white/10 py-2 text-sm transition-colors hover:text-mango">
-                <span>Active applications</span><span className="font-bold">{num(active)}</span>
-              </Link>
-              <Link to="/" className="flex min-h-12 items-center justify-between gap-2 py-2 text-sm transition-colors hover:text-mango">
-                <span>See all tuitions</span><ArrowUpRight size={17} aria-hidden />
-              </Link>
-            </div>
-          </div>
-        </div>
 
-        <section id="applications" className="scroll-mt-24">
-          <h2 className="mb-4 text-lg font-bold text-forest">My applications ({num(applications.length)})</h2>
-          {applications.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-brand-200 bg-white p-8 text-center text-slate-600">No applications yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {applications.map((a) => (
-                <Card key={a.id}>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <Link to={`/tuitions/HTR-${a.tuition_code}`} className="font-bold text-forest hover:underline">HTR-{a.tuition_code}</Link>
-                      <p className="text-sm text-slate-700">{labelOf(CLASS_LEVELS, a.class_level)} · {labelOf(AREAS, a.area)}</p>
-                      <p className="text-xs text-slate-500">Applied {when(a.created_at)}</p>
-                    </div>
-                    <Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge>
-                  </div>
-                  <Timeline status={a.status} />
-                  {NEXT[a.status] && <p className="mt-3 text-sm text-slate-700"><b>Next:</b> {NEXT[a.status]}</p>}
-                </Card>
+            {view.needs.map((n) => {
+              const step = NEXT_STEP[n.next];
+              return (
+                <Link key={n.application_id} to="/applied" className="group block animate-rise overflow-hidden rounded-3xl bg-forest p-5 text-cream shadow-lift">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-mango px-3 py-0.5 text-xs font-extrabold text-forest"><Sparkles size={13} aria-hidden />Needs action</span>
+                  <p className="mt-3 text-sm text-brand-200">HTR-{n.tuition_code} · {labelOf(CLASS_LEVELS, n.class_level)} · {labelOf(AREAS, n.area)}</p>
+                  <p className="mt-1 flex items-center gap-2 text-2xl font-extrabold"><step.icon size={24} className="text-mango" aria-hidden />{step.title}</p>
+                  <p className="mt-1 text-sm text-brand-100">{step.sub}</p>
+                  <span className="mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-mango px-4 text-sm font-extrabold text-forest transition-transform group-hover:translate-x-0.5">Open in Applied<ArrowRight size={16} aria-hidden /></span>
+                </Link>
+              );
+            })}
+
+            {notice && (
+              <div className="flex gap-3 rounded-2xl bg-mango px-4 py-3.5 text-forest">
+                <Megaphone size={20} className="mt-0.5 shrink-0" aria-hidden />
+                <p className="text-sm leading-relaxed"><b>From HTR:</b> {notice.body}</p>
+              </div>
+            )}
+
+            <Link to="/applied" className="grid grid-cols-4 gap-2 rounded-2xl bg-white p-3 shadow-ring">
+              {stats.map(([k, v]) => (
+                <span key={k} className="rounded-xl py-1.5 text-center">
+                  <span className="block text-2xl font-extrabold text-forest tabular-nums">{num(v)}</span>
+                  <span className="block text-[11px] font-semibold text-slate-500">{k}</span>
+                </span>
               ))}
-            </div>
-          )}
-        </section>
+            </Link>
 
-        <div id="profile" className="grid scroll-mt-24 gap-5 lg:grid-cols-2">
-          <Card>
-            <h2 className="mb-2 text-lg font-bold text-forest">My details</h2>
-            <Facts rows={[
-              ["Tutor code", t.code], ["Email", t.email], ["Phone", t.phone], ["Other phone", t.alt_phone], ["Gender", t.gender === "female" ? "Female" : t.gender === "male" ? "Male" : ""],
-              ["Institution", t.institution], ["Department", t.department], ["Session", t.session_year],
-              ["Medium", (t.mediums ?? "").split(",").filter(Boolean).map((m) => labelOf(MEDIUMS, m)).join(", ")],
-              ["Lives in", t.current_location], ["Home", [t.home_district, t.home_division].filter(Boolean).join(", ")],
-              ["Demo class", t.demo_willing === null ? "" : t.demo_willing ? "Willing" : "Not willing"], ["Transport", t.transport ? TRANSPORT[t.transport] : ""],
-            ]} />
-          </Card>
-          <div className="space-y-5">
-            <Card>
-              <h2 className="mb-2 text-lg font-bold text-forest">Education</h2>
-              <Facts rows={[
-                ["SSC", [t.ssc_school, t.ssc_group, t.ssc_year, t.ssc_result && `GPA ${t.ssc_result}`].filter(Boolean).join(" · ")],
-                ["HSC", [t.hsc_college, t.hsc_group, t.hsc_year, t.hsc_result && `GPA ${t.hsc_result}`].filter(Boolean).join(" · ")],
-              ]} />
-            </Card>
-            <Card>
-              <h2 className="mb-3 text-lg font-bold text-forest">Can teach</h2>
-              {Object.entries(BANDS).map(([band, label]) => {
-                const list = subjects.filter((s) => s.band === band).map((s) => labelOf(SUBJECTS, s.subject));
-                return list.length > 0 && (
-                  <div key={band} className="py-1.5">
-                    <p className="text-xs font-semibold text-slate-500">{label}</p>
-                    <div className="mt-1 flex flex-wrap gap-1.5">{list.map((s) => <span key={s} className="rounded-full bg-brand-50 px-3 py-1 text-sm font-semibold text-forest">{s}</span>)}</div>
+            {view.forYou.length > 0 && (
+              <section aria-labelledby="for-you">
+                <div className="mb-2 flex items-end justify-between">
+                  <h2 id="for-you" className="text-lg font-extrabold text-forest">For you <span className="text-sm font-semibold text-slate-400">{view.forYouTotal}</span></h2>
+                  <Link to="/?chip=for-you" className="inline-flex min-h-10 items-center gap-1 text-sm font-bold text-brand-700">See all<ArrowRight size={15} aria-hidden /></Link>
+                </div>
+                <ul className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-1 xl:grid-cols-2">
+                  {view.forYou.map((t, i) => (
+                    <li key={t.code} className="w-[78%] shrink-0 snap-start sm:w-auto" style={{ animationDelay: `${i * 60}ms` }}>
+                      <article className="flex h-full animate-rise flex-col rounded-2xl bg-white p-4 shadow-ring">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-slate-400">{t.code_label}</span>
+                          <span className="text-xs text-slate-400">{timeAgo(t.posted_at, now)}</span>
+                        </div>
+                        <p className="mt-1 text-2xl font-extrabold tracking-tight text-forest"><SalaryText t={t} unitClass="text-sm text-slate-500" /></p>
+                        <p className="font-bold text-slate-800">{labelOf(CLASS_LEVELS, t.class_level)} · {placeLabel(t)}</p>
+                        <p className="mt-0.5 truncate text-sm text-slate-500">{t.subjects.map((s) => labelOf(SUBJECTS, s)).join(", ")} · {t.days_per_week} days</p>
+                        <div className="mt-2"><GenderChip t={t} /></div>
+                        <div className="mt-auto flex gap-2 pt-3">
+                          <Link to={`/tuitions/${t.code_label}`} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-white text-sm font-bold text-forest shadow-ring">Details</Link>
+                          <Link to={`/tuitions/${t.code_label}/apply`} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-forest text-sm font-bold text-cream hover:bg-brand-700">Apply</Link>
+                        </div>
+                      </article>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {view.forYou.length === 0 && !view.paused && (
+              <p className="rounded-2xl border border-dashed border-brand-200 bg-white/60 p-5 text-center text-sm text-slate-600">
+                No new tuitions match your choices right now. <Link to="/" className="font-bold text-brand-700">See all tuitions</Link>
+              </p>
+            )}
+          </div>
+
+          <div className="min-w-0 space-y-5">
+            {missing.length > 0 && (
+              <section className="rounded-2xl bg-white p-4 shadow-ring">
+                <div className="flex items-center gap-4">
+                  <Ring done={done} total={view.progress.length} />
+                  <div className="min-w-0">
+                    <h2 className="font-extrabold text-forest">Finish your profile</h2>
+                    <p className="text-sm text-slate-500">A full profile gets better matches and helps HTR pick you.</p>
                   </div>
-                );
-              })}
-            </Card>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {missing.map((p) => (
+                    <Link key={p.key} to={`/me/profile#${p.key}`} className="inline-flex min-h-10 items-center gap-1 rounded-full bg-brand-50 px-3 text-sm font-semibold text-forest hover:bg-brand-100">+ {p.label}</Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section aria-labelledby="updates" className="rounded-2xl bg-white p-4 shadow-ring">
+              <h2 id="updates" className="flex items-center gap-2 font-extrabold text-forest"><Bell size={18} aria-hidden />Updates{unread > 0 && <span className="rounded-full bg-rose-600 px-2 text-xs leading-5 text-white">{unread} new</span>}</h2>
+              {view.updates.length === 0 ? <p className="mt-3 text-sm text-slate-500">Nothing new in the last 30 days.</p> : (
+                <ul className="mt-2 divide-y divide-brand-50">
+                  {view.updates.slice(0, 8).map((u, i) => {
+                    const k = UPDATE[u.kind];
+                    return (
+                      <li key={i}>
+                        <Link to={u.tuition_code ? "/applied" : "/me/profile"} className="flex items-center gap-3 py-2.5">
+                          <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${k.tone}`}><k.icon size={17} aria-hidden /></span>
+                          <span className="min-w-0 flex-1">
+                            <span className={`block text-sm ${u.unread ? "font-extrabold text-forest" : "font-semibold text-slate-700"}`}>{k.text}{u.tuition_code ? ` · HTR-${u.tuition_code}` : ""}</span>
+                            <span className="block text-xs text-slate-400">{ago(u.at)}</span>
+                          </span>
+                          {u.unread && <span aria-label="Unread" className="size-2.5 shrink-0 rounded-full bg-rose-600" />}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            <section className="grid grid-cols-2 gap-3">
+              <Link to="/me/refer" className="rounded-2xl bg-white p-4 shadow-ring transition-shadow hover:shadow-lift">
+                <Megaphone size={20} className="text-brand-600" aria-hidden />
+                <p className="mt-2 font-bold text-forest">Refer a tuition</p>
+                <p className="text-xs text-slate-500">Know a guardian? Send them to HTR.</p>
+              </Link>
+              <Link to="/fees" className="rounded-2xl bg-white p-4 shadow-ring transition-shadow hover:shadow-lift">
+                <BadgeCheck size={20} className="text-brand-600" aria-hidden />
+                <p className="mt-2 font-bold text-forest">How fees work</p>
+                <p className="text-xs text-slate-500">One-time, only when you get one.</p>
+              </Link>
+            </section>
           </div>
         </div>
-
-        {statements.map((s) => (
-          <Card key={s.kind}>
-            <h2 className="mb-1 text-lg font-bold text-forest">{STATEMENTS[s.kind]}</h2>
-            <p className="text-sm break-words whitespace-pre-line text-slate-700">{s.body}</p>
-          </Card>
-        ))}
       </div>
-      <TutorBar active="home" count={applications.filter((a) => a.status === "trial_arranged").length} />
+      <TutorBar active="home" count={badges.applied} />
     </SitePage>
   );
 }

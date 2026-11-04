@@ -1,7 +1,19 @@
-import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, type ShouldRevalidateFunctionArgs } from "react-router";
 
 import type { Route } from "./+types/root";
+import { headerViewer } from "./lib/me.server";
 import "./app.css";
+
+// The header shows who is signed in (a tutor's photo, Admin for the owner, Log in otherwise).
+export async function loader({ request }: Route.LoaderArgs) {
+  return { viewer: await headerViewer(request) };
+}
+
+// Sign-in state only changes on a form post (log out) or a full page load (Google's return), not on filters.
+export function shouldRevalidate({ formMethod, currentUrl, nextUrl, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
+  if (formMethod) return defaultShouldRevalidate;
+  return currentUrl.pathname !== nextUrl.pathname && defaultShouldRevalidate;
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "preload", href: "/fonts/plus-jakarta-sans-latin.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" },

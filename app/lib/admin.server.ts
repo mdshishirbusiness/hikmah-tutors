@@ -80,6 +80,7 @@ export type AdminLead = {
   id: number; phone: string; guardian_name: string | null; class_level: string; medium: string | null; student_gender: string | null;
   tutor_gender: string | null; subjects: string | null; area: string; address: string | null; salary: number | null; days_per_week: number | null;
   notes: string | null; lead_source: string | null; status: string; created_at: number; tuitions: string | null;
+  referred_code: number | null; flag_reason: string | null; past: number;
 };
 
 export async function listLeads(status: string) {
@@ -88,7 +89,10 @@ export async function listLeads(status: string) {
     all<AdminLead>(
       `SELECT l.id, l.phone, l.guardian_name, l.class_level, l.medium, l.student_gender, l.tutor_gender, l.subjects, l.area, l.address, l.salary,
               l.days_per_week, l.notes, l.lead_source, l.status, l.created_at,
-              (SELECT group_concat(p.tuition_code) FROM tuition_private p WHERE p.lead_id = l.id) tuitions
+              (SELECT group_concat(p.tuition_code) FROM tuition_private p WHERE p.lead_id = l.id) tuitions,
+              (SELECT code FROM tutors WHERE id = l.referred_by) referred_code,
+              (SELECT flag_reason FROM guardians g WHERE g.phone = l.phone) flag_reason,
+              (SELECT count(*) FROM tuition_private p JOIN guardians g ON g.id = p.guardian_id WHERE g.phone = l.phone) past
        FROM leads l ${status ? "WHERE l.status = ?" : ""} ORDER BY l.created_at DESC LIMIT 100`,
       ...(status ? [status] : []),
     ),
@@ -881,4 +885,30 @@ export async function checkIn(id: number, day: string, salaryPaid: boolean, note
     audit(actorId, `checkin_${day}`, "placement", String(id), { salary_paid: salaryPaid }),
   ]);
   return null;
+}
+
+// ---------- Owner notice to tutors ----------
+
+export async function currentNotice() {
+  return env.DB.prepare(`SELECT id, body, ends_at FROM notices WHERE ends_at > ? ORDER BY created_at DESC LIMIT 1`).bind(now()).first<{ id: number; body: string; ends_at: number }>();
+}
+
+/** One notice at a time: a new one ends the old. `days` = how long it shows (1–30). */
+export async function setNotice(body: string, days: number, actorId: number | null): Promise<string | null> {
+  const text = body.trim();
+  if (!text) return "Write the notice.";
+  if (text.length > 300) return "Keep it under 300 characters.";
+  if (!Number.isInteger(days) || days < 1 || days > 30) return "Show it for 1 to 30 days.";
+  const t = now();
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE notices SET ends_at = ? WHERE ends_at > ?`).bind(t, t),
+    env.DB.prepare(`INSERT INTO notices (body, ends_at, created_by, created_at) VALUES (?, ?, ?, ?)`).bind(text, t + days * 86400, actorId, t),
+    audit(actorId, "notice_set", "notice", "all", { days }),
+  ]);
+  return null;
+}
+
+export async function endNotice(actorId: number | null) {
+  const t = now();
+  await env.DB.batch([env.DB.prepare(`UPDATE notices SET ends_at = ? WHERE ends_at > ?`).bind(t, t), audit(actorId, "notice_ended", "notice", "all", {})]);
 }

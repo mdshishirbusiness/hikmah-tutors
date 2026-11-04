@@ -3,7 +3,7 @@
 import { env } from "cloudflare:workers";
 import { redirect } from "react-router";
 import { moveApplication } from "./admin.server";
-import { type Viewer, requireUser } from "./auth.server";
+import { type Viewer, getViewer, requireUser } from "./auth.server";
 import { type Fit, bandOf, fitOf } from "./fit";
 import { DIDNT_WORK_OUT } from "./admin-labels";
 import { AREAS, BANDS, CLASS_CHOICES, SUBJECTS, TRANSPORTS } from "./options";
@@ -42,6 +42,11 @@ export async function myProfile(userId: number) {
     ).bind(tutor.id).all<{ id: number; tuition_code: number; status: string; created_at: number; class_level: string; area: string }>(),
   ]);
   return { tutor, subjects: subjects.results, statements: statements.results, applications: applications.results };
+}
+
+/** The signed-in user's tutor record, or null (a Google account with no registration). */
+export async function tutorForUser(userId: number) {
+  return env.DB.prepare(`SELECT ${COLUMNS} FROM tutors WHERE user_id = ? AND deleted_at IS NULL`).bind(userId).first<MyTutor>();
 }
 
 export async function confirmAvailability(userId: number) {
@@ -382,4 +387,49 @@ export async function setPaused(viewer: Viewer, me: MyTutor, paused: boolean) {
     env.DB.prepare(`UPDATE tutors SET availability_paused = ?, updated_at = ? WHERE id = ?`).bind(paused ? 1 : 0, now(), me.id),
     audit(viewer.id, paused ? "tutor_paused" : "tutor_unpaused", "tutor", String(me.code), {}),
   ]);
+}
+
+// ---------- Owner notice and referrals (owner, 2026-11-04, Porao comparison) ----------
+
+/** The one live notice to all tutors, if any; it disappears by itself after its end date. */
+export async function liveNotice() {
+  return env.DB.prepare(`SELECT id, body, ends_at FROM notices WHERE ends_at > ? ORDER BY created_at DESC LIMIT 1`).bind(now()).first<{ id: number; body: string; ends_at: number }>();
+}
+
+export type Referral = { id: number; class_level: string; area: string; status: string; created_at: number; tuition_code: number | null };
+
+export async function myReferrals(me: MyTutor): Promise<Referral[]> {
+  const { results } = await env.DB.prepare(`SELECT id, class_level, area, status, created_at, tuition_code FROM leads WHERE referred_by = ? ORDER BY created_at DESC LIMIT 20`)
+    .bind(me.id).all<Referral>();
+  return results;
+}
+
+/** "Refer a tuition": a guardian the tutor knows, landing on Leads as "Referred by T-…". No reward yet (owner). */
+export async function referTuition(viewer: Viewer, me: MyTutor, form: FormData): Promise<string | null> {
+  const text = (k: string) => String(form.get(k) ?? "").trim();
+  const phone = text("phone").replace(/[\s-]/g, "").replace(/^\+?88/, "");
+  if (!/^01[3-9]\d{8}$/.test(phone)) return "Enter the guardian's phone (01XXXXXXXXX).";
+  const cls = text("class_level"), area = text("area");
+  if (!CLASS_CHOICES.some((c) => c.key === cls)) return "Pick the class.";
+  if (!AREAS.some((a) => a.key === area)) return "Pick the area.";
+  const name = text("guardian_name").slice(0, 80), note = text("note").slice(0, 300);
+  const t = now();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO leads (client_id, phone, guardian_name, class_level, area, notes, lead_source, status, created_at, synced_at, referred_by)
+       VALUES (?, ?, ?, ?, ?, ?, 'referral', 'new', ?, ?, ?)`,
+    ).bind(`ref-${me.id}-${t}-${crypto.randomUUID().slice(0, 8)}`, phone, name || null, cls, area, note ? `Referred by T-${me.code}: ${note}` : `Referred by T-${me.code}`, t, t, me.id),
+    audit(viewer.id, "tuition_referred", "tutor_referral", String(me.code), {}),
+  ]);
+  return null;
+}
+
+/** Who is signed in, for the site header only: role, first name, and a tutor's code and photo. No private fields. */
+export async function headerViewer(request: Request): Promise<{ role: "owner" | "tutor"; name: string | null; code: number | null; photo: boolean } | null> {
+  const viewer = await getViewer(request);
+  if (!viewer) return null;
+  if (viewer.role === "owner") return { role: "owner", name: viewer.name, code: null, photo: false };
+  const t = await env.DB.prepare(`SELECT code, full_name, photo_key FROM tutors WHERE user_id = ? AND deleted_at IS NULL`).bind(viewer.id)
+    .first<{ code: number; full_name: string; photo_key: string | null }>();
+  return { role: "tutor", name: t?.full_name ?? viewer.name, code: t?.code ?? null, photo: !!t?.photo_key };
 }
