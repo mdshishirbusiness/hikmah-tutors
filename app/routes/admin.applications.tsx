@@ -1,6 +1,9 @@
-import { Form, Link } from "react-router";
+// Every application across tuitions, newest first, with step tabs. Each row opens the tuition's workspace with that
+// applicant already picked.
+import { Link } from "react-router";
 import type { Route } from "./+types/admin.applications";
-import { Badge, Empty, PageHead, Pager, num, inputClass, primaryButton, when, APPLICATION_TONE } from "~/components/admin";
+import { Avatar } from "~/components/Avatar";
+import { APPLICATION_TONE, Badge, Empty, PageHead, Pager, StageTabs, ago, num } from "~/components/admin";
 import { ADMIN_PAGE_SIZE, APPLICATION_STATUS } from "~/lib/admin-labels";
 import { listApplications } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
@@ -17,34 +20,33 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { ...(await listApplications(f)), f };
 }
 
+const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };
+
 export default function AdminApplications({ loaderData: { total, items, f } }: Route.ComponentProps) {
+  const tabs = [{ key: "", label: "All" }, ...["submitted", "under_review", "shortlisted", "trial_arranged", "confirmed", "not_selected"].map((k) => ({ key: k, label: APPLICATION_STATUS[k] }))];
   return (
     <>
-      <PageHead title={`Applications (${num(total)})`} />
-      <main className="space-y-3">
-        <Form method="get" className="grid grid-cols-2 gap-2">
-          <select name="status" defaultValue={f.status} aria-label="Status" className={`${inputClass} col-span-2`}>
-            <option value="">All statuses</option>
-            {Object.entries(APPLICATION_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <label className="flex min-h-11 items-center gap-2 text-sm text-forest">
-            <input type="checkbox" name="open" value="1" defaultChecked={f.open} className="size-5 accent-forest" />
-            Open tuitions only
-          </label>
-          <button className={primaryButton}>Show</button>
-        </Form>
+      <PageHead title="Applications" sub={`${num(total)}${f.open ? " on open tuitions" : ""}`}
+        action={<Link to={f.open ? "?" : `?open=1${f.status ? `&status=${f.status}` : ""}`} className={`inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-bold shadow-ring ${f.open ? "bg-forest text-cream" : "bg-white text-forest"}`}>Open tuitions only</Link>} />
+      <div className="space-y-3">
+        <StageTabs tabs={tabs} active={f.status} param="status" />
         {items.length === 0 ? <Empty>No applications.</Empty> : (
-          <ul className="space-y-2">
+          <ul className="divide-y divide-brand-50 overflow-hidden rounded-2xl bg-white shadow-ring">
             {items.map((a) => (
               <li key={a.id}>
-                <Link to={`/admin/tuitions/${a.tuition_code}`} className="block rounded-xl border border-brand-100 bg-white px-3 py-3 transition-shadow duration-150 hover:shadow-card">
-                  <span className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="min-w-0 font-semibold break-words text-forest">{a.name || "No name"}</span>
-                    <Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge>
+                <Link to={`/admin/tuitions/${a.tuition_code}?a=${a.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-brand-50/50">
+                  <Avatar code={a.tutor_code} name={a.name} hasPhoto={!!a.photo_key} size="sm" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-bold text-forest">{a.name || "No name"}</span>
+                    <span className="block truncate text-xs text-slate-500">{[a.tutor_code ? `T-${a.tutor_code}` : "No tutor match", a.university && UNI[a.university], a.department].filter(Boolean).join(" · ")}</span>
                   </span>
-                  <span className="mt-1 block text-sm text-slate-600">
-                    HTR-{a.tuition_code} · {labelOf(CLASS_LEVELS, a.class_level)} · {labelOf(AREAS, a.area)} · {when(a.created_at)}
-                    {!a.tutor_code && " · no tutor match"}
+                  <span className="hidden min-w-0 flex-1 sm:block">
+                    <span className="block truncate text-sm font-semibold text-slate-800">HTR-{a.tuition_code} · {labelOf(CLASS_LEVELS, a.class_level)}</span>
+                    <span className="block truncate text-xs text-slate-500">{labelOf(AREAS, a.area)}</span>
+                  </span>
+                  <span className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge tone={APPLICATION_TONE[a.status]}>{APPLICATION_STATUS[a.status]}</Badge>
+                    <span className="text-xs text-slate-400">{ago(a.created_at)}</span>
                   </span>
                 </Link>
               </li>
@@ -52,7 +54,7 @@ export default function AdminApplications({ loaderData: { total, items, f } }: R
           </ul>
         )}
         <Pager total={total} pageSize={ADMIN_PAGE_SIZE} />
-      </main>
+      </div>
     </>
   );
 }

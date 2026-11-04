@@ -570,7 +570,7 @@ export async function listGuardians(f: { q: string; page: number }) {
 }
 
 export async function getGuardian(id: number) {
-  const guardian = await env.DB.prepare(`SELECT id, phone, alt_phone, name, notes FROM guardians WHERE id = ?`).bind(id).first<{ id: number; phone: string; alt_phone: string | null; name: string | null; notes: string | null }>();
+  const guardian = await env.DB.prepare(`SELECT id, phone, alt_phone, name, notes, flag_reason FROM guardians WHERE id = ?`).bind(id).first<{ id: number; phone: string; alt_phone: string | null; name: string | null; notes: string | null; flag_reason: string | null }>();
   if (!guardian) return null;
   const tuitions = await all<{ code: number; status: string; class_level: string; area: string; label: string | null; exact_address: string | null }>(
     `SELECT t.code, t.status, t.class_level, t.area, p.guardian_label label, p.exact_address FROM tuition_private p JOIN tuitions t ON t.code = p.tuition_code
@@ -589,8 +589,8 @@ export async function listApplications(f: { status: string; open: boolean; page:
   const from = `FROM applications a JOIN tuitions t ON t.code = a.tuition_code LEFT JOIN tutors u ON u.id = a.tutor_id WHERE ${where.join(" AND ")}`;
   const [total, items] = await Promise.all([
     count(`SELECT count(*) n ${from}`, ...args),
-    all<{ id: number; tuition_code: number; status: string; created_at: number; name: string | null; tutor_code: number | null; class_level: string; area: string }>(
-      `SELECT a.id, a.tuition_code, a.status, a.created_at, COALESCE(u.full_name, a.applicant_name) name, u.code tutor_code, t.class_level, t.area
+    all<{ id: number; tuition_code: number; status: string; created_at: number; name: string | null; tutor_code: number | null; class_level: string; area: string; photo_key: string | null; department: string | null; university: string | null }>(
+      `SELECT a.id, a.tuition_code, a.status, a.created_at, COALESCE(u.full_name, a.applicant_name) name, u.code tutor_code, t.class_level, t.area, u.photo_key, u.department, u.university
        ${from} ORDER BY a.created_at DESC LIMIT ? OFFSET ?`,
       ...args, PAGE_SIZE, pageOffset(f.page),
     ),

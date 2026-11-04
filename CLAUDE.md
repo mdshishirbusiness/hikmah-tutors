@@ -43,6 +43,10 @@ enforced with SQLite triggers. Roles: Owner only for now.
   (`app/lib/lead-queue.ts`) and is sent when the net is back. `client_id` makes retries safe (no duplicates).
 - Tutor pages call `requireTutor` (`app/lib/me.server.ts`). To try them in `npm run dev`, open `/dev/tutor/<code>` for a
   synthetic test tutor (code ≥ 99000, created_via 'staff'); it never works for real tutors or in a production build.
+- Try and screenshot on invented data: `npm run synthetic:seed` once, then `npm run dev:synthetic` (launch config
+  `hikmah-synthetic`, port 5174). The plain `npm run dev` uses `.wrangler/state`, which holds a copy of the real data.
+- Admin pieces: `app/components/Applicants.tsx` (applicant table/board/detail), `charts.tsx` (no chart library),
+  `TuitionFields.tsx` (new and edit tuition), `Avatar.tsx` (private photos via `/photos/tutor/:code`).
 - Database changes: a new numbered file in `migrations/`, then `npm run db:migrate:local` (and `db:migrate` for the
   real database on the Hikmah account). Never edit a migration that has run on the real database.
 

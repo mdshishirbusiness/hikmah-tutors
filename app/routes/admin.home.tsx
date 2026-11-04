@@ -128,7 +128,7 @@ export default function AdminHome({ loaderData: { counts: c, list, p, now } }: R
         <main className="space-y-6">
           {nothing && <p className="rounded-2xl border border-dashed border-brand-200 bg-white/60 p-8 text-center text-slate-600">আজকের সব কাজ শেষ। নতুন কল এলে + চাপুন।</p>}
           <Section title="Call" tasks={calls} more={{ to: "/admin/leads", label: "All leads" }} />
-          <Section title="Selected tutors" tasks={[...notCalled, ...confirmed]} more={{ to: "/admin/placements", label: "Placements" }} />
+          <Section title="Selected tutors" tasks={[...confirmed, ...notCalled]} more={{ to: "/admin/placements", label: "Placements" }} />
           <Section title="Check-in calls" tasks={checkins} more={{ to: "/admin/placements", label: "Placements" }} />
           <Section title="Check applications" tasks={applications} more={{ to: "/admin/applications?status=submitted&open=1", label: "All new" }} />
           <Section title="Post tuitions" tasks={[...toPost, ...drafts]} more={{ to: "/admin/leads?status=called", label: "Called leads" }} />

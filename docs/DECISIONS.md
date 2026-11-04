@@ -3,6 +3,51 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-04 (design and workflow overhaul)
+
+Context: the owner dropped the inspiration-picture step and asked Claude to design "like a high end designer" from the
+best products, improve the admin workflow (charts on the dashboard, applications that stay readable at 50 applicants
+on a laptop, tutor photos when deciding), finish the planned steps, and commit, push and make the site ready to post
+and track tuitions. The owner gave permission for the whole job. Choices Claude made:
+
+- **Type:** Plus Jakarta Sans (variable, self-hosted, 27 KB) for English text and numbers; Bangla still falls through
+  to Hind Siliguri. Short UI text is English, so the Latin face sets the tone. Salaries use the extra-bold weight.
+- **Admin shell:** a forest sidebar (a colour band, not a dark page) with what waits in each place (new leads, new
+  applications, open tuitions, selected tutors, review), one search box for tuition codes, tutor names, codes and
+  phones, guardians and areas (Ctrl+K or /), and a New menu (lead or tuition). The phone keeps its bottom bar and +.
+- **Applicant workspace** (the owner's 50-applicant case): a ranked table with photo, match %, fit marks (subjects,
+  area, university), applied time and step; the picked tutor's whole picture stays on the right (education, history
+  with HTR, experience, note, progress ticks, WhatsApp texts, the next move). A Board view shows one column per step.
+  On the phone a tap opens the picture as a sheet. J/K or arrows walk the list; after a move it goes on to the next.
+  **Match %** = subjects (2), area (1), university when asked (1), class (0.5), minus 0.5 under their lowest salary;
+  a gender mismatch is 0. It ranks; it never blocks.
+- **One-tap tuition states:** Publish to board (with a checklist of what is missing), Pause / Take applications,
+  Hide, Re-open, Close, Cancel, replacing the status select plus two tick boxes. **Copy post** writes a ready post
+  for Facebook and WhatsApp groups (public facts and the apply link only). Tabs: Applicants · Details · History.
+- **New tuition** can be typed straight in on a laptop (guardian found or added by phone), saved as a draft or
+  published at once. Quick Pad stays the fastest way during a call.
+- **Today** keeps the ordered to-do list (2026-11-04) and adds four weekly numbers with trends, posted against booked
+  by week, the 30-day funnel and top areas. **Insights** has the 26-week view. Charts are plain HTML/CSS (no library),
+  emerald and amber checked for colour-blind separation, with values on hover and a table view.
+- **Placements** tracks selected tutors' ticks (Called → Met → Demo done) and adds the **day-7 and day-30 check-in
+  calls** (Porao decisions); "salary paid" on day 30 records the first salary. They also appear on Today.
+- **Porao items built** (migration 0012): do-not-place flag with a reason on tutors and guardians (warnings on the
+  applicant list and Leads), one owner notice on every tutor's Home with an end date (written on the Tutors page),
+  **Refer a tuition** for tutors (lands on Leads as "Referred by T-…", the tutor sees its status), the public
+  Recently booked tab (tutor as university · department only). Leads also show "Known guardian" for repeat phones.
+  Not built yet: the on-time badge and fees (money features), and the Quick Pad flag warning (Leads shows it).
+- **Tutor Home** (step 3): needs-action card, notice, open/shortlisted/selected/confirmed counts, For You carousel,
+  updates with unread dots, profile progress ring, Refer and Fees tiles. **Profile**: pause switch (one tap), chips
+  for areas (with a finder), classes, subjects by level, lowest salary, transport, demo class and About, one sticky
+  Save bar; locked details listed with Message HTR.
+- **Board:** the chip row (All · For You · Female tutor · Male tutor · RU · RUET · Medical), Recently booked, only open
+  tuitions as decided (Processing leaves the board; its page still opens), a live "N open now · M booked this week"
+  line, and for a signed-in tutor a compact hero and the bottom bar. The header shows a tutor's photo, Admin for the
+  owner, or Tutor log in; the footer opens with a mango band for guardians and an emerald band for tutors.
+- **Testing on invented data:** `npm run synthetic:seed` builds six months of synthetic tutors, tuitions,
+  applications and drawn avatars in `.wrangler/synthetic`; `npm run dev:synthetic` runs on it. Screenshots for the
+  owner come from this, never from the local copy of the real data.
+
 ## 2026-11-04 (step 3, data side)
 
 Context: step 3 (owner: "Start step 3", data side first while the owner collects design inspiration). Choices Claude
