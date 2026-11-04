@@ -52,6 +52,8 @@ enforced with SQLite triggers. Roles: Owner only for now.
 - Tutor experience per level lives in `tutor_levels` (migration 0015, prefilled from the sheet's statements).
   `app/lib/profile.ts` scores profile completeness (Home ring, Profile progress, and the applicant order);
   `LevelSummary.tsx` shows one level to the owner. Section headings use `SectionCard.tsx`.
+- Follow-ups and notes: `app/lib/followups.server.ts`, posted to `/admin/followups` from `app/components/FollowUps.tsx`
+  (button, row, notes panel). Dhaka-time helpers and Bangla "ago" lines are in `app/lib/dhaka.ts`.
 - Admin pieces: `app/components/Applicants.tsx` (applicant table/board/detail), `charts.tsx` (no chart library),
   `TuitionFields.tsx` (new and edit tuition), `Avatar.tsx` (private photos via `/photos/tutor/:code`).
 - Database changes: a new numbered file in `migrations/`, then `npm run db:migrate:local` (and `db:migrate` for the

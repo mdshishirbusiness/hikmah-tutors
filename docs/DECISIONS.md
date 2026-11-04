@@ -3,6 +3,26 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-05 (part D: follow-ups, notes, Today)
+
+- **Follow-ups** (migration 0017): a reminder on a guardian, tutor, lead or tuition, with a due time and a short note.
+  - **Follow up** button: on the lead card, the guardian page, the tutor page, the tuition page and the applicant
+    panel. Its note starts with "HTR-<code>:" when set from the applicant panel.
+  - Quick times in Dhaka time: Today evening (7 PM, or In 1 hour when it's late), Tomorrow 10 AM, In 3 days, Next
+    week, or a picked date. Bangla note hints are one tap.
+  - Due ones show first on Today. Late ones are rose, with "N ঘণ্টা দেরি".
+  - **Done** (optional outcome) or **Tomorrow** (moves to 10 AM).
+  - Today's menu item counts follow-ups already due. Reminders appear in the site only.
+- **Notes timeline** on guardian and tutor pages ("Notes and follow-ups"): add a note any time.
+  - A finished follow-up's outcome lands there with a green dot.
+  - Outcomes from a lead or tuition follow-up go to that guardian's notes, found by the lead's guardian or phone.
+- **Today in Bangla**: helper lines under each to-do are Bangla with English digits ("নতুন লিড · 3 ঘণ্টা আগে",
+  "সিলেক্ট 2 দিন আগে, এখনো কল করেনি"). Titles and labels stay English.
+- **Two donuts** on Today: where leads came from and what happened to tuitions posted, both over 90 days.
+  - Colours validated with the dataviz checker: emerald, amber, blue, rose, violet, with past five folded into a grey
+    Other.
+  - Every slice has its number and share in the legend, because amber is under 3:1 contrast.
+
 ## 2026-11-05 (part C: applicants ranked by Strength)
 
 `app/lib/strength.ts`, out of 100:

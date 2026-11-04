@@ -3,8 +3,10 @@ import { Flag } from "lucide-react";
 import type { Route } from "./+types/admin.guardians.$id";
 import { Badge, Card, ContactButtons, PageHead, inputClass, num, TUITION_TONE } from "~/components/admin";
 import { TUITION_STATUS } from "~/lib/admin-labels";
+import { NotesPanel } from "~/components/FollowUps";
 import { getGuardian, setFlag } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
+import { followupsFor } from "~/lib/followups.server";
 import { AREAS, CLASS_LEVELS, labelOf } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
@@ -15,7 +17,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAdmin(request);
   const found = await getGuardian(Number(params.id) || -1);
   if (!found) throw data("Guardian not found", { status: 404 });
-  return found;
+  return { ...found, follow: await followupsFor("guardian", found.guardian.id) };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -24,7 +26,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   return { error: await setFlag("guardian", Number(params.id) || -1, form.get("intent") === "clear" ? "" : String(form.get("reason") ?? ""), viewer?.id ?? null) };
 }
 
-export default function AdminGuardian({ loaderData: { guardian: g, tuitions } }: Route.ComponentProps) {
+export default function AdminGuardian({ loaderData: { guardian: g, tuitions, follow } }: Route.ComponentProps) {
   return (
     <>
       <PageHead title={g.name || tuitions[0]?.label || g.phone} back={{ to: "/admin/guardians", label: "All guardians" }} />
@@ -33,6 +35,7 @@ export default function AdminGuardian({ loaderData: { guardian: g, tuitions } }:
           <ContactButtons phone={g.phone} />
           {g.notes && <p className="mt-2 text-sm whitespace-pre-line text-slate-700">{g.notes}</p>}
         </Card>
+        <NotesPanel kind="guardian" refId={g.id} notes={follow.notes} open={follow.open} />
         <Card className={g.flag_reason ? "ring-2 ring-rose-200" : ""}>
           <h2 className="flex items-center gap-1.5 text-sm font-bold text-forest"><Flag size={15} aria-hidden />Do-not-place flag</h2>
           <p className="mt-1 text-xs text-slate-500">Private. Leads from this number show a warning; nothing is blocked.</p>

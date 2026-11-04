@@ -40,6 +40,7 @@ export default [
     route("admin/leads", "routes/admin.leads.tsx"),
   ]),
   route("admin/search", "routes/admin.search.ts"),
+  route("admin/followups", "routes/admin.followups.ts"),
   route("api/leads", "routes/api.leads.ts"),
   route("photos/tutor/:code", "routes/photos.tutor.$code.ts"),
   route("*", "routes/not-found.tsx"),

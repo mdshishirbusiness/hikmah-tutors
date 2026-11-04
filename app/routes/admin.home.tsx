@@ -4,11 +4,14 @@
 import { Link } from "react-router";
 import { BadgeCheck, ChevronRight, ClipboardList, FilePen, FileText, Inbox, ListChecks, PhoneCall, PhoneMissed, Plus, UserPlus } from "lucide-react";
 import type { Route } from "./+types/admin.home";
-import { PageHead, ago, num } from "~/components/admin";
-import { BarList, CHART, ColumnChart, StatTile } from "~/components/charts";
-import { pulse, todayList, dashboard } from "~/lib/admin.server";
+import { PageHead, num } from "~/components/admin";
+import { BarList, CHART, ColumnChart, Donut, StatTile } from "~/components/charts";
+import { FollowupRow } from "~/components/FollowUps";
+import { dashboard, mix, pulse, todayList } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
-import { AREAS, CLASS_LEVELS, labelOf } from "~/lib/options";
+import { agoBn } from "~/lib/dhaka";
+import { dueFollowups } from "~/lib/followups.server";
+import { AREAS, CLASS_LEVELS, LEAD_SOURCES, labelOf } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Today · Admin" }, { name: "robots", content: "noindex" }];
@@ -16,9 +19,11 @@ export function meta(_: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const [counts, list, p] = await Promise.all([dashboard(), todayList(), pulse(12)]);
-  return { counts, list, p, now: Math.floor(Date.now() / 1000) };
+  const [counts, list, p, follow, parts] = await Promise.all([dashboard(), todayList(), pulse(12), dueFollowups(), mix()]);
+  return { counts, list, p, follow, parts, now: Math.floor(Date.now() / 1000) };
 }
+
+const OUTCOME: Record<string, string> = { booked: "Booked", open: "Still open", cancelled: "Cancelled", closed: "Closed unfilled", draft: "Hidden" };
 
 type Task = { key: string; to: string; icon: typeof Inbox; tone: string; title: string; sub: string; late?: boolean };
 
@@ -66,41 +71,41 @@ function greeting() {
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-export default function AdminHome({ loaderData: { counts: c, list, p, now } }: Route.ComponentProps) {
+export default function AdminHome({ loaderData: { counts: c, list, p, follow, parts, now } }: Route.ComponentProps) {
   const calls: Task[] = list.leads.filter((l) => l.status === "new").map((l) => ({
     key: `lead-${l.id}`, to: "/admin/leads", icon: PhoneCall, tone: "bg-mango text-forest",
-    title: `${l.guardian_name || "New guardian"}: ${where(l.class_level, l.area)}`, sub: `New lead · ${ago(l.created_at)}`, late: late(l.created_at, 2),
+    title: `${l.guardian_name || "New guardian"}: ${where(l.class_level, l.area)}`, sub: `নতুন লিড · ${agoBn(l.created_at)}`, late: late(l.created_at, 2),
   }));
   const toPost: Task[] = list.leads.filter((l) => l.status === "called").map((l) => ({
     key: `called-${l.id}`, to: "/admin/leads?status=called", icon: FilePen, tone: "bg-brand-50 text-brand-700",
-    title: `${l.guardian_name || "Guardian"}: ${where(l.class_level, l.area)}`, sub: "Called, not posted yet",
+    title: `${l.guardian_name || "Guardian"}: ${where(l.class_level, l.area)}`, sub: "কল হয়েছে, এখনো পোস্ট হয়নি",
   }));
   const applications: Task[] = list.applications.map((a) => ({
     key: `apps-${a.code}`, to: `/admin/tuitions/${a.code}?stage=new`, icon: FileText, tone: "bg-forest text-mango",
-    title: `HTR-${a.code}: ${a.waiting} new ${a.waiting === 1 ? "application" : "applications"}`, sub: `${where(a.class_level, a.area)} · first ${ago(a.oldest)}`, late: late(a.oldest, 6),
+    title: `HTR-${a.code}: ${a.waiting} new ${a.waiting === 1 ? "application" : "applications"}`, sub: `${where(a.class_level, a.area)} · প্রথম আবেদন ${agoBn(a.oldest)}`, late: late(a.oldest, 6),
   }));
   const drafts: Task[] = list.drafts.map((d) => ({
     key: `draft-${d.code}`, to: `/admin/tuitions/${d.code}`, icon: FilePen, tone: "bg-slate-100 text-slate-700",
-    title: `HTR-${d.code}: Draft`, sub: `${where(d.class_level, d.area) || "Details missing"} · not public yet`,
+    title: `HTR-${d.code}: Draft`, sub: `${where(d.class_level, d.area) || "তথ্য বাকি"} · এখনো বোর্ডে নেই`,
   }));
   const notCalled: Task[] = list.selected.filter((s) => late(s.selected_at, 3)).map((s) => ({
     key: `sel-${s.code}`, to: `/admin/tuitions/${s.code}?stage=selected`, icon: PhoneMissed, tone: "bg-rose-100 text-rose-900",
-    title: `HTR-${s.code}: selected tutor hasn't called`, sub: `${s.tutor_code ? `T-${s.tutor_code} · ` : ""}selected ${ago(s.selected_at)}`, late: true,
+    title: `HTR-${s.code}: selected tutor hasn't called`, sub: `${s.tutor_code ? `T-${s.tutor_code} · ` : ""}সিলেক্ট ${agoBn(s.selected_at)}, এখনো কল করেনি`, late: true,
   }));
   const confirmed: Task[] = list.tutorConfirmed.map((x) => ({
     key: `conf-${x.code}`, to: `/admin/tuitions/${x.code}?stage=selected`, icon: BadgeCheck, tone: "bg-brand-600 text-white",
-    title: `HTR-${x.code}: tutor confirmed`, sub: `${x.tutor_code ? `T-${x.tutor_code} · ` : ""}${ago(x.confirmed_at)} · check with the guardian`,
+    title: `HTR-${x.code}: tutor confirmed`, sub: `${x.tutor_code ? `T-${x.tutor_code} · ` : ""}${agoBn(x.confirmed_at)} · গার্ডিয়ানের সাথে মিলিয়ে নিন`,
   }));
   const checkins: Task[] = list.checkins.map((x) => ({
     key: `chk-${x.id}-${x.day}`, to: "/admin/placements", icon: PhoneCall, tone: "bg-sky-100 text-sky-900",
-    title: `HTR-${x.code}: day ${x.day} check-in call`, sub: `${where(x.class_level, x.area)} · confirmed ${ago(x.confirmed_at)}`,
+    title: `HTR-${x.code}: day ${x.day} check-in call`, sub: `${where(x.class_level, x.area)} · কনফার্ম ${agoBn(x.confirmed_at)}`,
   }));
   const newTutors: Task[] = list.newTutors.map((x) => ({
     key: `new-${x.code}`, to: `/admin/tutors/${x.code}`, icon: UserPlus, tone: "bg-mango text-forest",
-    title: `Check new tutor: ${x.full_name}`, sub: `T-${x.code} · ${[x.university?.toUpperCase(), x.department].filter(Boolean).join(" · ")} · ${ago(x.created_at)}`, late: late(x.created_at, 24),
+    title: `Check new tutor: ${x.full_name}`, sub: `T-${x.code} · ${[x.university?.toUpperCase(), x.department].filter(Boolean).join(" · ")} · ${agoBn(x.created_at)}`, late: late(x.created_at, 24),
   }));
-  const review: Task[] = c.held > 0 ? [{ key: "review", to: "/admin/review", icon: ListChecks, tone: "bg-amber-100 text-amber-900", title: `To review: ${num(c.held)}`, sub: "Tutors, tuitions and rows from the sheet" }] : [];
-  const nothing = !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length && !checkins.length && !newTutors.length;
+  const review: Task[] = c.held > 0 ? [{ key: "review", to: "/admin/review", icon: ListChecks, tone: "bg-amber-100 text-amber-900", title: `To review: ${num(c.held)}`, sub: "শিট থেকে আসা টিউটর, টিউশন ও সারি দেখুন" }] : [];
+  const nothing = !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length && !checkins.length && !newTutors.length && !follow.due.length;
 
   const date = new Date(now * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", weekday: "long", day: "numeric", month: "long" });
   const weekLabel = (i: number) => new Date((now - (p.weeks - i) * 7 * 86400 + 86400) * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short" });
@@ -131,6 +136,15 @@ export default function AdminHome({ loaderData: { counts: c, list, p, now } }: R
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
         <main className="space-y-6">
           {nothing && <p className="rounded-2xl border border-dashed border-brand-200 bg-white/60 p-8 text-center text-slate-600">আজকের সব কাজ শেষ। নতুন কল এলে + চাপুন।</p>}
+          {follow.due.length > 0 && (
+            <section aria-labelledby="follow">
+              <div className="mb-2 flex items-baseline justify-between">
+                <h2 id="follow" className="flex items-center gap-2 text-sm font-bold text-slate-500">Follow-ups<span className="rounded-full bg-sky-100 px-2 text-xs text-sky-900 tabular-nums">{follow.due.length}</span></h2>
+                {follow.later > 0 && <span className="text-xs text-slate-400">{follow.later} পরে আছে</span>}
+              </div>
+              <ul className="space-y-2">{follow.due.map((f) => <FollowupRow key={f.id} f={f} />)}</ul>
+            </section>
+          )}
           <Section title="Call" tasks={calls} more={{ to: "/admin/leads", label: "All leads" }} />
           <Section title="Selected tutors" tasks={[...confirmed, ...notCalled]} more={{ to: "/admin/placements", label: "Placements" }} />
           <Section title="Check-in calls" tasks={checkins} more={{ to: "/admin/placements", label: "Placements" }} />
@@ -141,6 +155,16 @@ export default function AdminHome({ loaderData: { counts: c, list, p, now } }: R
         </main>
 
         <aside className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
+            <div className="rounded-2xl bg-white p-5 shadow-ring">
+              <Donut title={`Where leads came from · ${parts.days} days`} centerLabel="leads"
+                parts={parts.sources.map((s) => ({ label: labelOf(LEAD_SOURCES, s.k), value: s.n }))} />
+            </div>
+            <div className="rounded-2xl bg-white p-5 shadow-ring">
+              <Donut title={`Tuitions posted · ${parts.days} days`} centerLabel="posted"
+                parts={parts.outcomes.map((o) => ({ label: OUTCOME[o.k] ?? o.k, value: o.n }))} />
+            </div>
+          </div>
           <div className="rounded-2xl bg-white p-5 shadow-ring">
             <ColumnChart title="Posted and booked, by week" data={flow} series={[{ key: "posted", label: "Posted", color: CHART.one }, { key: "booked", label: "Booked", color: CHART.two }]} />
           </div>

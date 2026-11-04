@@ -9,7 +9,9 @@ import { LevelSummary } from "~/components/LevelSummary";
 import { StudentTimeline } from "~/components/StudentsCard";
 import { APPLICATION_TONE, Badge, Card, Facts, PageHead, ago, inputClass, num, safeUrl, when } from "~/components/admin";
 import { APPLICATION_STATUS } from "~/lib/admin-labels";
+import { NotesPanel } from "~/components/FollowUps";
 import { getTutor, reviewTutor, setFlag, setTutorEmail } from "~/lib/admin.server";
+import { followupsFor } from "~/lib/followups.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
 import { AREAS, BANDS, CLASS_LEVELS, MEDIUMS, SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
@@ -23,7 +25,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAdmin(request);
   const found = await getTutor(Number(params.code) || -1);
   if (!found) throw data("Tutor not found", { status: 404 });
-  return found;
+  return { ...found, follow: await followupsFor("tutor", found.tutor.id) };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -47,7 +49,7 @@ const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical"
 const LEVEL_KINDS = new Set(["junior_strategy", "junior_experience", "ssc_strategy", "ssc_experience", "hsc_strategy", "hsc_experience", "special_skills", "demo_video"]);
 const ghost = "inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring hover:bg-brand-50";
 
-export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, areas, classes }, actionData }: Route.ComponentProps) {
+export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, areas, classes, follow }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const facebook = safeUrl(t.facebook_url);
   const reached = (s: string[]) => applications.filter((a) => s.includes(a.status)).length;
@@ -124,6 +126,8 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
               </ol>
             )}
           </section>
+
+          <NotesPanel kind="tutor" refId={t.id} notes={follow.notes} open={follow.open} />
 
           {students.length > 0 && (
             <section>

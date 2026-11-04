@@ -34,7 +34,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: "Work",
     items: [
-      { to: "/admin", label: "Today", icon: LayoutDashboard, end: true },
+      { to: "/admin", label: "Today", icon: LayoutDashboard, end: true, count: (c) => c.followups, hot: true },
       { to: "/admin/leads", label: "Leads", icon: Inbox, count: (c) => c.leads, hot: true },
       { to: "/admin/tuitions", label: "Tuitions", icon: ClipboardList, count: (c) => c.open },
       { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications, hot: true },
@@ -59,7 +59,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
 
 // The phone's bottom bar (owner, 2026-11-04): daily work one thumb-tap away; the rest sits under More.
 const TABS: Item[] = [
-  { to: "/admin", label: "Today", icon: LayoutDashboard, end: true },
+  { to: "/admin", label: "Today", icon: LayoutDashboard, end: true, count: (c) => c.followups, hot: true },
   { to: "/admin/leads", label: "Leads", icon: Inbox, count: (c) => c.leads, hot: true },
   { to: "/admin/tuitions", label: "Tuitions", icon: ClipboardList },
   { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors, hot: true },

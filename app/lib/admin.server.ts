@@ -20,6 +20,21 @@ async function count(sql: string, ...args: unknown[]): Promise<number> {
 
 const ACTIVE_APPLICATIONS = `('submitted', 'under_review', 'shortlisted', 'trial_arranged')`;
 
+/** Parts of the whole for Today's donuts (owner, 2026-11-05): where leads came from, and what happened to tuitions
+ * posted in the last 90 days. */
+export async function mix(days = 90) {
+  const since = now() - days * 86400;
+  const [sources, outcomes] = await Promise.all([
+    all<{ k: string; n: number }>(`SELECT COALESCE(lead_source, 'other') k, count(*) n FROM leads WHERE created_at > ? GROUP BY k`, since),
+    all<{ k: string; n: number }>(
+      `SELECT CASE WHEN status = 'booked' THEN 'booked' WHEN status IN ('available', 'processing') THEN 'open' WHEN status = 'cancelled' THEN 'cancelled'
+              WHEN status = 'closed' THEN 'closed' ELSE 'draft' END k, count(*) n
+       FROM tuitions WHERE posted_at > ? GROUP BY k`, since,
+    ),
+  ]);
+  return { sources, outcomes, days };
+}
+
 export async function dashboard() {
   const [open, publicNow, waiting, tutors, leads, held] = await Promise.all([
     count(`SELECT count(*) n FROM tuitions WHERE status IN ('available', 'processing')`),
@@ -780,10 +795,11 @@ export async function navCounts() {
               WHERE a.status = 'submitted' AND t.status IN ('available', 'processing')) applications,
             (SELECT count(*) FROM tuitions WHERE status IN ('available', 'processing')) open,
             (SELECT count(*) FROM applications WHERE status = 'trial_arranged') selected,
-            (SELECT count(*) FROM tutors WHERE review_status = 'waiting' AND deleted_at IS NULL) new_tutors`,
-  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number }>();
+            (SELECT count(*) FROM tutors WHERE review_status = 'waiting' AND deleted_at IS NULL) new_tutors,
+            (SELECT count(*) FROM followups WHERE done_at IS NULL AND due_at <= unixepoch()) followups`,
+  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number; followups: number }>();
   const review = await reviewCounts();
-  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0 }), review: review.tutors + review.tuitions + review.held };
+  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0, followups: 0 }), review: review.tutors + review.tuitions + review.held };
 }
 
 export type SearchHit = { kind: "tuition" | "tutor" | "guardian" | "lead"; to: string; title: string; sub: string; photo?: { code: number; has: boolean } };

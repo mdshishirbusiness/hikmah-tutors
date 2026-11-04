@@ -17,6 +17,7 @@ import { tutorFromLabel } from "~/lib/fit";
 import { AREAS, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, STUDENT_GENDERS, SUBJECTS, labelOf } from "~/lib/options";
 import { GENDER_CHIP, SUBJECT_TONE, SUBJECT_TONE_OTHER, needText, scheduleNote } from "~/lib/tuition";
 import { classLabel, requirementKeys, subjectLabel } from "~/lib/request";
+import { FollowUpButton } from "~/components/FollowUps";
 import { tuitionPost } from "~/lib/whatsapp";
 
 export function meta({ params }: Route.MetaArgs) {
@@ -160,6 +161,7 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
               {open && t.is_public === 1 && t.accepting_applications === 0 && <StateButton op="resume" primary busy={busy}><Play size={16} aria-hidden />Take applications</StateButton>}
               {(t.status === "booked" || t.status === "processing") && <StateButton op="reopen" busy={busy}><RotateCcw size={16} aria-hidden />Re-open</StateButton>}
               {t.is_public === 1 && <CopyPost text={tuitionPost(t, origin)} />}
+              <FollowUpButton kind="tuition" refId={t.code} />
               {t.is_public === 1 && <Link to={`/tuitions/HTR-${t.code}`} className="inline-flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50">View<ArrowUpRight size={15} aria-hidden /></Link>}
               {t.status !== "closed" && t.status !== "cancelled" && (
                 <details className="relative">

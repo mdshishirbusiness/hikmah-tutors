@@ -9,6 +9,7 @@ import { requireAdmin } from "~/lib/auth.server";
 import { usePendingCount } from "~/lib/lead-queue";
 import { AREAS, LEAD_SOURCES, MEDIUMS, STATUSES, STUDENT_GENDERS, TIMES_OF_DAY, TUTOR_GENDERS, labelOf } from "~/lib/options";
 import { tutorFromLabel } from "~/lib/fit";
+import { FollowUpButton } from "~/components/FollowUps";
 import { classLabel, requirementKeys, requirementLabels, subjectLabel, windowLabel } from "~/lib/request";
 import { sessionLength } from "~/lib/tuition";
 
@@ -126,6 +127,7 @@ export default function Leads({ loaderData: { status, counts, items }, actionDat
                     {l.status === "new" && <button name="to" value="called" disabled={busy} className={ghost}>Called</button>}
                     {(l.status === "new" || l.status === "called") && <button name="to" value="not_now" disabled={busy} className={ghost}>Not now</button>}
                     {l.status === "not_now" && <button name="to" value="new" disabled={busy} className={ghost}>Reopen</button>}
+                    <FollowUpButton kind="lead" refId={l.id} className="ml-auto" />
                   </Form>
                 </li>
               );

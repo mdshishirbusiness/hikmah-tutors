@@ -9,6 +9,7 @@ import {
   AlertTriangle, Check, ChevronRight, Columns3, Copy, ExternalLink, LayoutList, MessageCircle, Phone, Search, Send, X,
 } from "lucide-react";
 import { Avatar } from "~/components/Avatar";
+import { FollowUpButton } from "~/components/FollowUps";
 import { LevelSummary } from "~/components/LevelSummary";
 import { StudentTimeline } from "~/components/StudentsCard";
 import { APPLICATION_TONE, Badge, ago, num } from "~/components/admin";
@@ -267,6 +268,7 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
             </a>
           )}
           {a.tutor_code && <Link to={`/admin/tutors/${a.tutor_code}`} className={ghost}><ExternalLink size={16} aria-hidden />Profile</Link>}
+          {a.tutor_id && <FollowUpButton kind="tutor" refId={a.tutor_id} note={`HTR-${t.code}: `} />}
         </div>
 
         {shares && (

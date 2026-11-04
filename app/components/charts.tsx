@@ -185,3 +185,59 @@ export function StatTile({ label, value, delta, deltaLabel, upIsGood = true, tre
   const cls = "block min-w-0 rounded-2xl bg-white p-4 shadow-ring transition-shadow duration-150";
   return to ? <Link to={to} className={`${cls} hover:shadow-lift`}>{body}</Link> : <div className={cls}>{body}</div>;
 }
+
+// Parts of a whole (owner, 2026-11-05: "a pie chart where it helps"). Validated categorical order (dataviz validator,
+// light surface): emerald, amber, blue, rose, violet; anything past five folds into a neutral Other. Amber is under 3:1,
+// so every slice's number and share are printed in the legend beside it.
+export const PART_COLORS = ["#169a82", "#d99a1a", "#2f6fd0", "#e0477a", "#8b5cf6"];
+const OTHER_COLOR = "#a3aebd";
+
+/** A ring split into parts with a 2px gap between slices, the total in the middle and a legend with the numbers. */
+export function Donut({ title, parts, centerLabel, empty = "Nothing yet." }: {
+  title: string; parts: { label: string; value: number }[]; centerLabel: string; empty?: string;
+}) {
+  const sorted = parts.filter((p) => p.value > 0).sort((a, b) => b.value - a.value);
+  const shown = sorted.length > 5 ? [...sorted.slice(0, 4), { label: "Other", value: sorted.slice(4).reduce((n, p) => n + p.value, 0) }] : sorted;
+  const total = shown.reduce((n, p) => n + p.value, 0);
+  const r = 42, c = 2 * Math.PI * r, gap = shown.length > 1 ? 2 : 0;
+  const [hover, setHover] = useState<number | null>(null);
+  let offset = 0;
+  const color = (i: number) => (shown[i].label === "Other" && sorted.length > 5 ? OTHER_COLOR : PART_COLORS[i]);
+  return (
+    <figure>
+      <figcaption className="text-sm font-bold text-forest">{title}</figcaption>
+      {!total ? <p className="mt-3 text-sm text-slate-500">{empty}</p> : (
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-3">
+          <svg viewBox="0 0 100 100" className="size-32 shrink-0 -rotate-90" role="img" aria-label={`${title}: ${shown.map((p) => `${p.label} ${p.value}`).join(", ")}`}>
+            <circle cx="50" cy="50" r={r} fill="none" stroke="var(--color-grid)" strokeWidth="12" />
+            {shown.map((p, i) => {
+              const len = (p.value / total) * c;
+              const seg = (
+                <circle key={p.label} cx="50" cy="50" r={r} fill="none" stroke={color(i)} strokeWidth={hover === i ? 14 : 12}
+                  strokeDasharray={`${Math.max(len - gap, 0.5)} ${c}`} strokeDashoffset={-offset} className="transition-[stroke-width] duration-150"
+                  onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+                  <title>{`${p.label}: ${p.value} (${Math.round((100 * p.value) / total)}%)`}</title>
+                </circle>
+              );
+              offset += len;
+              return seg;
+            })}
+            <text x="50" y="47" transform="rotate(90 50 50)" textAnchor="middle" className="fill-forest text-[17px] font-extrabold">{total}</text>
+            <text x="50" y="61" transform="rotate(90 50 50)" textAnchor="middle" className="fill-slate-500 text-[8px] font-semibold">{centerLabel}</text>
+          </svg>
+          <ul className="min-w-[11rem] flex-1 space-y-1.5 text-sm">
+            {shown.map((p, i) => (
+              <li key={p.label} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+                className={`flex items-center gap-2 rounded-md px-1 transition-colors ${hover === i ? "bg-slate-50" : ""}`}>
+                <span aria-hidden className="size-2.5 shrink-0 rounded-sm" style={{ background: color(i) }} />
+                <span className="min-w-[5rem] flex-1 truncate text-slate-700">{p.label}</span>
+                <span className="font-bold text-slate-900 tabular-nums">{p.value}</span>
+                <span className="w-9 text-right text-xs text-slate-500 tabular-nums">{Math.round((100 * p.value) / total)}%</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </figure>
+  );
+}

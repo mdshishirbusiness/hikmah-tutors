@@ -128,6 +128,11 @@ Needs migrations 0015 and 0016 first. `npm run db:migrate` runs both.
 
 Nothing existing changes. Then the deploy.
 
+## 10. Part D (follow-ups, notes, Today in Bangla, donuts)
+
+Needs migration 0017 first (two new tables: `followups` and `contact_notes`; nothing existing changes), then the
+deploy: `npm run db:migrate`, then `npm run deploy`, in the Terminal panel after `npx wrangler whoami`.
+
 ## Before tutors are invited (later)
 
 - Consent screen: **published (In production), 2026-11-04**. Branding has the home, privacy and terms links; no
