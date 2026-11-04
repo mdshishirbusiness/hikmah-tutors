@@ -2,7 +2,7 @@
 // numbers, every application as a timeline, what they picked on the site, their education and statements, and a
 // private do-not-place flag (warning only). This page is never public.
 import { Form, Link, data, useNavigation } from "react-router";
-import { Check, Flag, KeyRound, Mail, MessageCircle, Phone, UserPlus } from "lucide-react";
+import { Check, FileText, Flag, KeyRound, Mail, MessageCircle, Phone, UserPlus } from "lucide-react";
 import type { Route } from "./+types/admin.tutors.$code";
 import { Avatar } from "~/components/Avatar";
 import { LevelSummary } from "~/components/LevelSummary";
@@ -14,6 +14,7 @@ import { getTutor, reviewTutor, setFlag, setTutorEmail } from "~/lib/admin.serve
 import { followupsFor } from "~/lib/followups.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
+import { DOC_LABELS } from "~/lib/join";
 import { AREAS, BANDS, CLASS_LEVELS, MEDIUMS, SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
 import { taka } from "~/lib/tuition";
 
@@ -49,7 +50,7 @@ const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical"
 const LEVEL_KINDS = new Set(["junior_strategy", "junior_experience", "ssc_strategy", "ssc_experience", "hsc_strategy", "hsc_experience", "special_skills", "demo_video"]);
 const ghost = "inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring hover:bg-brand-50";
 
-export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, areas, classes, follow }, actionData }: Route.ComponentProps) {
+export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, documents, areas, classes, follow }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const facebook = safeUrl(t.facebook_url);
   const reached = (s: string[]) => applications.filter((a) => s.includes(a.status)).length;
@@ -75,6 +76,23 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
             <input name="note" maxLength={300} placeholder="Or what to fix, e.g. use a clear photo of your face" className="min-h-11 min-w-0 flex-1 rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-forest/20 focus:ring-2 focus:ring-forest" />
             <button name="intent" value="fix" disabled={busy} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-white/70 px-4 text-sm font-bold text-forest disabled:opacity-60">Ask to fix</button>
           </Form>
+        </section>
+      )}
+      {documents.length > 0 && (
+        // Opened only by a tap on View, in a new tab, so the audit log records real views and not page loads.
+        <section className="mb-5 rounded-2xl bg-white p-5 shadow-ring">
+          <h2 className="flex items-center gap-2 font-extrabold text-forest"><FileText size={18} aria-hidden />Documents <span className="text-sm font-semibold text-slate-400">private, each view is logged</span></h2>
+          <ul className="mt-2 divide-y divide-brand-50">
+            {documents.map((d) => (
+              <li key={d.id} className="flex min-h-12 items-center justify-between gap-3 py-1.5">
+                <span className="text-sm font-semibold text-slate-800">
+                  {d.kind === "nid" ? "NID" : DOC_LABELS.find((l) => l.key === d.label)?.label ?? "Document"}
+                  <span className="ml-2 text-xs font-normal text-slate-400">{d.kind === "nid" ? "extra security" : "academic"} · {when(d.created_at)}</span>
+                </span>
+                <a href={`/docs/tutor/${t.code}/${d.id}`} target="_blank" rel="noreferrer" className={ghost}>View</a>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">

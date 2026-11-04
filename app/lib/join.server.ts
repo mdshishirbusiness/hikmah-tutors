@@ -4,7 +4,7 @@
 // details lock as for every tutor and change through HTR.
 import { env } from "cloudflare:workers";
 import type { Viewer } from "./auth.server";
-import { PHOTO_MAX_BYTES, UNIVERSITIES, sessionYears } from "./join";
+import { ACADEMIC_DOCS_MAX, DOC_LABELS, DOC_MAX_BYTES, PHOTO_MAX_BYTES, UNIVERSITIES, sessionYears } from "./join";
 import { bdPhone } from "./lead";
 import type { MyTutor } from "./me.server";
 import { AREAS, BANDS, CLASS_CHOICES, SUBJECTS, TRANSPORTS } from "./options";
@@ -14,12 +14,20 @@ const text = (v: FormDataEntryValue | null, max: number) => String(v ?? "").repl
 const BAND_KEYS = new Set(BANDS.map((b) => b.key));
 const SUBJECT_KEYS = new Set(SUBJECTS.map((s) => s.key));
 
-export type JoinErrors = Partial<Record<"photo" | "name" | "phone" | "gender" | "university" | "institution" | "department" | "session" | "areas" | "classes" | "subjects" | "confirm" | "form", string>>;
+export type JoinErrors = Partial<Record<"photo" | "documents" | "nid" | "name" | "phone" | "gender" | "university" | "institution" | "department" | "session" | "areas" | "classes" | "subjects" | "confirm" | "form", string>>;
 
-/** A photo is kept only if its first bytes say JPEG, PNG or WebP, whatever the browser claims. */
-async function photoOf(file: FormDataEntryValue | null): Promise<{ bytes: ArrayBuffer; type: string; ext: string } | "too_big" | "bad" | null> {
+export type TutorDocument = { id: number; kind: "academic" | "nid"; label: string | null; r2_key: string };
+
+/** The documents a tutor has already sent, for the registration form and for the admin's check. */
+export async function myDocuments(tutorId: number): Promise<TutorDocument[]> {
+  const { results } = await env.DB.prepare(`SELECT id, kind, label, r2_key FROM tutor_documents WHERE tutor_id = ? ORDER BY id`).bind(tutorId).all<TutorDocument>();
+  return results;
+}
+
+/** An image is kept only if its first bytes say JPEG, PNG or WebP, whatever the browser claims. */
+async function imageOf(file: FormDataEntryValue | null, max = PHOTO_MAX_BYTES): Promise<{ bytes: ArrayBuffer; type: string; ext: string } | "too_big" | "bad" | null> {
   if (!(file instanceof File) || file.size === 0) return null;
-  if (file.size > PHOTO_MAX_BYTES) return "too_big";
+  if (file.size > max) return "too_big";
   const bytes = await file.arrayBuffer();
   const b = new Uint8Array(bytes.slice(0, 12));
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return { bytes, type: "image/jpeg", ext: "jpg" };
@@ -45,7 +53,31 @@ export async function saveJoin(viewer: Viewer, me: MyTutor | null, form: FormDat
   const subjects = [...new Set(form.getAll("subjects").map(String))].map((v) => v.split(":")).filter(([band, s]) => BAND_KEYS.has(band) && SUBJECT_KEYS.has(s));
   const minSalary = Number(form.get("min_salary")) || null;
   const transport = String(form.get("transport") ?? "");
-  const photo = await photoOf(form.get("photo"));
+  const photo = await imageOf(form.get("photo"));
+
+  // Documents (owner, 2026-11-05): at least one academic proof is needed; the NID is an optional extra and never counts as it.
+  const existingDocs = me ? await myDocuments(me.id) : [];
+  const keepIds = new Set(form.getAll("keep_doc").map(Number));
+  const keptAcademic = existingDocs.filter((d) => d.kind === "academic" && keepIds.has(d.id));
+  const newAcademic: { file: { bytes: ArrayBuffer; type: string; ext: string }; label: string }[] = [];
+  for (let i = 0; i < ACADEMIC_DOCS_MAX; i++) {
+    const file = await imageOf(form.get(`doc_file_${i}`), DOC_MAX_BYTES);
+    if (file === null) continue;
+    if (file === "too_big") errors.documents = "A document is too large. Take a clearer, smaller photo of it.";
+    else if (file === "bad") errors.documents = "Use JPG, PNG or WebP photos of your documents.";
+    else {
+      const label = String(form.get(`doc_label_${i}`) ?? "");
+      newAcademic.push({ file, label: DOC_LABELS.some((l) => l.key === label) ? label : "other" });
+    }
+  }
+  const nidFile = await imageOf(form.get("nid"), DOC_MAX_BYTES);
+  const oldNid = existingDocs.find((d) => d.kind === "nid");
+  if (nidFile === "too_big") errors.nid = "This photo is too large. Pick a smaller one.";
+  else if (nidFile === "bad") errors.nid = "Use a JPG, PNG or WebP photo.";
+  if (!errors.documents) {
+    if (keptAcademic.length + newAcademic.length === 0) errors.documents = "Add at least one academic document, such as your student ID card.";
+    else if (keptAcademic.length + newAcademic.length > ACADEMIC_DOCS_MAX) errors.documents = `Up to ${ACADEMIC_DOCS_MAX} academic documents.`;
+  }
 
   if (photo === "too_big") errors.photo = "This photo is too large. Pick another one.";
   else if (photo === "bad") errors.photo = "Use a JPG, PNG or WebP photo.";
@@ -106,6 +138,16 @@ export async function saveJoin(viewer: Viewer, me: MyTutor | null, form: FormDat
     if (me?.photo_key && me.photo_key !== key) await env.PHOTOS.delete(me.photo_key);
     steps.push(env.DB.prepare(`UPDATE tutors SET photo_key = ? WHERE id = ?`).bind(key, tutorId));
   }
+  // Documents: new files go to R2 first, the rows change in the same batch, and removed files are deleted from R2 after it.
+  const nidChanged = typeof nidFile === "object" && nidFile !== null || form.get("remove_nid") === "1";
+  const dropped = existingDocs.filter((d) => (d.kind === "academic" ? !keepIds.has(d.id) : nidChanged));
+  for (const d of dropped) steps.push(env.DB.prepare(`DELETE FROM tutor_documents WHERE id = ? AND tutor_id = ?`).bind(d.id, tutorId));
+  const added = [...newAcademic.map((d) => ({ kind: "academic", label: d.label, file: d.file })), ...(nidFile && typeof nidFile === "object" ? [{ kind: "nid", label: null, file: nidFile }] : [])];
+  for (const d of added) {
+    const key = `docs/T${tutorCode}-${crypto.randomUUID().slice(0, 8)}.${d.file.ext}`;
+    await env.PHOTOS.put(key, d.file.bytes, { httpMetadata: { contentType: d.file.type } });
+    steps.push(env.DB.prepare(`INSERT INTO tutor_documents (tutor_id, kind, label, r2_key, created_at) VALUES (?, ?, ?, ?, ?)`).bind(tutorId, d.kind, d.label, key, t));
+  }
   steps.push(
     env.DB.prepare(`DELETE FROM tutor_areas WHERE tutor_id = ?`).bind(tutorId),
     ...(anywhere ? [] : areas).map((a) => env.DB.prepare(`INSERT INTO tutor_areas (tutor_id, area) VALUES (?, ?)`).bind(tutorId, a)),
@@ -114,8 +156,9 @@ export async function saveJoin(viewer: Viewer, me: MyTutor | null, form: FormDat
     env.DB.prepare(`DELETE FROM tutor_subjects WHERE tutor_id = ?`).bind(tutorId),
     ...subjects.map(([band, s]) => env.DB.prepare(`INSERT INTO tutor_subjects (tutor_id, band, subject) VALUES (?, ?, ?)`).bind(tutorId, band, s)),
     env.DB.prepare(`INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, meta_json, created_at) VALUES (?, ?, 'tutor_join', ?, ?, ?)`)
-      .bind(viewer.id, me ? "tutor_join_edited" : "tutor_joined", String(tutorCode), JSON.stringify({ areas: areas.length, anywhere, classes: classes.length, subjects: subjects.length, photo: !!photo }), t),
+      .bind(viewer.id, me ? "tutor_join_edited" : "tutor_joined", String(tutorCode), JSON.stringify({ areas: areas.length, anywhere, classes: classes.length, subjects: subjects.length, photo: !!photo, academic: keptAcademic.length + newAcademic.length, nid: typeof nidFile === "object" && nidFile !== null || (!!oldNid && !nidChanged) }), t),
   );
   await env.DB.batch(steps);
+  await Promise.all(dropped.map((d) => env.PHOTOS.delete(d.r2_key)));
   return { code: tutorCode };
 }

@@ -36,4 +36,16 @@ export const BAND_SUBJECTS: Record<string, string[]> = {
 /** The largest photo the server takes; the page shrinks photos to a 512 px square first, so this is generous. */
 export const PHOTO_MAX_BYTES = 900_000;
 
+/** Proof of education a new tutor sends (owner, 2026-11-05): at least one academic document, up to 5; an NID is an optional extra. */
+export const DOC_MAX_BYTES = 1_500_000;
+export const ACADEMIC_DOCS_MAX = 5;
+export const DOC_LABELS = [
+  { key: "student_id", label: "Student ID card" },
+  { key: "admission", label: "Admission / registration slip" },
+  { key: "result", label: "Result sheet" },
+  { key: "certificate", label: "Certificate" },
+  { key: "other", label: "Other proof" },
+] as const;
+export type DocLabel = (typeof DOC_LABELS)[number]["key"];
+
 export const REVIEW_LABEL = { waiting: "Waiting for check", needs_fix: "Asked to fix", approved: "Checked" } as const;

@@ -3,6 +3,19 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-05 (documents at registration)
+
+- **A new tutor sends proof of education when registering on the site** (owner). At least one academic document is
+  required: a student ID card is the usual one, but a tutor without it (a new student, say) may send an admission slip,
+  result sheet, certificate or other proof. Up to 5 academic documents may be sent to strengthen the profile.
+- **NID is optional extra security** (owner) and never counts as the required document. It supersedes none of
+  PRD SEC-003: NID is still not needed to browse or apply.
+- **Where they live** (Claude): table `tutor_documents` (migration 0020), files in the private R2 bucket under
+  `docs/`. Only the admin and the tutor see them, via `/docs/tutor/:code/:id`; each admin view is written to
+  `audit_log` (`doc_viewed`). They never appear in lists or tables, and never to guardians or the public. Photos are
+  shrunk to 1600 px on the phone (no crop, hidden details such as location dropped) before sending.
+- **Not changed**: tutors from the sheet keep their documents in Drive; they never see the registration form.
+
 ## 2026-11-05 (owner's round after part D)
 
 - **"Late" now says what passed, in Bangla**: "2 ঘণ্টা পার", "3 ঘণ্টা পার", "6 ঘণ্টা পার", "1 দিন পার". Each Today

@@ -36,6 +36,8 @@ enforced with SQLite triggers. Roles: Owner only for now.
 
 ## How the code is laid out
 - `app/routes.ts` lists every route. Admin pages live under `/admin/*` and call `requireAdmin` in their loader.
+- Registration documents (`tutor_documents`, files in R2 under `docs/`) are shown only to the admin and the tutor at
+  `/docs/tutor/:code/:id`, each admin view logged; the form part is `app/components/JoinDocuments.tsx`.
 - `app/lib/*.server.ts` = server-only (D1). `app/lib/lead.ts` = validation shared by phone and server.
 - Choices (classes, areas, subjects…) are in `app/lib/options.ts`. The database stores the `key`; never change a key
   that is in use, only its label. Areas are Rajshahi, ordered by how often guardians ask.

@@ -3,9 +3,10 @@
 // waiting or when HTR asks for a fix, it shows the saved answers and the owner's note.
 import { useEffect, useState } from "react";
 import { Form, redirect, useNavigation } from "react-router";
-import { AlertTriangle, BookOpen, Camera, GraduationCap, MapPin, MessageCircle, ShieldCheck, UserRound, Wallet } from "lucide-react";
+import { AlertTriangle, BookOpen, Camera, FileText, GraduationCap, MapPin, MessageCircle, ShieldCheck, UserRound, Wallet } from "lucide-react";
 import type { Route } from "./+types/me.join";
 import { inputClass, primaryButton } from "~/components/admin";
+import { JoinDocuments } from "~/components/JoinDocuments";
 import { SiteHeader } from "~/components/site";
 import { AreaField, ClassField, SalaryField, SubjectField } from "~/components/TeachingFields";
 import { ChoiceChip, Step } from "~/components/tutor";
@@ -13,7 +14,7 @@ import { requireUser } from "~/lib/auth.server";
 import { CONTACT, waLink } from "~/lib/contact";
 import { safeNext } from "~/lib/google-auth";
 import { UNIVERSITIES, sessionYears } from "~/lib/join";
-import { type JoinErrors, saveJoin } from "~/lib/join.server";
+import { type JoinErrors, myDocuments, saveJoin } from "~/lib/join.server";
 import { myChoices, tutorForUser } from "~/lib/me.server";
 import { TRANSPORTS } from "~/lib/options";
 
@@ -32,7 +33,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Checked tutors (every tutor from the sheet, too) change details through HTR, not here.
   if (me && me.review_status === "approved") throw redirect(safeNext(new URL(request.url).searchParams.get("next")) ?? "/me");
   const choices = me ? await myChoices(me.id) : { areas: [], classes: [], subjects: [] };
-  return { me, choices, email: viewer.email, googleName: viewer.name, sessions: sessionYears() };
+  const documents = me ? (await myDocuments(me.id)).map(({ id, kind, label }) => ({ id, kind, label })) : [];
+  return { me, choices, documents, email: viewer.email, googleName: viewer.name, sessions: sessionYears() };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -99,12 +101,12 @@ function PhotoField({ existing, error }: { existing: string | null; error?: stri
 const Err = ({ children }: { children?: string }) => (children ? <p role="alert" className="mt-2 text-sm font-semibold text-rose-700">{children}</p> : null);
 // Which error a changed field answers, so its message goes away as soon as the tutor fixes it.
 const FIELD_ERROR: Record<string, keyof JoinErrors> = {
-  photo: "photo", full_name: "name", phone: "phone", gender: "gender", university: "university", institution: "institution", department: "department",
+  photo: "photo", nid: "nid", full_name: "name", phone: "phone", gender: "gender", university: "university", institution: "institution", department: "department",
   session_year: "session", anywhere: "areas", areas: "areas", classes: "classes", subjects: "subjects", available: "confirm", terms: "confirm",
 };
 const label = "mb-1 block text-sm font-bold text-forest";
 
-export default function Join({ loaderData: { me, choices, email, googleName, sessions }, actionData }: Route.ComponentProps) {
+export default function Join({ loaderData: { me, choices, documents, email, googleName, sessions }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const [fixed, setFixed] = useState<Set<string>>(new Set());
   useEffect(() => setFixed(new Set()), [actionData]);
@@ -142,7 +144,8 @@ export default function Join({ loaderData: { me, choices, email, googleName, ses
 
         <Form method="post" encType="multipart/form-data" noValidate className="mt-6 space-y-4"
           onChange={(e) => {
-            const key = FIELD_ERROR[(e.target as unknown as HTMLInputElement).name];
+            const field = (e.target as unknown as HTMLInputElement).name;
+            const key = FIELD_ERROR[field] ?? (field.startsWith("doc_") ? "documents" : undefined);
             if (key && !fixed.has(key)) setFixed(new Set(fixed).add(key));
           }}>
           <Step n={1} icon={UserRound} tone="brand" title="You" hint="Your photo and how HTR reaches you.">
@@ -208,12 +211,16 @@ export default function Join({ loaderData: { me, choices, email, googleName, ses
             </div>
           </Step>
 
-          <Step n={3} icon={MapPin} tone="amber" title="Where you can teach" hint="Every area you can reach. No limit.">
+          <Step n={3} icon={FileText} tone="slate" title="Your documents" hint="Proof of your education. Only HTR sees it.">
+            <JoinDocuments code={me?.code ?? null} existing={documents} error={errors.documents} nidError={errors.nid} />
+          </Step>
+
+          <Step n={4} icon={MapPin} tone="amber" title="Where you can teach" hint="Every area you can reach. No limit.">
             <AreaField picked={choices.areas} anywhere={me?.anywhere === 1} />
             <Err>{errors.areas}</Err>
           </Step>
 
-          <Step n={4} icon={BookOpen} tone="violet" title="What you teach" hint="Classes first, then subjects for each level.">
+          <Step n={5} icon={BookOpen} tone="violet" title="What you teach" hint="Classes first, then subjects for each level.">
             <ClassField picked={choices.classes} />
             <Err>{errors.classes}</Err>
             <div className="mt-5 border-t border-brand-50 pt-4">
@@ -222,7 +229,7 @@ export default function Join({ loaderData: { me, choices, email, googleName, ses
             </div>
           </Step>
 
-          <Step n={5} icon={Wallet} tone="brand" title="Salary and travel">
+          <Step n={6} icon={Wallet} tone="brand" title="Salary and travel">
             <p className={label}>Lowest salary you'll take <span className="font-normal text-slate-500">(per month)</span></p>
             <SalaryField value={me?.min_salary ?? null} />
             <p className={`${label} mt-5`}>How you travel</p>
@@ -231,7 +238,7 @@ export default function Join({ loaderData: { me, choices, email, googleName, ses
             </div>
           </Step>
 
-          <Step n={6} icon={ShieldCheck} tone="slate" title="Confirm">
+          <Step n={7} icon={ShieldCheck} tone="slate" title="Confirm">
             <label className="flex min-h-11 items-start gap-3 py-1 text-slate-800">
               <input type="checkbox" name="available" value="1" defaultChecked={!!me} className="mt-0.5 size-5 shrink-0 accent-forest" />
               I want to take tuitions now.

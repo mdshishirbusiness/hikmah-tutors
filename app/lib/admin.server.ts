@@ -616,7 +616,7 @@ export type TutorFull = AdminTutorRow & {
 export async function getTutor(code: number) {
   const tutor = await env.DB.prepare(`SELECT t.*, 0 applications, 0 placements FROM tutors t WHERE t.code = ? AND t.deleted_at IS NULL`).bind(code).first<TutorFull>();
   if (!tutor) return null;
-  const [subjects, statements, applications, placements, areas, classes, levels, students] = await Promise.all([
+  const [subjects, statements, applications, placements, areas, classes, levels, students, documents] = await Promise.all([
     all<{ band: string; subject: string }>(`SELECT band, subject FROM tutor_subjects WHERE tutor_id = ?`, tutor.id),
     all<{ kind: string; body: string }>(`SELECT kind, body FROM tutor_statements WHERE tutor_id = ?`, tutor.id),
     all<{ id: number; tuition_code: number; status: string; created_at: number; updated_at: number; class_level: string; area: string; salary_amount: number | null; salary_kind: string }>(
@@ -631,7 +631,8 @@ export async function getTutor(code: number) {
     all<Student>(`SELECT id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement, source FROM tutor_students
                   WHERE tutor_id = ? ORDER BY COALESCE(ended, '9999-12') DESC, started DESC, id DESC`, tutor.id),
   ]);
-  return { tutor, subjects, statements, applications, placements, levels, students, areas: areas.map((a) => a.area), classes: classes.map((c) => c.class_level) };
+  return { tutor, subjects, statements, applications, placements, levels, students, documents, areas: areas.map((a) => a.area), classes: classes.map((c) => c.class_level) };
+    all<{ id: number; kind: string; label: string | null; created_at: number }>(`SELECT id, kind, label, created_at FROM tutor_documents WHERE tutor_id = ? ORDER BY kind, id`, tutor.id),
 }
 
 // ---------- Guardians ----------

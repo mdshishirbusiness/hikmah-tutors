@@ -45,3 +45,4 @@ export default [
   route("photos/tutor/:code", "routes/photos.tutor.$code.ts"),
   route("*", "routes/not-found.tsx"),
 ] satisfies RouteConfig;
+  route("docs/tutor/:code/:id", "routes/docs.tutor.$code.$id.ts"),
