@@ -17,6 +17,7 @@ export function shouldRevalidate({ formMethod, currentUrl, nextUrl, defaultShoul
 }
 
 export const links: Route.LinksFunction = () => [
+  { rel: "manifest", href: "/manifest.webmanifest" },
   { rel: "icon", type: "image/png", sizes: "192x192", href: "/brand/icon-192.png" },
   { rel: "apple-touch-icon", href: "/brand/apple-touch-icon.png" },
   { rel: "preload", href: "/fonts/plus-jakarta-sans-latin.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" },

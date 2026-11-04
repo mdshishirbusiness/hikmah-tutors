@@ -25,10 +25,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 const OUTCOME: Record<string, string> = { booked: "Booked", open: "Still open", cancelled: "Cancelled", closed: "Closed unfilled", draft: "Hidden" };
 
-type Task = { key: string; to: string; icon: typeof Inbox; tone: string; title: string; sub: string; late?: boolean };
+// late: the time limit that has passed, as the badge says it ("2 ঘণ্টা পার"), so nobody has to guess what "Late" means.
+type Task = { key: string; to: string; icon: typeof Inbox; tone: string; title: string; sub: string; late?: string | false };
 
 const HOUR = 60 * 60;
-const late = (sec: number, hours: number) => Date.now() / 1000 - sec > hours * HOUR;
+const late = (sec: number, hours: number) => (Date.now() / 1000 - sec > hours * HOUR ? (hours >= 24 ? `${hours / 24} দিন পার` : `${hours} ঘণ্টা পার`) : false);
 const where = (cls: string, area: string) => [labelOf(CLASS_LEVELS, cls), labelOf(AREAS, area)].filter(Boolean).join(" · ");
 
 function Row({ t }: { t: Task }) {
@@ -40,7 +41,7 @@ function Row({ t }: { t: Task }) {
           <span className="block font-bold break-words text-forest">{t.title}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-slate-600">
             {t.sub}
-            {t.late && <span className="rounded-full bg-rose-100 px-2 text-xs font-bold text-rose-900">Late</span>}
+            {t.late && <span className="rounded-full bg-rose-100 px-2 text-xs font-bold text-rose-900">{t.late}</span>}
           </span>
         </span>
         <ChevronRight size={18} className="shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-500" aria-hidden />
@@ -49,7 +50,7 @@ function Row({ t }: { t: Task }) {
   );
 }
 
-function Section({ title, tasks, more }: { title: string; tasks: Task[]; more?: { to: string; label: string } }) {
+function Section({ title, hint, tasks, more }: { title: string; hint?: string; tasks: Task[]; more?: { to: string; label: string } }) {
   if (!tasks.length) return null;
   const shown = tasks.slice(0, 6);
   return (
@@ -58,6 +59,7 @@ function Section({ title, tasks, more }: { title: string; tasks: Task[]; more?: 
         {title}<span className="rounded-full bg-white px-2 text-xs text-brand-700 shadow-ring tabular-nums">{num(tasks.length)}</span>
         {tasks.length > shown.length && more && <Link to={more.to} className="ml-auto text-xs font-semibold text-brand-700 hover:underline">{more.label} →</Link>}
       </h2>
+      {hint && <p className="-mt-1 mb-2 text-xs text-slate-500">{hint}</p>}
       <ul className="space-y-2">{shown.map((t) => <Row key={t.key} t={t} />)}</ul>
     </section>
   );
@@ -90,7 +92,7 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
   }));
   const notCalled: Task[] = list.selected.filter((s) => late(s.selected_at, 3)).map((s) => ({
     key: `sel-${s.code}`, to: `/admin/tuitions/${s.code}?stage=selected`, icon: PhoneMissed, tone: "bg-rose-100 text-rose-900",
-    title: `HTR-${s.code}: selected tutor hasn't called`, sub: `${s.tutor_code ? `T-${s.tutor_code} · ` : ""}সিলেক্ট ${agoBn(s.selected_at)}, এখনো কল করেনি`, late: true,
+    title: `HTR-${s.code}: selected tutor hasn't called`, sub: `${s.tutor_code ? `T-${s.tutor_code} · ` : ""}সিলেক্ট ${agoBn(s.selected_at)}, এখনো কল করেনি`, late: "3 ঘণ্টা পার",
   }));
   const confirmed: Task[] = list.tutorConfirmed.map((x) => ({
     key: `conf-${x.code}`, to: `/admin/tuitions/${x.code}?stage=selected`, icon: BadgeCheck, tone: "bg-brand-600 text-white",
@@ -145,12 +147,12 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
               <ul className="space-y-2">{follow.due.map((f) => <FollowupRow key={f.id} f={f} />)}</ul>
             </section>
           )}
-          <Section title="Call" tasks={calls} more={{ to: "/admin/leads", label: "All leads" }} />
-          <Section title="Selected tutors" tasks={[...confirmed, ...notCalled]} more={{ to: "/admin/placements", label: "Placements" }} />
-          <Section title="Check-in calls" tasks={checkins} more={{ to: "/admin/placements", label: "Placements" }} />
-          <Section title="Check applications" tasks={applications} more={{ to: "/admin/applications?status=submitted&open=1", label: "All new" }} />
-          <Section title="New tutors" tasks={newTutors} more={{ to: "/admin/tutors?state=new", label: "All new" }} />
-          <Section title="Post tuitions" tasks={[...toPost, ...drafts]} more={{ to: "/admin/leads?status=called", label: "Called leads" }} />
+          <Section title="Call" hint="নতুন গার্ডিয়ান: 2 ঘণ্টার মধ্যে কল করুন।" tasks={calls} more={{ to: "/admin/leads", label: "All leads" }} />
+          <Section title="Selected tutors" hint="সিলেক্ট হওয়া টিউটর 3 ঘণ্টার মধ্যে গার্ডিয়ানকে কল করবে; কনফার্ম হলে গার্ডিয়ানের সাথে মিলিয়ে নিন।" tasks={[...confirmed, ...notCalled]} more={{ to: "/admin/placements", label: "Placements" }} />
+          <Section title="Check-in calls" hint="কনফার্মের 7 ও 30 দিন পর গার্ডিয়ানকে কল করে খোঁজ নিন।" tasks={checkins} more={{ to: "/admin/placements", label: "Placements" }} />
+          <Section title="Check applications" hint="নতুন আবেদন 6 ঘণ্টার মধ্যে দেখুন।" tasks={applications} more={{ to: "/admin/applications?status=submitted&open=1", label: "All new" }} />
+          <Section title="New tutors" hint="নতুন রেজিস্ট্রেশন 1 দিনের মধ্যে যাচাই করুন।" tasks={newTutors} more={{ to: "/admin/tutors?state=new", label: "All new" }} />
+          <Section title="Post tuitions" hint="কল হয়ে গেছে, এখন টিউশনটা পোস্ট করুন।" tasks={[...toPost, ...drafts]} more={{ to: "/admin/leads?status=called", label: "Called leads" }} />
           <Section title="Review" tasks={review} />
         </main>
 

@@ -7,6 +7,7 @@ import { ArrowUpRight, Menu, MessageCircle, Phone, UserRound, X } from "lucide-r
 import { Avatar } from "~/components/Avatar";
 import { CONTACT, telLink, waLink } from "~/lib/contact";
 import { JOIN } from "~/lib/join";
+import { InstallButton } from "~/components/InstallApp";
 import { firstName } from "~/lib/whatsapp";
 
 const NAV: [string, string][] = [
@@ -96,6 +97,7 @@ export function SiteHeader() {
             </NavLink>
           ))}
           <div className="mt-auto space-y-2 pt-6">
+            <InstallButton className="w-full bg-brand-50 text-forest" />
             {viewer?.role === "tutor" ? (
               <Link to="/me" className="flex min-h-13 items-center justify-center rounded-2xl bg-forest text-base font-bold text-cream">My home</Link>
             ) : viewer?.role === "owner" ? (
@@ -107,7 +109,7 @@ export function SiteHeader() {
                 <Link to="/request-tutor" className="flex min-h-13 items-center justify-center rounded-2xl bg-mango text-base font-extrabold text-forest">Find a tutor (guardians)</Link>
               </>
             )}
-            <a href={waLink(CONTACT.whatsapp, HELLO)} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-center gap-2 text-sm font-semibold text-brand-700"><MessageCircle size={16} aria-hidden />WhatsApp us</a>
+            <a href={waLink(CONTACT.whatsapp, HELLO)} target="_blank" rel="noreferrer" className="wa-btn flex min-h-12 items-center justify-center gap-2 text-sm font-semibold text-brand-700"><MessageCircle size={16} aria-hidden />WhatsApp us</a>
           </div>
         </nav>
       )}
@@ -171,6 +173,7 @@ export function SiteFooter() {
         <div className="border-t border-white/10">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-5 sm:px-6 lg:px-8">
             <p className="text-xs text-brand-200">© 2026 Hikmah Tutors Rajshahi</p>
+            <InstallButton className="bg-white/10 px-4 text-cream hover:bg-white/15" />
             <div className="flex flex-wrap items-center gap-x-5">
               <Link to="/privacy" className={contactClass}>Privacy</Link>
               <Link to="/terms" className={contactClass}>Terms</Link>

@@ -181,3 +181,17 @@ a {
     animation-iteration-count: 1 !important; /* looping loaders would flicker at 0.01 ms */
   }
 }
+
+/* WhatsApp buttons look like WhatsApp everywhere (owner, 2026-11-05): its green with dark text, since white text on
+   #25d366 is under 3:1. Text links get a readable darker green. */
+.wa-btn {
+  background-color: #25d366 !important;
+  color: #04351f !important;
+  box-shadow: none !important;
+}
+.wa-btn:hover {
+  background-color: #1ebe5b !important;
+}
+.wa-text {
+  color: #0f7a3d !important;
+}

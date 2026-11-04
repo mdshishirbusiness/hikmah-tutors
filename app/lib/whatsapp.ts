@@ -2,6 +2,7 @@
 // address or (before Selected) the tutor's phone, so a guardian cannot go round HTR.
 import { AREAS, SUBJECTS, labelOf } from "./options";
 import { classLabel, requirementLabels, subjectLabel, windowLabel } from "./request";
+import { bandOf, tutorFromLabel } from "./fit";
 import { taka } from "./tuition";
 
 const PREFIX = /^(md\.?|mohammad|mohammed|muhammad|mohd\.?|mst\.?|most\.?|mosammat|sk\.?|sheikh)$/i;
@@ -54,25 +55,75 @@ export function tutorMessage(t: Tuition, a: Pick<Tutor, "name">, step: "shortlis
 type Post = Tuition & {
   subjects: string; days_per_week: number; tutor_gender_pref: string; requirements_public: string; medium: string;
   subject_other?: string | null; requirement_keys?: string | null; time_from?: number | null; time_to?: number | null;
+  student_gender?: string | null; tutor_from?: string | null;
 };
 
-/** A ready post for Facebook or WhatsApp groups: the public facts and the link to apply. No guardian details. */
-export function tuitionPost(t: Post, origin: string): string {
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const dhakaDate = (d = new Date(Date.now() + 6 * 3600 * 1000)) => `${String(d.getUTCDate()).padStart(2, "0")}/${MONTHS[d.getUTCMonth()]}/${d.getUTCFullYear()}`;
+
+/** The facts both posts share, in the owner's order; a line the tuition doesn't have is left out. */
+function postLines(t: Post) {
   const subjects = t.subjects.split(",").filter(Boolean).map((s) => subjectLabel(s, t.subject_other)).join(", ");
-  const asks = requirementLabels((t.requirement_keys ?? "").split(",").filter(Boolean));
-  const time = windowLabel(t.time_from, t.time_to);
-  const tutor = t.tutor_gender_pref === "female" ? "Female tutor" : t.tutor_gender_pref === "male" ? "Male tutor" : "Male or female tutor";
+  const gender = t.tutor_gender_pref === "female" ? "Female" : t.tutor_gender_pref === "male" ? "Male" : "Male/Female";
+  const from = tutorFromLabel((t.tutor_from ?? "").split(",").filter(Boolean));
+  const band = bandOf(t.class_level);
+  const asks = [
+    ...requirementLabels((t.requirement_keys ?? "").split(",").filter(Boolean)),
+    t.requirements_public.trim(),
+    // Every SSC/HSC-level post says it (owner's post rules).
+    (band === "ssc" || band === "hsc") && !(t.requirement_keys ?? "").includes("experienced") ? "পূর্ব অভিজ্ঞতা অগ্রাধিকার পাবে" : "",
+  ].filter(Boolean);
+  return {
+    gender, from, subjects, asks,
+    cls: classLabel(t.class_level, t.class_other),
+    facts: [
+      `Tuition Code: HTR-${t.code}`,
+      `Class: ${classLabel(t.class_level, t.class_other)}`,
+      subjects && `Subject: ${subjects}`,
+      `Weekly: ${t.days_per_week} দিন`,
+      `Salary: ${t.salary_kind === "fixed" && t.salary_amount ? taka(t.salary_amount) : "৳ আলোচনা সাপেক্ষে"}`,
+      windowLabel(t.time_from, t.time_to) && `Time: ${windowLabel(t.time_from, t.time_to)}`,
+      `Location: ${labelOf(AREAS, t.area)}, Rajshahi`,
+      t.student_gender && `Student: ${t.student_gender === "girl" ? "Female" : "Male"}`,
+      `Tutor: ${gender}${from ? ` (${from})` : ""}`,
+    ].filter(Boolean) as string[],
+  };
+}
+
+/**
+ * Facebook group post, in the owner's template (owner, 2026-11-05). No link: links cut a post's reach, and tutors
+ * get the apply link by inbox. No emoji, no guardian details.
+ */
+export function facebookPost(t: Post): string {
+  const l = postLines(t);
   return [
-    `📚 Tuition HTR-${t.code}`,
-    `${classLabel(t.class_level, t.class_other)} · ${labelOf(AREAS, t.area)}`,
-    t.salary_kind === "fixed" && t.salary_amount ? `💰 ${taka(t.salary_amount)}/month · ${t.days_per_week} days/week` : `${t.days_per_week} days/week`,
-    subjects ? `Subjects: ${subjects}` : "",
-    time ? `🕑 ${time}` : "",
-    `👤 ${tutor}`,
-    ...asks.map((a) => `✅ ${a}`),
-    t.requirements_public ? `✅ ${t.requirements_public}` : "",
+    `1 New Tuition Offer — ${dhakaDate()}`,
     "",
-    `Apply: ${origin}/tuitions/HTR-${t.code}`,
-    "— Hikmah Tutors Rajshahi",
-  ].filter((line, i, all) => line !== "" || (i > 0 && all[i - 1] !== "")).join("\n");
+    `১ জন ${l.from ? `${l.from} ` : ""}${l.gender} Tutor প্রয়োজন।`,
+    "",
+    ...l.facts,
+    ...(l.asks.length ? [`Requirement: ${l.asks.join("; ")}`] : []),
+    "",
+    "Apply Procedure",
+    "",
+    "Interested লিখে কমেন্ট করুন।",
+    "",
+    "অথবা ইনবক্সে Interested লিখুন, আবেদনের লিংক দেওয়া হবে। শুধুমাত্র আবেদনকারীদের মধ্য থেকেই Tutor সিলেক্ট করা হবে।",
+    "",
+    "নতুন টিউশন অফার সবার আগে পেতে আমাদের WhatsApp Community-তে যুক্ত থাকুন।",
+  ].join("\n");
+}
+
+/** WhatsApp post, in the owner's template, ending with the link to apply on the site. */
+export function whatsappPost(t: Post, origin: string): string {
+  const l = postLines(t);
+  return [
+    `১ জন ${l.gender} Tutor প্রয়োজন (${l.cls}${l.subjects ? ` — ${l.subjects}` : ""})`,
+    "",
+    ...l.facts,
+    ...(l.asks.length ? ["", `Guardian Requirement: ${l.asks.join("; ")}`] : []),
+    "",
+    "আগ্রহী শিক্ষকরা নিচের লিংকে সরাসরি আবেদন করুন।",
+    `Apply here: ${origin}/tuitions/HTR-${t.code}`,
+  ].join("\n");
 }

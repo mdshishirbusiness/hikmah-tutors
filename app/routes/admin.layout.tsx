@@ -3,6 +3,7 @@
 // with search, the bottom bar of 2026-11-04 and the + button for a new lead.
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, NavLink, Outlet, type ShouldRevalidateFunctionArgs, useFetcher, useLocation, useNavigate } from "react-router";
+import { InstallButton } from "~/components/InstallApp";
 import {
   ArrowUpRight, BarChart3, ClipboardList, FileText, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, Plus, Search, UserRound, Users, X, Zap,
 } from "lucide-react";
@@ -225,6 +226,7 @@ function Sidebar({ counts, onSearch }: { counts: Counts; onSearch: () => void })
       </nav>
       <div className="border-t border-white/10 p-3">
         <Link to="/" className="flex min-h-10 items-center justify-between gap-2 rounded-xl px-3 text-xs font-semibold text-brand-100/80 hover:bg-white/5 hover:text-white">View the board<ArrowUpRight size={15} aria-hidden /></Link>
+        <InstallButton className="w-full justify-start px-3 text-xs text-brand-100/80 hover:bg-white/5 hover:text-white" />
         <Form method="post" action="/logout">
           <button className="flex min-h-10 w-full items-center justify-between gap-2 rounded-xl px-3 text-xs font-semibold text-brand-100/80 hover:bg-white/5 hover:text-white">Log out<LogOut size={15} aria-hidden /></button>
         </Form>
@@ -262,6 +264,7 @@ function PhoneBars({ counts, onSearch }: { counts: Counts; onSearch: () => void 
             </Link>
           ))}
           <Link to="/" className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-forest hover:bg-brand-50"><ArrowUpRight size={18} className="text-brand-600" aria-hidden />View the board</Link>
+          <InstallButton className="w-full justify-start px-3 text-forest hover:bg-brand-50" />
           <Form method="post" action="/logout">
             <button className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-slate-600 hover:bg-rose-50 hover:text-rose-700"><LogOut size={18} aria-hidden />Log out</button>
           </Form>

@@ -93,7 +93,7 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
                 <p className="text-sm text-slate-600">{[t.university && t.university !== "other" && t.institution !== UNI[t.university] ? t.institution : null, t.session_year && `Session ${t.session_year}`, t.gender === "female" ? "Female" : t.gender === "male" ? "Male" : null].filter(Boolean).join(" · ")}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <a href={`tel:${t.phone}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-forest px-3 text-sm font-bold text-cream hover:bg-brand-700"><Phone size={16} aria-hidden />{t.phone}</a>
-                  <a href={waLink(t.phone, "")} target="_blank" rel="noreferrer" className={ghost}><MessageCircle size={16} aria-hidden />WhatsApp</a>
+                  <a href={waLink(t.phone, "")} target="_blank" rel="noreferrer" className={`${ghost} wa-btn`}><MessageCircle size={16} aria-hidden />WhatsApp</a>
                   {t.alt_phone && <a href={`tel:${t.alt_phone}`} className={ghost}><Phone size={16} aria-hidden />{t.alt_phone}</a>}
                   {t.email && <a href={`mailto:${t.email}`} className={ghost}><Mail size={16} aria-hidden />Email</a>}
                   {facebook && <a href={facebook} target="_blank" rel="noreferrer" className={ghost}>Facebook</a>}

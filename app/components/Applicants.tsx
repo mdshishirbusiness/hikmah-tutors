@@ -263,7 +263,7 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
         <div className="flex flex-wrap gap-2">
           {a.phone && <a href={`tel:${a.phone}`} className={ghost}><Phone size={16} aria-hidden />Call</a>}
           {a.phone && (
-            <a href={waLink(a.phone, shares ? tutorMessage(t, a, selected ? "selected" : "shortlisted") : "")} target="_blank" rel="noreferrer" className={ghost}>
+            <a href={waLink(a.phone, shares ? tutorMessage(t, a, selected ? "selected" : "shortlisted") : "")} target="_blank" rel="noreferrer" className={`${ghost} wa-btn`}>
               <MessageCircle size={16} aria-hidden />{shares ? "Message tutor" : "WhatsApp"}
             </a>
           )}
@@ -277,7 +277,7 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
             <p className="text-xs text-brand-200">{selected ? "Includes the tutor's phone." : "No phone until Selected."}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {guardianPhone && (
-                <a href={waLink(guardianPhone, guardianSummary(t, a, fit.subjects, selected))} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-mango px-4 text-sm font-bold text-forest hover:bg-mango-deep">
+                <a href={waLink(guardianPhone, guardianSummary(t, a, fit.subjects, selected))} target="_blank" rel="noreferrer" className="wa-btn inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-mango px-4 text-sm font-bold text-forest hover:bg-mango-deep">
                   <Send size={16} aria-hidden />Send to guardian
                 </a>
               )}

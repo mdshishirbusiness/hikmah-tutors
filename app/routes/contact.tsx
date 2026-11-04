@@ -11,7 +11,7 @@ export default function Contact() {
   return (
     <PageShell title="Contact" sub="টিউটর বা অভিভাবক — যেকোনো প্রশ্নে আমাদের লিখুন বা কল করুন।">
       <div className="grid gap-3 sm:grid-cols-2">
-        <a href={waLink(CONTACT.whatsapp, "আসসালামু আলাইকুম, Hikmah Tutors Rajshahi সম্পর্কে জানতে চাই।")} target="_blank" rel="noreferrer" className={buttonClass("primary")}>
+        <a href={waLink(CONTACT.whatsapp, "আসসালামু আলাইকুম, Hikmah Tutors Rajshahi সম্পর্কে জানতে চাই।")} target="_blank" rel="noreferrer" className={`${buttonClass("primary")} wa-btn`}>
           <MessageCircle size={18} aria-hidden /> WhatsApp
         </a>
         <a href={telLink(CONTACT.call)} className={buttonClass("secondary")}>

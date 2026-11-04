@@ -72,7 +72,7 @@ export default function Setup({ loaderData: { me, choices, first }, actionData }
               ["Session", me.session_year],
             ]} />
             <a href={waLink(CONTACT.whatsapp, `Assalamu alaikum, I'm tutor T-${me.code}. One of my details needs a fix: `)} target="_blank" rel="noreferrer"
-              className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-700">
+              className="wa-text mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-700">
               <MessageCircle size={16} aria-hidden />Message HTR
             </a>
           </Step>

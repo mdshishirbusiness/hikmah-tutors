@@ -161,7 +161,7 @@ export default function Join({ loaderData: { me, choices, email, googleName, ses
                 <Err>{errors.phone}</Err>
                 {errors.phone?.includes("already") && (
                   <a href={waLink(CONTACT.whatsapp, `Assalamu alaikum. I registered before with another Google account. Please link my profile to ${email}.`)} target="_blank" rel="noreferrer"
-                    className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-brand-700"><MessageCircle size={16} aria-hidden />Message HTR</a>
+                    className="wa-text mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-brand-700"><MessageCircle size={16} aria-hidden />Message HTR</a>
                 )}
               </div>
               <fieldset>

@@ -3,6 +3,25 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-05 (owner's round after part D)
+
+- **"Late" now says what passed, in Bangla**: "2 ঘণ্টা পার", "3 ঘণ্টা পার", "6 ঘণ্টা পার", "1 দিন পার". Each Today
+  section has a one-line Bangla rule under its heading (e.g. "নতুন গার্ডিয়ান: 2 ঘণ্টার মধ্যে কল করুন।").
+- **Posts in the owner's own templates** (`facebookPost`, `whatsappPost` in `app/lib/whatsapp.ts`). The tuition page
+  has two Copy buttons.
+  - Facebook: no link, because links cut a post's reach. Tutors comment or inbox "Interested" and get the apply link.
+  - WhatsApp: ends with the site's apply link for that tuition (it was a Google Form link).
+  - Both: no emoji, no guardian details. SSC/HSC posts add "পূর্ব অভিজ্ঞতা অগ্রাধিকার পাবে" unless "experience" is
+    already picked.
+  - The sheet-era TSV row and the mobile-save name are not needed, now that the site replaces the sheet.
+- **WhatsApp buttons in WhatsApp green** (`.wa-btn` in `app/app.css`: #25D366 with dark text; white on it is under
+  3:1). Text links use `.wa-text`.
+- **Install as an app**, until there is a Play Store app:
+  - The web app manifest and icons, including a padded "maskable" icon for Android.
+  - **Install app** buttons in the phone menu, the footer and admin. Android and desktop Chrome open their own prompt;
+    an iPhone shows "Share → Add to Home Screen".
+  - No service worker, so nothing is cached and data is never stale.
+
 ## 2026-11-05 (part D: follow-ups, notes, Today)
 
 - **Follow-ups** (migration 0017): a reminder on a guardian, tutor, lead or tuition, with a due time and a short note.

@@ -71,7 +71,7 @@ function GuardianNumber({ a }: { a: MyApplication }) {
           <div className="mt-3 grid grid-cols-2 gap-2">
             <a href={`tel:${phone}`} className={`${primaryButton} min-h-11`}><Phone size={16} aria-hidden />Call</a>
             <a href={waLink(phone, `Assalamu alaikum. I'm the tutor from Hikmah Tutors for ${what(a)} (HTR-${a.tuition_code}).`)} target="_blank" rel="noreferrer"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-100 bg-white text-sm font-semibold text-forest hover:bg-brand-50">
+              className="wa-btn inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-100 bg-white text-sm font-semibold text-forest hover:bg-brand-50">
               <MessageCircle size={16} aria-hidden />WhatsApp
             </a>
           </div>

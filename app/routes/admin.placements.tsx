@@ -101,7 +101,7 @@ export default function Placements({ loaderData: { inProgress, placed, due7, due
                       <Steps at={[a.called_at, a.met_at, a.demo_done_at]} />
                       <span className="flex gap-1.5">
                         {late && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-900">Hasn't called</span>}
-                        {a.phone && <a href={waLink(a.phone, "")} target="_blank" rel="noreferrer" aria-label="WhatsApp the tutor" className="grid size-10 place-items-center rounded-xl bg-white text-forest shadow-ring"><MessageCircle size={16} aria-hidden /></a>}
+                        {a.phone && <a href={waLink(a.phone, "")} target="_blank" rel="noreferrer" aria-label="WhatsApp the tutor" className="wa-btn grid size-10 place-items-center rounded-xl bg-white text-forest shadow-ring"><MessageCircle size={16} aria-hidden /></a>}
                         {a.phone && <a href={`tel:${a.phone}`} aria-label="Call the tutor" className="grid size-10 place-items-center rounded-xl bg-white text-forest shadow-ring"><PhoneCall size={16} aria-hidden /></a>}
                       </span>
                     </div>

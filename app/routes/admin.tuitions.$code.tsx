@@ -18,7 +18,7 @@ import { AREAS, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, STUDENT_GENDERS, SUBJECTS, 
 import { GENDER_CHIP, SUBJECT_TONE, SUBJECT_TONE_OTHER, needText, scheduleNote } from "~/lib/tuition";
 import { classLabel, requirementKeys, subjectLabel } from "~/lib/request";
 import { FollowUpButton } from "~/components/FollowUps";
-import { tuitionPost } from "~/lib/whatsapp";
+import { facebookPost, whatsappPost } from "~/lib/whatsapp";
 
 export function meta({ params }: Route.MetaArgs) {
   return [{ title: `HTR-${params.code} · Admin` }, { name: "robots", content: "noindex" }];
@@ -76,15 +76,15 @@ function StateButton({ op, children, primary, busy }: { op: string; children: Re
   );
 }
 
-function CopyPost({ text }: { text: string }) {
+function CopyPost({ text, label, title }: { text: string; label: string; title: string }) {
   const [done, setDone] = useState(false);
   return (
-    <button type="button" title="Copy a post for Facebook or WhatsApp groups"
+    <button type="button" title={title}
       onClick={async () => {
         try { await navigator.clipboard.writeText(text); setDone(true); setTimeout(() => setDone(false), 2000); } catch { window.prompt("Copy this:", text); }
       }}
       className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-4 text-sm font-bold text-forest shadow-ring hover:bg-brand-50">
-      {done ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}{done ? "Copied" : "Copy post"}
+      {done ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}{done ? "Copied" : label}
     </button>
   );
 }
@@ -160,7 +160,12 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
               {open && t.is_public === 1 && t.accepting_applications === 1 && <StateButton op="pause" busy={busy}><Pause size={16} aria-hidden />Pause applications</StateButton>}
               {open && t.is_public === 1 && t.accepting_applications === 0 && <StateButton op="resume" primary busy={busy}><Play size={16} aria-hidden />Take applications</StateButton>}
               {(t.status === "booked" || t.status === "processing") && <StateButton op="reopen" busy={busy}><RotateCcw size={16} aria-hidden />Re-open</StateButton>}
-              {t.is_public === 1 && <CopyPost text={tuitionPost(t, origin)} />}
+              {t.is_public === 1 && (
+                <>
+                  <CopyPost label="Facebook post" title="Facebook গ্রুপের জন্য, লিংক ছাড়া" text={facebookPost(t)} />
+                  <CopyPost label="WhatsApp post" title="WhatsApp-এর জন্য, আবেদনের লিংকসহ" text={whatsappPost(t, origin)} />
+                </>
+              )}
               <FollowUpButton kind="tuition" refId={t.code} />
               {t.is_public === 1 && <Link to={`/tuitions/HTR-${t.code}`} className="inline-flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50">View<ArrowUpRight size={15} aria-hidden /></Link>}
               {t.status !== "closed" && t.status !== "cancelled" && (
@@ -194,7 +199,7 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
               {guardianPhone && (
                 <>
                   <a href={`tel:${guardianPhone}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-forest px-3 text-sm font-bold text-cream hover:bg-brand-700"><Phone size={16} aria-hidden />{guardianPhone}</a>
-                  <a href={waLink(guardianPhone, "")} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring"><MessageCircle size={16} aria-hidden />WhatsApp</a>
+                  <a href={waLink(guardianPhone, "")} target="_blank" rel="noreferrer" className="wa-btn inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring"><MessageCircle size={16} aria-hidden />WhatsApp</a>
                 </>
               )}
             </div>

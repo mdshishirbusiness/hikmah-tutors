@@ -71,7 +71,7 @@ function Q({ children, optional }: { children: React.ReactNode; optional?: boole
 function ContactRow() {
   return (
     <div className="flex flex-col gap-2 sm:flex-row">
-      <a href={waLink(CONTACT.whatsapp, GUARDIAN_WA_TEXT)} target="_blank" rel="noreferrer" className={buttonClass("secondary")}><MessageCircle size={18} aria-hidden /> WhatsApp</a>
+      <a href={waLink(CONTACT.whatsapp, GUARDIAN_WA_TEXT)} target="_blank" rel="noreferrer" className={`${buttonClass("secondary")} wa-btn`}><MessageCircle size={18} aria-hidden /> WhatsApp</a>
       <a href={telLink(CONTACT.call)} className={buttonClass("secondary")}><Phone size={18} aria-hidden /> Call</a>
     </div>
   );
