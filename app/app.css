@@ -49,8 +49,19 @@
   unicode-range: U+09E6-09EF;
 }
 
+/* Plus Jakarta Sans (variable 200–800, OFL, from Fontsource) for English text, numbers and the salary; Bangla falls
+   through to Hind Siliguri (owner, 2026-11-04: short UI text is English, so the Latin face sets the tone). */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/plus-jakarta-sans-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @theme {
-  --font-sans: "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
 
   /* Brand colours sampled from the logo (design/brand/logo-square.png). Contrast checked (WCAG):
      emerald on white 4.8 (text, links, buttons OK) · white on forest 13.8 · mango on forest 9.6 · forest on mango 9.6
@@ -70,6 +81,14 @@
   --color-cream: #fefdf8; /* the logo background */
 
   --shadow-card: 0 1px 2px rgb(9 51 42 / 0.05), 0 4px 16px rgb(9 51 42 / 0.05);
+  --shadow-lift: 0 2px 4px rgb(9 51 42 / 0.06), 0 16px 40px -12px rgb(9 51 42 / 0.22);
+  --shadow-ring: 0 0 0 1px rgb(9 51 42 / 0.06), 0 1px 2px rgb(9 51 42 / 0.06);
+
+  /* Chart colours (dataviz validator, light surface): emerald and amber pass colour-blind separation; amber is under
+     3:1 on white, so every chart that uses it also shows values on hover and has a table view. */
+  --color-chart-1: #169a82;
+  --color-chart-2: #d99a1a;
+  --color-grid: #e7ece9;
   --animate-rise: rise 0.3s ease-out both;
   @keyframes rise {
     from {
@@ -89,6 +108,18 @@
       transform: translateY(100%);
     }
   }
+  --animate-grow: grow 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  @keyframes grow {
+    from {
+      transform: scaleY(0);
+    }
+  }
+  --animate-grow-x: grow-x 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  @keyframes grow-x {
+    from {
+      transform: scaleX(0);
+    }
+  }
   --animate-pop: pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
   @keyframes pop {
     from {
@@ -105,6 +136,18 @@ html {
 
 body {
   @apply bg-cream text-slate-800 antialiased;
+}
+
+/* Page changes cross-fade where the browser supports view transitions (React Router's viewTransition links). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.18s;
+}
+
+/* Thin, quiet scrollbars inside panels (applicant table, sheets). */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(9 51 42 / 0.18) transparent;
 }
 
 button,

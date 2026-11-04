@@ -49,3 +49,22 @@ export function tutorMessage(t: Tuition, a: Pick<Tutor, "name">, step: "shortlis
     ? `${hello} You're shortlisted for HTR-${t.code} (${what(t)}). We'll let you know after talking to the guardian.`
     : `${hello} You're selected for HTR-${t.code} (${what(t)}). We'll send the guardian's number next; please call them within 3 hours.`;
 }
+
+type Post = Tuition & { subjects: string; days_per_week: number; tutor_gender_pref: string; requirements_public: string; medium: string };
+
+/** A ready post for Facebook or WhatsApp groups: the public facts and the link to apply. No guardian details. */
+export function tuitionPost(t: Post, origin: string): string {
+  const subjects = t.subjects.split(",").filter(Boolean).map((s) => labelOf(SUBJECTS, s)).join(", ");
+  const tutor = t.tutor_gender_pref === "female" ? "Female tutor" : t.tutor_gender_pref === "male" ? "Male tutor" : "Male or female tutor";
+  return [
+    `📚 Tuition HTR-${t.code}`,
+    `${labelOf(CLASS_LEVELS, t.class_level)} · ${labelOf(AREAS, t.area)}`,
+    t.salary_kind === "fixed" && t.salary_amount ? `💰 ${taka(t.salary_amount)}/month · ${t.days_per_week} days/week` : `${t.days_per_week} days/week`,
+    subjects ? `Subjects: ${subjects}` : "",
+    `👤 ${tutor}`,
+    t.requirements_public ? `✅ ${t.requirements_public}` : "",
+    "",
+    `Apply: ${origin}/tuitions/HTR-${t.code}`,
+    "— Hikmah Tutors Rajshahi",
+  ].filter((line, i, all) => line !== "" || (i > 0 && all[i - 1] !== "")).join("\n");
+}

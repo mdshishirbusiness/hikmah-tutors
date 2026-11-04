@@ -24,27 +24,28 @@ export function ago(sec: number | null) {
 /** Sheet data can hold anything, so only web links become clickable. */
 export const safeUrl = (u: string | null) => (u && /^https?:\/\//i.test(u) ? u : null);
 
-export function PageHead({ title, sub, back, action }: { title: string; sub?: string; back?: { to: string; label: string }; action?: React.ReactNode }) {
+export function PageHead({ title, sub, back, action, eyebrow }: { title: React.ReactNode; sub?: React.ReactNode; back?: { to: string; label: string }; action?: React.ReactNode; eyebrow?: React.ReactNode }) {
   return (
     <div className="mb-6">
       {back && (
-        <Link to={back.to} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-slate-500 hover:text-brand-700">
+        <Link to={back.to} className="-ml-1 inline-flex min-h-10 items-center gap-1 rounded-lg px-1 text-sm font-semibold text-slate-500 hover:text-brand-700">
           <ArrowLeft size={16} aria-hidden /> {back.label}
         </Link>
       )}
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
-          <h1 className="text-3xl leading-snug font-bold tracking-tight break-words text-forest sm:text-4xl">{title}</h1>
-          {sub && <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500">{sub}</p>}
+          {eyebrow && <p className="mb-1 text-xs font-bold tracking-[0.12em] text-brand-700 uppercase">{eyebrow}</p>}
+          <h1 className="text-[28px] leading-tight font-extrabold tracking-tight break-words text-forest sm:text-4xl">{title}</h1>
+          {sub && <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-500">{sub}</p>}
         </div>
-        {action && <div className="flex flex-wrap gap-2">{action}</div>}
+        {action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
       </div>
     </div>
   );
 }
 
 export const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <section className={`min-w-0 rounded-2xl border border-brand-100 bg-white p-5 shadow-card sm:p-6 ${className}`}>{children}</section>
+  <section className={`min-w-0 rounded-2xl bg-white p-5 shadow-ring sm:p-6 ${className}`}>{children}</section>
 );
 
 const TONES = {
@@ -130,5 +131,33 @@ export function Pager({ total, pageSize }: { total: number; pageSize: number }) 
 }
 
 export const Empty = ({ children }: { children: React.ReactNode }) => (
-  <p className="rounded-2xl border border-dashed border-brand-200 bg-white p-8 text-center text-slate-600">{children}</p>
+  <p className="rounded-2xl border border-dashed border-brand-200 bg-white/60 p-8 text-center text-slate-600">{children}</p>
+);
+
+/** Pills that filter a list by a search parameter, each with its count. */
+export function StageTabs({ tabs, active, param = "stage" }: { tabs: { key: string; label: string; n?: number }[]; active: string; param?: string }) {
+  const [sp] = useSearchParams();
+  return (
+    <nav aria-label="Filter" className="-mx-4 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
+      {tabs.map((t) => {
+        const next = new URLSearchParams(sp);
+        if (t.key) next.set(param, t.key); else next.delete(param);
+        next.delete("page");
+        const on = active === t.key;
+        return (
+          <Link key={t.key || "all"} to={`?${next}`} preventScrollReset aria-current={on ? "page" : undefined}
+            className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors ${on ? "bg-forest text-cream" : "bg-white text-slate-600 shadow-ring hover:text-forest"}`}>
+            {t.label}{t.n !== undefined && <span className={`tabular-nums ${on ? "text-mango" : "text-slate-400"}`}>{num(t.n)}</span>}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** "৳4,500" in the big confident style of the board (owner, 2026-10-16). */
+export const Money = ({ amount, kind, className = "" }: { amount: number | null; kind: string; className?: string }) => (
+  <span className={`font-extrabold tracking-tight text-forest ${className}`}>
+    {kind === "fixed" && amount ? `৳${num(amount)}` : kind === "negotiable" ? "Negotiable" : "No salary"}
+  </span>
 );

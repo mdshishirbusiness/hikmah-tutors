@@ -5,6 +5,7 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
+    "dev:synthetic": "react-router dev --mode synthetic",
     "typecheck": "wrangler types && react-router typegen && tsc -b",
     "deploy": "npm run build && wrangler deploy",
     "preview": "npm run build && vite preview",
@@ -20,7 +21,8 @@
     "photos:upload-local": "node scripts/photos/upload.mjs --local",
     "photos:upload-real": "node scripts/photos/upload.mjs --remote",
     "test:import": "node --test scripts/import/sheet.test.mjs scripts/import/load-sql.test.mjs scripts/import/top-up.test.mjs scripts/import/google-auth.test.mjs",
-    "db:migrate": "wrangler d1 migrations apply hikmah --remote"
+    "db:migrate": "wrangler d1 migrations apply hikmah --remote",
+    "synthetic:seed": "node scripts/synthetic/seed.mjs"
   },
   "dependencies": {
     "isbot": "^5.1.36",

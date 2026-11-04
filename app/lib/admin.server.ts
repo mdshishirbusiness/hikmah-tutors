@@ -1,8 +1,8 @@
 // Queries behind the admin screens. Private data: only routes under /admin that call requireAdmin may import this.
 import { env } from "cloudflare:workers";
-import { ADMIN_PAGE_SIZE, TUITION_MOVES } from "./admin-labels";
+import { ADMIN_PAGE_SIZE, TUITION_MOVES, publishGaps } from "./admin-labels";
 import { bandOf } from "./fit";
-import { AREAS, CLASS_CHOICES, CLASS_LEVELS, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM } from "./options";
+import { AREAS, CLASS_CHOICES, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM } from "./options";
 
 const PAGE_SIZE = ADMIN_PAGE_SIZE;
 const pageOffset = (page: number) => (Math.max(page, 1) - 1) * PAGE_SIZE;
@@ -184,13 +184,16 @@ export type Applicant = {
   subject_fit: string | null; // the tuition's subjects the tutor teaches at its band, comma-separated
   areas: string | null; // the tutor's chosen areas, comma-separated (empty until they sign in)
   experience: string | null; // the tutor's experience statement for the tuition's band
+  photo_key: string | null; about: string | null; demo_willing: number | null; paused: number | null; updated_at: number;
+  called_at: number | null; met_at: number | null; demo_done_at: number | null;
+  total_apps: number; placed: number; // this tutor's whole record with HTR, for the admin's judgement
 };
 
 export async function getTuition(code: number) {
   const tuition = await env.DB.prepare(`SELECT t.*, 0 applications FROM tuitions t WHERE t.code = ?`).bind(code).first<TuitionFull>();
   if (!tuition) return null;
   const band = bandOf(tuition.class_level) ?? "";
-  const [priv, applicants, placements] = await Promise.all([
+  const [priv, applicants, placements, history] = await Promise.all([
     env.DB.prepare(
       `SELECT p.guardian_id, p.guardian_label, g.phone guardian_phone, p.exact_address, p.lead_source, p.private_notes, p.tutor_qualification, p.raw_json
        FROM tuition_private p LEFT JOIN guardians g ON g.id = p.guardian_id WHERE p.tuition_code = ?`,
@@ -204,7 +207,10 @@ export async function getTuition(code: number) {
               (SELECT group_concat(DISTINCT s.subject) FROM tutor_subjects s WHERE s.tutor_id = a.tutor_id AND (? = '' OR s.band = ?)
                  AND instr(',' || ? || ',', ',' || s.subject || ',') > 0) subject_fit,
               (SELECT group_concat(ar.area) FROM tutor_areas ar WHERE ar.tutor_id = a.tutor_id) areas,
-              (SELECT body FROM tutor_statements st WHERE st.tutor_id = a.tutor_id AND st.kind = ?) experience
+              (SELECT body FROM tutor_statements st WHERE st.tutor_id = a.tutor_id AND st.kind = ?) experience,
+              t.photo_key, t.about, t.demo_willing, t.availability_paused paused, a.updated_at, a.called_at, a.met_at, a.demo_done_at,
+              (SELECT count(*) FROM applications x WHERE x.tutor_id = a.tutor_id) total_apps,
+              (SELECT count(*) FROM placements pl WHERE pl.tutor_id = a.tutor_id AND pl.status IN ('confirmed', 'joined', 'ended')) placed
        FROM applications a LEFT JOIN tutors t ON t.id = a.tutor_id WHERE a.tuition_code = ? ORDER BY a.created_at`,
       band, band, tuition.subjects, band ? `${band}_experience` : "", code,
     ),
@@ -213,8 +219,21 @@ export async function getTuition(code: number) {
        FROM placements p LEFT JOIN tutors t ON t.id = p.tutor_id WHERE p.tuition_code = ?`,
       code,
     ),
+    // What happened, newest first: every applicant step and every edit of the tuition.
+    all<{ at: number; kind: string; from_status: string | null; to_status: string | null; reason: string | null; who: string | null; tutor_code: number | null; by_tutor: number }>(
+      `SELECT * FROM (
+         SELECT e.created_at at, 'step' kind, e.from_status, e.to_status, e.reason, COALESCE(u.full_name, a.applicant_name) who, u.code tutor_code,
+                (us.role = 'tutor') by_tutor
+         FROM application_events e JOIN applications a ON a.id = e.application_id LEFT JOIN tutors u ON u.id = a.tutor_id
+         LEFT JOIN users us ON us.id = e.actor_user_id WHERE a.tuition_code = ?1
+         UNION ALL
+         SELECT l.created_at, l.action, NULL, NULL, l.meta_json, NULL, NULL, 0 FROM audit_log l
+         WHERE l.entity_type = 'tuition' AND l.entity_id = CAST(?1 AS TEXT)
+       ) ORDER BY at DESC LIMIT 150`,
+      code,
+    ),
   ]);
-  return { tuition, priv, applicants, placements };
+  return { tuition, priv, applicants, placements, history };
 }
 
 /** Public wording must not carry contact details. Returns an error in Bangla, or null. */
@@ -222,6 +241,27 @@ function publicTextProblem(text: string): string | null {
   const digits = text.replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d))).replace(/[\s-]/g, "");
   if (/01[3-9]\d{8}/.test(digits)) return "Public text can't contain a phone number.";
   return null;
+}
+
+/** The checks every tuition's fields pass, whether new or edited. Returns the first problem, or null. */
+export function tuitionFieldsProblem(form: FormData): string | null {
+  const text = (name: string) => String(form.get(name) ?? "").trim();
+  const medium = text("medium"), classLevel = text("class_level"), area = text("area");
+  const requirements = text("requirements_public"), startNote = text("start_note");
+  const days = Number(text("days_per_week")), salaryKind = text("salary_kind"), amount = Number(text("salary_amount"));
+  const genderPref = text("tutor_gender_pref");
+  const sessionMinutes = Number(text("session_minutes")) || null, timeOfDay = text("time_of_day") || null;
+  if (medium && !MEDIUMS.some((m) => m.key === medium)) return "Medium not valid.";
+  if (!CLASS_LEVELS.some((c) => c.key === classLevel)) return "Pick a class.";
+  if (sessionMinutes !== null && !(SESSION_MINUTES as readonly number[]).includes(sessionMinutes)) return "Session length not valid.";
+  if (timeOfDay !== null && !TIMES_OF_DAY.some((o) => o.key === timeOfDay)) return "Time of day not valid.";
+  if (!AREAS.some((a) => a.key === area)) return "Pick an area.";
+  if (!Number.isInteger(days) || days < 1 || days > 7) return "Days per week must be 1 to 7.";
+  if (!["fixed", "negotiable", "unspecified"].includes(salaryKind)) return "Salary type not valid.";
+  if (salaryKind === "fixed" && (!Number.isInteger(amount) || amount <= 0)) return "Enter the salary.";
+  if (!["any", "male", "female"].includes(genderPref)) return "Tutor choice not valid.";
+  if (requirements.length > 500 || startNote.length > 100) return "Text is too long.";
+  return publicTextProblem(`${requirements} ${startNote}`);
 }
 
 export async function updateTuition(code: number, form: FormData, actorId: number | null): Promise<string | null> {
@@ -236,19 +276,10 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   const genderPref = text("tutor_gender_pref"), publish = form.get("is_public") === "1";
   const sessionMinutes = Number(text("session_minutes")) || null, timeOfDay = text("time_of_day") || null;
   const tutorFrom = form.getAll("tutor_from").map(String).filter((k) => TUTOR_FROM.some((o) => o.key === k));
+  const studentGender = ["boy", "girl"].includes(text("student_gender")) ? text("student_gender") : null;
 
   if (status !== current.status && !TUITION_MOVES[current.status]?.includes(status)) return "Can't move to that status.";
-  if (medium && !MEDIUMS.some((m) => m.key === medium)) return "Medium not valid.";
-  if (!CLASS_LEVELS.some((c) => c.key === classLevel)) return "Pick a class.";
-  if (sessionMinutes !== null && !(SESSION_MINUTES as readonly number[]).includes(sessionMinutes)) return "Session length not valid.";
-  if (timeOfDay !== null && !TIMES_OF_DAY.some((o) => o.key === timeOfDay)) return "Time of day not valid.";
-  if (!AREAS.some((a) => a.key === area)) return "Pick an area.";
-  if (!Number.isInteger(days) || days < 1 || days > 7) return "Days per week must be 1 to 7.";
-  if (!["fixed", "negotiable", "unspecified"].includes(salaryKind)) return "Salary type not valid.";
-  if (salaryKind === "fixed" && (!Number.isInteger(amount) || amount <= 0)) return "Enter the salary.";
-  if (!["any", "male", "female"].includes(genderPref)) return "Tutor choice not valid.";
-  if (requirements.length > 500 || startNote.length > 100) return "Text is too long.";
-  const problem = publicTextProblem(`${requirements} ${startNote}`);
+  const problem = tuitionFieldsProblem(form);
   if (problem) return problem;
 
   const open = status === "available" || status === "processing";
@@ -265,13 +296,110 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
     env.DB.prepare(
       `UPDATE tuitions SET status = ?, is_public = ?, accepting_applications = ?, medium = ?, class_level = ?, subjects = ?, area = ?, days_per_week = ?,
               session_minutes = ?, time_of_day = ?, salary_kind = ?, salary_amount = ?, tutor_gender_pref = ?, tutor_from = ?, requirements_public = ?, start_note = ?, posted_at = ?,
-              closed_at = CASE WHEN ? IS NULL THEN NULL ELSE COALESCE(closed_at, ?) END
+              student_gender = COALESCE(?, student_gender), closed_at = CASE WHEN ? IS NULL THEN NULL ELSE COALESCE(closed_at, ?) END
        WHERE code = ?`,
     ).bind(status, publish ? 1 : 0, publish && form.get("accepting") === "1" ? 1 : 0, medium, classLevel, subjects.join(","), area, days, sessionMinutes, timeOfDay, salaryKind, salaryKind === "fixed" ? amount : null,
-      genderPref, tutorFrom.join(","), requirements, startNote, postedAt, closedAt, closedAt, code),
+      genderPref, tutorFrom.join(","), requirements, startNote, postedAt, studentGender, closedAt, closedAt, code),
     audit(actorId, "tuition_updated", "tuition", String(code), { status, is_public: publish }),
   ]);
   return null;
+}
+
+
+// One-tap changes from the tuition page (owner, 2026-11-04: fewer steps than status + tick boxes + Save).
+export const TUITION_OPS = ["publish", "pause", "resume", "hide", "close", "cancel", "reopen"] as const;
+export type TuitionOp = (typeof TUITION_OPS)[number];
+
+export async function setTuitionState(code: number, op: string, actorId: number | null): Promise<string | null> {
+  const t = await env.DB.prepare(`SELECT code, status, is_public, accepting_applications, class_level, area, medium, subjects, posted_at FROM tuitions WHERE code = ?`)
+    .bind(code).first<{ code: number; status: string; is_public: number; accepting_applications: number; class_level: string; area: string; medium: string; subjects: string; posted_at: number | null }>();
+  if (!t) return "Tuition not found.";
+  const at = now();
+  const open = t.status === "available" || t.status === "processing";
+  let sql: string;
+  let args: unknown[];
+  switch (op) {
+    case "publish": {
+      const gaps = publishGaps(t);
+      if (gaps.length) return `Fill in first: ${gaps.join(", ")}.`;
+      if (!["draft", "available", "processing"].includes(t.status)) return "Re-open this tuition first.";
+      sql = `UPDATE tuitions SET status = CASE WHEN status = 'draft' THEN 'available' ELSE status END, is_public = 1, accepting_applications = 1,
+             posted_at = COALESCE(posted_at, ?), closed_at = NULL WHERE code = ?`;
+      args = [at, code];
+      break;
+    }
+    case "pause":
+    case "resume":
+      if (!open || !t.is_public) return "Only a tuition on the board takes applications.";
+      sql = `UPDATE tuitions SET accepting_applications = ? WHERE code = ?`;
+      args = [op === "resume" ? 1 : 0, code];
+      break;
+    case "hide":
+      sql = `UPDATE tuitions SET is_public = 0, accepting_applications = 0 WHERE code = ?`;
+      args = [code];
+      break;
+    case "close":
+    case "cancel":
+      if (!TUITION_MOVES[t.status]?.includes(op === "close" ? "closed" : "cancelled")) return "Can't do that from this status.";
+      sql = `UPDATE tuitions SET status = ?, is_public = 0, accepting_applications = 0, closed_at = ? WHERE code = ?`;
+      args = [op === "close" ? "closed" : "cancelled", at, code];
+      break;
+    case "reopen":
+      if (t.status !== "booked" && t.status !== "processing") return "Only a booked or processing tuition can be re-opened.";
+      sql = `UPDATE tuitions SET status = 'available', closed_at = NULL WHERE code = ?`;
+      args = [code];
+      break;
+    default:
+      return "Unknown action.";
+  }
+  try {
+    await env.DB.batch([env.DB.prepare(sql).bind(...args), audit(actorId, `tuition_${op}`, "tuition", String(code), { from: t.status })]);
+    return null;
+  } catch {
+    return "Can't do that from this status.";
+  }
+}
+
+/**
+ * A tuition typed straight in by the admin (owner, 2026-11-04: "post the tuition when a new guardian comes"): the
+ * guardian is found or added by phone, and the tuition is saved as a draft or published at once.
+ */
+export async function createTuition(form: FormData, actorId: number | null): Promise<{ code?: number; error?: string }> {
+  const text = (name: string) => String(form.get(name) ?? "").trim();
+  const phone = text("guardian_phone").replace(/[\s-]/g, "").replace(/^\+?88/, "");
+  if (!/^01[3-9]\d{8}$/.test(phone)) return { error: "Enter the guardian's phone (01XXXXXXXXX)." };
+  const source = text("lead_source");
+  if (source && !LEAD_SOURCES.some((s) => s.key === source)) return { error: "Source not valid." };
+  const problem = tuitionFieldsProblem(form);
+  if (problem) return { error: problem };
+  const at = now();
+  const code = `(SELECT MAX(code) FROM tuitions)`;
+  await env.DB.batch([
+    env.DB.prepare(`INSERT OR IGNORE INTO guardians (phone, name, created_at) VALUES (?, ?, ?)`).bind(phone, text("guardian_name") || null, at),
+    env.DB.prepare(
+      `INSERT INTO tuitions (code, status, is_public, class_level, medium, subjects, area, salary_kind, days_per_week, tutor_gender_pref)
+       SELECT COALESCE(MAX(code), 0) + 1, 'draft', 0, 'other', '', '', '', 'unspecified', 3, 'any' FROM tuitions`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO tuition_private (tuition_code, guardian_id, guardian_label, exact_address, lead_source, private_notes, created_at, updated_at)
+       VALUES (${code}, (SELECT id FROM guardians WHERE phone = ?), ?, ?, ?, ?, ?, ?)`,
+    ).bind(phone, text("guardian_name") || null, text("exact_address") || null, source || null, text("private_notes") || null, at, at),
+    env.DB.prepare(`INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, meta_json, created_at) VALUES (?, 'tuition_created', 'tuition', ${code}, '{}', ?)`).bind(actorId, at),
+  ]);
+  const made = (await env.DB.prepare(`SELECT MAX(code) code FROM tuitions`).first<{ code: number }>())?.code;
+  if (!made) return { error: "Couldn't save. Try again." };
+  // The details go through the same checks as every edit; the draft above only holds the guardian.
+  const details = new FormData();
+  for (const [k, v] of form.entries()) details.append(k, v);
+  details.set("status", "draft");
+  details.delete("is_public");
+  const error = await updateTuition(made, details, actorId);
+  if (error) return { code: made, error };
+  if (form.get("publish") === "1") {
+    const problem = await setTuitionState(made, "publish", actorId);
+    if (problem) return { code: made, error: `Saved as a draft. ${problem}` };
+  }
+  return { code: made };
 }
 
 function audit(actorId: number | null, action: string, entityType: string, entityId: string, meta: unknown) {
@@ -537,4 +665,124 @@ export async function resolveFlaggedTutor(rowId: number, email: string, actorId:
   );
   await env.DB.batch(steps);
   return null;
+}
+
+// ---------- Shell: sidebar counts and search ----------
+
+/** The small numbers beside the admin's menu items: what is waiting in each place. */
+export async function navCounts() {
+  const row = await env.DB.prepare(
+    `SELECT (SELECT count(*) FROM leads WHERE status = 'new') leads,
+            (SELECT count(*) FROM applications a JOIN tuitions t ON t.code = a.tuition_code
+              WHERE a.status = 'submitted' AND t.status IN ('available', 'processing')) applications,
+            (SELECT count(*) FROM tuitions WHERE status IN ('available', 'processing')) open,
+            (SELECT count(*) FROM applications WHERE status = 'trial_arranged') selected`,
+  ).first<{ leads: number; applications: number; open: number; selected: number }>();
+  const review = await reviewCounts();
+  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0 }), review: review.tutors + review.tuitions + review.held };
+}
+
+export type SearchHit = { kind: "tuition" | "tutor" | "guardian" | "lead"; to: string; title: string; sub: string; photo?: { code: number; has: boolean } };
+
+/** One box for everything (admin search): a tuition or tutor code, a name, a phone number or an area. */
+export async function globalSearch(raw: string): Promise<SearchHit[]> {
+  const q = raw.trim();
+  if (q.length < 2 && !/^\d+$/.test(q)) return [];
+  const digits = q.replace(/\D/g, "");
+  const l = like(q);
+  const phone = digits.length >= 5 ? like(digits) : null;
+  const code = digits && digits.length <= 6 ? Number(digits) : -1;
+  const [tuitions, tutors, guardians] = await Promise.all([
+    all<{ code: number; status: string; class_level: string; area: string; salary_amount: number | null }>(
+      `SELECT t.code, t.status, t.class_level, t.area, t.salary_amount FROM tuitions t
+       LEFT JOIN tuition_private p ON p.tuition_code = t.code LEFT JOIN guardians g ON g.id = p.guardian_id
+       WHERE t.code = ? ${phone ? "OR g.phone LIKE ?" : ""} ORDER BY t.code DESC LIMIT 5`,
+      code, ...(phone ? [phone] : []),
+    ),
+    all<{ code: number; full_name: string; institution: string | null; department: string | null; photo_key: string | null }>(
+      `SELECT code, full_name, institution, department, photo_key FROM tutors WHERE deleted_at IS NULL
+       AND (code = ? OR full_name LIKE ? ${phone ? "OR phone LIKE ? OR alt_phone LIKE ?" : ""} OR email LIKE ?) ORDER BY code DESC LIMIT 6`,
+      code, l, ...(phone ? [phone, phone] : []), l,
+    ),
+    all<{ id: number; phone: string; name: string | null }>(
+      `SELECT id, phone, name FROM guardians WHERE name LIKE ? ${phone ? "OR phone LIKE ?" : ""} ORDER BY id DESC LIMIT 4`,
+      l, ...(phone ? [phone] : []),
+    ),
+  ]);
+  const areaKeys = AREAS.filter((a) => `${a.label} ${a.alt ?? ""}`.toLowerCase().includes(q.toLowerCase())).slice(0, 2);
+  const label = (list: { key: string; label: string }[], key: string) => list.find((o) => o.key === key)?.label ?? key;
+  return [
+    ...tuitions.map((t): SearchHit => ({ kind: "tuition", to: `/admin/tuitions/${t.code}`, title: `HTR-${t.code}`, sub: [label(CLASS_LEVELS, t.class_level), label(AREAS, t.area), t.salary_amount ? `৳${t.salary_amount.toLocaleString("en-IN")}` : ""].filter(Boolean).join(" · ") })),
+    ...tutors.map((t): SearchHit => ({ kind: "tutor", to: `/admin/tutors/${t.code}`, title: t.full_name, sub: [`T-${t.code}`, t.institution, t.department].filter(Boolean).join(" · "), photo: { code: t.code, has: !!t.photo_key } })),
+    ...guardians.map((g): SearchHit => ({ kind: "guardian", to: `/admin/guardians/${g.id}`, title: g.name || "Guardian", sub: g.phone })),
+    ...areaKeys.map((a): SearchHit => ({ kind: "lead", to: `/admin/tuitions?q=${encodeURIComponent(a.label)}`, title: `Tuitions in ${a.label}`, sub: "Area" })),
+  ];
+}
+
+// ---------- Dashboard numbers ----------
+
+const WEEK = 7 * 86400;
+
+/** Counts per week, oldest first, for the last `weeks` weeks (week 0 = the last 7 days). */
+async function weekly(sql: string, weeks: number): Promise<number[]> {
+  const since = now() - weeks * WEEK;
+  const rows = await all<{ w: number; n: number }>(`SELECT CAST((?1 - ts) / ${WEEK} AS INTEGER) w, count(*) n FROM (${sql}) WHERE ts > ?2 GROUP BY w`, now(), since);
+  const out = Array(weeks).fill(0);
+  for (const r of rows) if (r.w >= 0 && r.w < weeks) out[weeks - 1 - r.w] = r.n;
+  return out;
+}
+
+const median = (xs: number[]) => {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+};
+
+/** The admin's pulse: weekly flow, this week against last, how fast tuitions book, and where demand is. */
+export async function pulse(weeks = 12) {
+  const [posted, booked, applications, leads, tutors, speed, areas, funnel, open] = await Promise.all([
+    weekly(`SELECT posted_at ts FROM tuitions WHERE posted_at IS NOT NULL`, weeks),
+    weekly(`SELECT confirmed_at ts FROM placements WHERE confirmed_at IS NOT NULL AND status IN ('confirmed', 'joined', 'ended')`, weeks),
+    weekly(`SELECT created_at ts FROM applications`, weeks),
+    weekly(`SELECT created_at ts FROM leads`, weeks),
+    weekly(`SELECT COALESCE(registered_at, created_at) ts FROM tutors WHERE deleted_at IS NULL`, weeks),
+    all<{ hours: number }>(
+      `SELECT (p.confirmed_at - t.posted_at) / 3600.0 hours FROM placements p JOIN tuitions t ON t.code = p.tuition_code
+       WHERE p.confirmed_at > ? AND t.posted_at IS NOT NULL AND p.confirmed_at > t.posted_at`, now() - 90 * 86400,
+    ),
+    all<{ area: string; n: number; booked: number }>(
+      `SELECT area, count(*) n, sum(status = 'booked') booked FROM tuitions WHERE posted_at > ? AND mode = 'home' GROUP BY area ORDER BY n DESC LIMIT 8`, now() - 30 * 86400,
+    ),
+    env.DB.prepare(
+      `SELECT count(*) posted,
+              sum(EXISTS (SELECT 1 FROM applications a WHERE a.tuition_code = t.code)) applied,
+              sum(EXISTS (SELECT 1 FROM application_events e JOIN applications a ON a.id = e.application_id WHERE a.tuition_code = t.code AND e.to_status = 'shortlisted')) shortlisted,
+              sum(EXISTS (SELECT 1 FROM application_events e JOIN applications a ON a.id = e.application_id WHERE a.tuition_code = t.code AND e.to_status = 'trial_arranged')) selected,
+              sum(t.status = 'booked') booked
+       FROM tuitions t WHERE t.posted_at > ?`,
+    ).bind(now() - 30 * 86400).first<{ posted: number; applied: number; shortlisted: number; selected: number; booked: number }>(),
+    count(`SELECT count(*) n FROM tuitions WHERE status = 'available' AND is_public = 1`),
+  ]);
+  const hours = median(speed.map((s) => s.hours));
+  return { weeks, posted, booked, applications, leads, tutors, bookHours: hours === null ? null : Math.round(hours), areas, funnel, open };
+}
+
+/** Longer-range numbers for the Insights page. */
+export async function insights() {
+  const since = now() - 90 * 86400;
+  const [base, classes, sources, universities, salary, active] = await Promise.all([
+    pulse(26),
+    all<{ class_level: string; n: number }>(`SELECT class_level, count(*) n FROM tuitions WHERE posted_at > ? GROUP BY class_level ORDER BY n DESC LIMIT 10`, since),
+    all<{ lead_source: string | null; n: number }>(`SELECT lead_source, count(*) n FROM tuition_private p JOIN tuitions t ON t.code = p.tuition_code WHERE t.posted_at > ? GROUP BY lead_source ORDER BY n DESC`, since),
+    all<{ university: string | null; n: number; setup: number }>(`SELECT university, count(*) n, sum(setup_done_at IS NOT NULL) setup FROM tutors WHERE deleted_at IS NULL GROUP BY university ORDER BY n DESC`),
+    all<{ band: string; avg: number; n: number }>(
+      `SELECT CASE WHEN class_level IN ('pre') OR class_level GLOB 'class-[1-8]' THEN 'Class 1–8'
+                   WHEN class_level IN ('class-9', 'class-10', 'olevel') OR class_level LIKE 'ssc%' THEN 'SSC'
+                   WHEN class_level IN ('class-11', 'class-12', 'alevel', 'admission') OR class_level LIKE 'hsc%' THEN 'HSC / Admission' ELSE 'Other' END band,
+              round(avg(salary_amount)) avg, count(*) n
+       FROM tuitions WHERE posted_at > ? AND salary_kind = 'fixed' AND salary_amount > 0 GROUP BY band ORDER BY avg`, since,
+    ),
+    count(`SELECT count(DISTINCT tutor_id) n FROM applications WHERE created_at > ? AND tutor_id IS NOT NULL`, now() - 30 * 86400),
+  ]);
+  return { ...base, classes, sources, universities, salary, active };
 }

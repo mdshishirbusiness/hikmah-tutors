@@ -1,4 +1,5 @@
 // Status words and allowed moves for the admin screens. The moves mirror the triggers in migrations 0003, 0005 and 0010.
+import { AREAS, CLASS_CHOICES } from "./options";
 
 export const ADMIN_PAGE_SIZE = 30;
 
@@ -84,3 +85,13 @@ export const DIDNT_WORK_OUT: Record<string, string> = {
   tutor_declined: "I declined",
   other: "Other reason",
 };
+
+/** What must be filled before a tuition can go on the board (the same rules as updateTuition and the trigger). */
+export function publishGaps(t: { class_level: string; area: string; medium: string; subjects: string; mode?: string }): string[] {
+  const gaps = [];
+  if (!CLASS_CHOICES.some((c) => c.key === t.class_level)) gaps.push("Class (one class or batch)");
+  if (!AREAS.some((a) => a.key === t.area)) gaps.push("Area");
+  if (!t.medium) gaps.push("Medium");
+  if (!t.subjects) gaps.push("Subjects");
+  return gaps;
+}

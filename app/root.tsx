@@ -4,6 +4,7 @@ import type { Route } from "./+types/root";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
+  { rel: "preload", href: "/fonts/plus-jakarta-sans-latin.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" },
   { rel: "preload", href: "/fonts/hind-siliguri-bengali-400.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" },
 ];
 
