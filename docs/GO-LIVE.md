@@ -114,7 +114,12 @@ Checked: public pages 200, admin and tutor pages ask for log in, the guardian fo
 
 ## 9. Parts B and C (tutor Profile and experience; applicants ranked by Strength)
 
-Part C needs no database change of its own; it reads what B adds.
+**Live since 2026-11-05**, version `245583df`, after migrations 0015 and 0016. Checked:
+- Prefilled from the sheet on the real database: Junior 1,023 tutors (944 with "how I teach", 812 with a story), SSC
+  1,000 (967 / 695), HSC 770 (746 / 446).
+- Public pages 200; admin and tutor pages ask for log in.
+
+Part C needs no database change of its own; it reads what B adds. For the record, part B's steps were:
 
 Needs migrations 0015 and 0016 first. `npm run db:migrate` runs both.
 - 0015 adds `tutor_levels`, prefilled from the sheet's statements (about 1,000 tutors per level on the local copy),
