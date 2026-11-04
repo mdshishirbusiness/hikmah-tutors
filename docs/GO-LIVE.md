@@ -71,6 +71,19 @@ Then sign in on `https://hikmahtutor.com/login` and check it lands on `/admin`. 
 client, and signing in on the domain lands on `/admin`. The workers.dev address is now off; the site is only at
 `https://hikmahtutor.com`.
 
+## 6. The 4 Nov design and workflow update
+
+Built and tested on invented data, pushed to GitHub. To put it live, run in the Terminal panel (after `npx wrangler
+whoami` shows the Hikmah account), in this order, because the new pages read the new columns:
+
+```powershell
+npm run db:migrate
+npm run deploy
+```
+
+`db:migrate` adds migrations 0011 (tutor About, updates seen) and 0012 (check-in calls, do-not-place flags, notices,
+referrals). Both only add columns and tables; nothing existing changes.
+
 ## Before tutors are invited (later)
 
 - Consent screen: **published (In production), 2026-11-04**. Branding has the home, privacy and terms links; no
