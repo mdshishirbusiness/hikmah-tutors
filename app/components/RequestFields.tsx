@@ -4,40 +4,72 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { ChoiceChip } from "~/components/tutor";
-import { bandOf } from "~/lib/fit";
-import { CLASS_GROUPS } from "~/lib/join";
-import { AREAS, AREAS_TOP, CLASS_CHOICES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM, TUTOR_GENDERS } from "~/lib/options";
-import { REQUIREMENTS, TIME_STEPS, timeLabel } from "~/lib/request";
+import { AREAS, AREAS_TOP, CLASS_CHOICES, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM, TUTOR_GENDERS } from "~/lib/options";
+import { REQUIREMENTS, SUBJECT_SETS, TIME_STEPS, subjectSetOf, timeLabel } from "~/lib/request";
+import { sessionLength } from "~/lib/tuition";
 
 const box = "min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
 const Chips = ({ children }: { children: React.ReactNode }) => <div className="flex flex-wrap gap-2">{children}</div>;
 const Sub = ({ children }: { children: React.ReactNode }) => <p className="mb-1.5 text-xs font-bold tracking-wide text-slate-500 uppercase">{children}</p>;
 
-/** One class or batch, grouped by level, and Other with the guardian's own words. */
+/** One class or batch from a dropdown (Play, Nursery and KG each their own), and Other with the guardian's words. */
 export function ClassPicker({ value, other }: { value?: string | null; other?: string | null }) {
   const [v, setV] = useState(value ?? "");
   return (
-    <div onChange={(e) => { const t = e.target as HTMLInputElement; if (t.name === "class_level") setV(t.value); }} className="space-y-3">
-      {CLASS_GROUPS.map((g) => (
-        <div key={g.label}>
-          {g.band && <Sub>{g.label}</Sub>}
-          <Chips>
-            {CLASS_CHOICES.filter((c) => bandOf(c.key) === g.band).map((c) => <ChoiceChip key={c.key} type="radio" name="class_level" value={c.key} checked={v === c.key}>{c.label}</ChoiceChip>)}
-          </Chips>
-        </div>
-      ))}
-      {v === "other" && <input name="class_other" defaultValue={other ?? ""} maxLength={60} autoFocus placeholder="Which class? e.g. Hifz, IELTS, Class 5 scholarship" aria-label="Which class" className={box} />}
+    <div className="space-y-2">
+      <select name="class_level" value={v} onChange={(e) => setV(e.target.value)} aria-label="Class" className={box}>
+        <option value="">Choose class</option>
+        {CLASS_CHOICES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+      </select>
+      {v === "other" && <input name="class_other" defaultValue={other ?? ""} maxLength={60} autoFocus placeholder="Which class? e.g. Hifz, IELTS, Honours 1st year" aria-label="Which class" className={box} />}
     </div>
   );
 }
 
-/** Subjects, and Other with a box for the guardian's words. */
-export function SubjectPicker({ picked = [], other }: { picked?: string[]; other?: string | null }) {
-  const [hasOther, setHasOther] = useState(picked.includes("other"));
+export function MediumPicker({ value }: { value?: string | null }) {
   return (
-    <div onChange={(e) => { const t = e.target as HTMLInputElement; if (t.name === "subjects" && t.value === "other") setHasOther(t.checked); }} className="space-y-2">
-      <Chips>{SUBJECTS.map((s) => <ChoiceChip key={s.key} name="subjects" value={s.key} checked={picked.includes(s.key)}>{s.label}</ChoiceChip>)}</Chips>
-      {hasOther && <input name="subject_other" defaultValue={other ?? ""} maxLength={60} autoFocus placeholder="Which subject? e.g. Drawing, Spoken English" aria-label="Which subject" className={box} />}
+    <select name="medium" defaultValue={value ?? ""} aria-label="Medium" className={box}>
+      <option value="">Choose medium</option>
+      {MEDIUMS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+    </select>
+  );
+}
+
+/** How long each class is, in 15-minute steps. */
+export function SessionPicker({ value }: { value?: number | null }) {
+  return (
+    <select name="session_minutes" defaultValue={value ?? ""} aria-label="Each class" className={box}>
+      <option value="">Not decided</option>
+      {SESSION_MINUTES.map((m) => <option key={m} value={m}>{sessionLength(m)}</option>)}
+    </select>
+  );
+}
+
+const OWN = "own";
+
+/**
+ * Subjects as one dropdown of the combinations guardians ask most ("Only English", "Math + English" …). "Choose
+ * subjects" opens every subject as chips, and Other opens a box for the guardian's words.
+ */
+export function SubjectPicker({ picked = [], other }: { picked?: string[]; other?: string | null }) {
+  const at = subjectSetOf(picked);
+  const [set, setSet] = useState(at >= 0 ? String(at) : picked.length ? OWN : "");
+  const [hasOther, setHasOther] = useState(picked.includes("other"));
+  const chosen = set !== "" && set !== OWN ? SUBJECT_SETS[Number(set)].keys : [];
+  return (
+    <div className="space-y-2">
+      <select value={set} onChange={(e) => { setSet(e.target.value); setHasOther(false); }} aria-label="Subjects" className={box}>
+        <option value="">Choose subjects</option>
+        {SUBJECT_SETS.map((s, i) => <option key={s.label} value={i}>{s.label}</option>)}
+        <option value={OWN}>Other combination…</option>
+      </select>
+      {chosen.map((k) => <input key={k} type="hidden" name="subjects" value={k} />)}
+      {set === OWN && (
+        <div onChange={(e) => { const t = e.target as HTMLInputElement; if (t.name === "subjects" && t.value === "other") setHasOther(t.checked); }}>
+          <Chips>{SUBJECTS.map((s) => <ChoiceChip key={s.key} name="subjects" value={s.key} checked={picked.includes(s.key)}>{s.label}</ChoiceChip>)}</Chips>
+        </div>
+      )}
+      {set === OWN && hasOther && <input name="subject_other" defaultValue={other ?? ""} maxLength={60} autoFocus placeholder="Which subject? e.g. Drawing, Spoken English" aria-label="Which subject" className={box} />}
     </div>
   );
 }

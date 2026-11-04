@@ -33,8 +33,8 @@ export async function action({ request }: Route.ActionArgs) {
   const id = Number(form.get("id"));
   switch (form.get("intent")) {
     case "phone": {
-      const phone = await guardianPhone(viewer, me, id);
-      return phone ? { id, phone } : { id, error: "The number isn't available." };
+      const found = await guardianPhone(viewer, me, id);
+      return found ? { id, phone: found.phone, address: found.address } : { id, error: "The number isn't available." };
     }
     case "tick": return { id, error: await tick(viewer, me, id, String(form.get("step"))) };
     case "confirm": return { id, error: await tutorConfirm(viewer, me, id, form.get("agree") === "1") };
@@ -60,12 +60,14 @@ const subjects = (a: MyApplication) => a.subjects.split(",").filter(Boolean).map
 function GuardianNumber({ a }: { a: MyApplication }) {
   const f = useFetcher<typeof action>();
   const phone = f.data && "phone" in f.data ? f.data.phone : null;
+  const address = f.data && "address" in f.data ? f.data.address : null;
   return (
     <div className="rounded-2xl bg-white p-4 text-forest">
       <p className="text-xs font-semibold tracking-wide text-slate-500">GUARDIAN'S NUMBER</p>
       {phone ? (
         <>
           <p className="mt-1 text-2xl font-bold tracking-wide tabular-nums">{phone}</p>
+          {address && <p className="mt-1 text-sm font-semibold break-words text-slate-700">{address}</p>}
           <div className="mt-3 grid grid-cols-2 gap-2">
             <a href={`tel:${phone}`} className={`${primaryButton} min-h-11`}><Phone size={16} aria-hidden />Call</a>
             <a href={waLink(phone, `Assalamu alaikum. I'm the tutor from Hikmah Tutors for ${what(a)} (HTR-${a.tuition_code}).`)} target="_blank" rel="noreferrer"
@@ -82,7 +84,7 @@ function GuardianNumber({ a }: { a: MyApplication }) {
           {f.data && "error" in f.data && f.data.error && <p className="mt-2 text-sm font-semibold text-rose-800">{f.data.error}</p>}
         </f.Form>
       )}
-      <p className="mt-2 text-xs text-slate-500">For you only, while you're selected. HTR sees when it's opened. The address comes on the call.</p>
+      <p className="mt-2 text-xs text-slate-500">For you only, while you're selected. HTR sees when it's opened.</p>
     </div>
   );
 }

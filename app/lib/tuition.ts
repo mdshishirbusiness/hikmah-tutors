@@ -183,8 +183,13 @@ export const GENDER_STYLE: Record<PublicTuition["tutor_gender_pref"], { strip: s
   any: { strip: "bg-emerald-50 text-emerald-900", border: "border-emerald-200", bar: "bg-emerald-600", badge: "bg-emerald-100 text-emerald-900" },
 };
 
-/** "1.5 hours" from minutes. */
-export const sessionLength = (minutes: number) => `${minutes / 60} ${minutes === 60 ? "hour" : "hours"}`;
+/** "45 min", "1 hour", "1 hr 15 min", "2 hours" from minutes. */
+export function sessionLength(minutes: number) {
+  const h = Math.floor(minutes / 60), m = minutes % 60;
+  if (!h) return `${m} min`;
+  if (!m) return h === 1 ? "1 hour" : `${h} hours`;
+  return `${h} hr ${m} min`;
+}
 
 /** "1.5 hours · 2:00–6:00 PM", "1.5 hours · Afternoon", only the part that is known, or "". A window says more than
  * the time of day, so it wins. */

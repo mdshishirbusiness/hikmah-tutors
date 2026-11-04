@@ -7,11 +7,11 @@ export type Band = "junior" | "ssc" | "hsc";
 
 /** The teaching band a class falls in, matching tutor_subjects.band; null when it has none (Other). */
 export function bandOf(classLevel: string): Band | null {
-  if (classLevel === "pre" || classLevel === "c1-5" || classLevel === "c6-8") return "junior";
+  if (["play", "nursery", "kg", "pre", "c1-5", "c6-8"].includes(classLevel)) return "junior";
   const n = /^class-(\d+)$/.exec(classLevel)?.[1];
   if (n) return Number(n) <= 8 ? "junior" : Number(n) <= 10 ? "ssc" : "hsc";
   if (classLevel.startsWith("ssc") || classLevel === "olevel") return "ssc";
-  if (classLevel.startsWith("hsc") || classLevel === "alevel" || classLevel === "admission") return "hsc";
+  if (classLevel.startsWith("hsc") || classLevel === "alevel" || classLevel.startsWith("admission")) return "hsc";
   return null;
 }
 

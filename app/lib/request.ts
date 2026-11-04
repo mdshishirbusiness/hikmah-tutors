@@ -25,6 +25,45 @@ export const requirementKeys = (raw: string | string[] | null | undefined) => {
 };
 export const requirementLabels = (keys: string[]) => keys.map((k) => labelOf(REQUIREMENTS, k));
 
+// ---------- Subject combinations ----------
+
+// The combinations guardians asked for most in the sheet's tuitions (counted Nov 2026), most asked first, so one pick
+// from a dropdown covers most calls. Anything else: "Choose subjects" opens the chips.
+export const SUBJECT_SETS: { label: string; keys: string[] }[] = [
+  { label: "All subjects", keys: ["all"] },
+  { label: "Only English", keys: ["english"] },
+  { label: "Only Math", keys: ["math"] },
+  { label: "Math + English", keys: ["math", "english"] },
+  { label: "Physics + Chemistry", keys: ["physics", "chemistry"] },
+  { label: "Physics + Math", keys: ["physics", "math"] },
+  { label: "Math + English + Science", keys: ["math", "english", "science"] },
+  { label: "Only Physics", keys: ["physics"] },
+  { label: "Chemistry + Biology", keys: ["chemistry", "biology"] },
+  { label: "Math + Higher Math", keys: ["math", "hmath"] },
+  { label: "Math + Science", keys: ["math", "science"] },
+  { label: "Only Chemistry", keys: ["chemistry"] },
+  { label: "Physics + Chemistry + Math", keys: ["physics", "chemistry", "math"] },
+  { label: "English + Bangla", keys: ["english", "bangla"] },
+  { label: "Only Bangla", keys: ["bangla"] },
+  { label: "Only ICT", keys: ["ict"] },
+  { label: "Only Biology", keys: ["biology"] },
+  { label: "Only Higher Math", keys: ["hmath"] },
+  { label: "Physics + Math + Higher Math", keys: ["physics", "math", "hmath"] },
+  { label: "Physics + Chemistry + Math + Higher Math", keys: ["physics", "chemistry", "math", "hmath"] },
+  { label: "Physics + Chemistry + Biology + Higher Math", keys: ["physics", "chemistry", "biology", "hmath"] },
+  { label: "Bangla + English + Math + Science", keys: ["bangla", "english", "math", "science"] },
+  { label: "Math + ICT", keys: ["math", "ict"] },
+  { label: "Bangla + BGS + Islamic Studies", keys: ["bangla", "bgs", "islam"] },
+  { label: "All subjects (Arts)", keys: ["all-arts"] },
+  { label: "All subjects (Commerce)", keys: ["all-commerce"] },
+  { label: "Accounting + Finance", keys: ["accounting", "finance"] },
+  { label: "Quran / Arabic", keys: ["quran"] },
+];
+
+/** The combination these subjects are, if any (order does not matter). */
+export const subjectSetOf = (keys: string[]) =>
+  SUBJECT_SETS.findIndex((s) => s.keys.length === keys.length && s.keys.every((k) => keys.includes(k)));
+
 // ---------- The time window: "between 2:00 and 6:00 PM" ----------
 
 /** Half-hour steps a guardian may name, 6:00 AM to 11:00 PM, as minutes after midnight. */

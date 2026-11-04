@@ -227,16 +227,16 @@ export async function withdraw(viewer: Viewer, me: MyTutor, id: number): Promise
   return moveApplication(id, "withdrawn", "tutor withdrew", viewer.id);
 }
 
-/** The guardian's phone for the Selected tutor only, never the address. Each view is logged (owner, 2026-11-04). */
-export async function guardianPhone(viewer: Viewer, me: MyTutor, id: number): Promise<string | null> {
+/** The guardian's phone and address details for the Selected tutor only. Each view is logged (owner, 2026-11-04). */
+export async function guardianPhone(viewer: Viewer, me: MyTutor, id: number): Promise<{ phone: string; address: string | null } | null> {
   const app = await ownApplication(me, id);
   if (!app || (app.status !== "trial_arranged" && app.status !== "confirmed")) return null;
   const row = await env.DB.prepare(
-    `SELECT g.phone FROM tuition_private p JOIN guardians g ON g.id = p.guardian_id WHERE p.tuition_code = ?`,
-  ).bind(app.tuition_code).first<{ phone: string }>();
+    `SELECT g.phone, p.exact_address address FROM tuition_private p JOIN guardians g ON g.id = p.guardian_id WHERE p.tuition_code = ?`,
+  ).bind(app.tuition_code).first<{ phone: string; address: string | null }>();
   if (!row) return null;
   await env.DB.prepare(`INSERT INTO contact_views (application_id, user_id, created_at) VALUES (?, ?, ?)`).bind(id, viewer.id, now()).run();
-  return row.phone;
+  return row;
 }
 
 // ---------- Home and Profile (step 3) ----------

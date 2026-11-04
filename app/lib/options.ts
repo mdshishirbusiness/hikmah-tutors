@@ -7,8 +7,12 @@ export type Option = { key: string; label: string; alt?: string; legacy?: boolea
 
 // One class or one exam batch, never a range (owner, 2026-11-02). Add the next SSC/HSC batch each year; keep old ones
 // while tuitions use them.
+// Play, Nursery and KG are separate, and admission comes in three kinds, as guardians asked in the sheet (owner,
+// 2026-11-04, review step 3). Shown as a dropdown in this order.
 export const CLASS_LEVELS: Option[] = [
-  { key: "pre", label: "Play–KG", alt: "play nursery kg" },
+  { key: "play", label: "Play", alt: "প্লে" },
+  { key: "nursery", label: "Nursery", alt: "নার্সারি" },
+  { key: "kg", label: "KG", alt: "কেজি" },
   ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({ key: `class-${n}`, label: `Class ${n}` })),
   { key: "ssc-27", label: "SSC 27" },
   { key: "ssc-28", label: "SSC 28" },
@@ -16,10 +20,13 @@ export const CLASS_LEVELS: Option[] = [
   { key: "class-12", label: "Class 12", alt: "HSC 2nd year" },
   { key: "hsc-27", label: "HSC 27" },
   { key: "hsc-28", label: "HSC 28" },
-  { key: "admission", label: "Admission" },
+  { key: "admission", label: "University admission", alt: "admission ভর্তি" },
+  { key: "admission-medical", label: "Medical admission", alt: "মেডিকেল ভর্তি" },
+  { key: "admission-engineering", label: "Engineering admission", alt: "ইঞ্জিনিয়ারিং ভর্তি" },
   { key: "olevel", label: "O Level" },
   { key: "alevel", label: "A Level" },
   { key: "other", label: "Other" },
+  { key: "pre", label: "Play–KG", alt: "play nursery kg", legacy: true },
   { key: "c1-5", label: "Class 1–5", legacy: true },
   { key: "c6-8", label: "Class 6–8", legacy: true },
   { key: "ssc", label: "Class 9–10 (SSC)", legacy: true },
@@ -29,7 +36,9 @@ export const CLASS_LEVELS: Option[] = [
 export const CLASS_CHOICES = CLASS_LEVELS.filter((c) => !c.legacy);
 
 /** Session length in minutes, as the admin picks it. */
-export const SESSION_MINUTES = [60, 90, 120, 150, 180] as const;
+/** Session length in minutes, in 15-minute steps (owner, 2026-11-04: guardians ask "about 1 hr 15" or "1 hr 45", not
+ * only whole and half hours). */
+export const SESSION_MINUTES = [45, 60, 75, 90, 105, 120, 135, 150, 165, 180] as const;
 
 export const TIMES_OF_DAY: Option[] = [
   { key: "morning", label: "Morning" },
