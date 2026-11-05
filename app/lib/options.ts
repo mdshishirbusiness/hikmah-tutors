@@ -35,6 +35,35 @@ export const CLASS_LEVELS: Option[] = [
 /** The classes offered when choosing; legacy range keys only show on old rows. */
 export const CLASS_CHOICES = CLASS_LEVELS.filter((c) => !c.legacy);
 
+/**
+ * The eight levels every class list is grouped by (owner, 2026-11-05). A tutor picks a whole level with one tick and
+ * can still open it to untick a class; a tuition still names one class or batch, chosen under these headings.
+ * `short` is for the closed box ("Play–5, SSC"). Every class choice is in exactly one group.
+ */
+export const CLASS_GROUPS: { label: string; short: string; keys: string[] }[] = [
+  { label: "Play – Class 5", short: "Play–5", keys: ["play", "nursery", "kg", "class-1", "class-2", "class-3", "class-4", "class-5"] },
+  { label: "Class 6 – 8 (Junior)", short: "Class 6–8", keys: ["class-6", "class-7", "class-8"] },
+  { label: "SSC (Class 9 – 10)", short: "SSC", keys: ["class-9", "class-10", "ssc-27", "ssc-28"] },
+  { label: "HSC (Class 11 – 12)", short: "HSC", keys: ["class-11", "class-12", "hsc-27", "hsc-28"] },
+  { label: "University admission", short: "University admission", keys: ["admission"] },
+  { label: "Medical admission", short: "Medical admission", keys: ["admission-medical"] },
+  { label: "Engineering admission", short: "Engineering admission", keys: ["admission-engineering"] },
+  { label: "O Level / A Level", short: "O/A Level", keys: ["olevel", "alevel"] },
+  { label: "Other", short: "Other", keys: ["other"] },
+];
+
+/** A tutor's classes in few words: a whole level by its short name ("Play–5, SSC"), then single classes. */
+export function classNames(keys: string[]) {
+  const whole = CLASS_GROUPS.filter((g) => g.keys.length > 1 && g.keys.every((k) => keys.includes(k)));
+  const inWhole = new Set(whole.flatMap((g) => g.keys));
+  return [...whole.map((g) => g.short), ...CLASS_LEVELS.filter((c) => keys.includes(c.key) && !inWhole.has(c.key)).map((c) => c.label)];
+}
+
+/** Class choices in group order, each carrying its group, for grouped lists and dropdowns. */
+export const GROUPED_CLASSES = CLASS_GROUPS.flatMap((g) =>
+  g.keys.map((k) => ({ ...CLASS_CHOICES.find((c) => c.key === k)!, group: g.label, groupShort: g.short })),
+);
+
 /** Session length in minutes, as the admin picks it. */
 /** Session length in minutes, in 15-minute steps (owner, 2026-11-04: guardians ask "about 1 hr 15" or "1 hr 45", not
  * only whole and half hours). */

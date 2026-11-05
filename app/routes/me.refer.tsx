@@ -4,10 +4,11 @@ import { Form, Link, useNavigation } from "react-router";
 import { ArrowLeft, Check } from "lucide-react";
 import type { Route } from "./+types/me.refer";
 import { Badge, ago, inputClass, primaryButton } from "~/components/admin";
+import { ClassOptions } from "~/components/RequestFields";
 import { SitePage } from "~/components/site";
 import { TutorBar } from "~/components/tutor";
 import { myReferrals, referTuition, requireTutor, tutorBadges } from "~/lib/me.server";
-import { AREAS, CLASS_CHOICES, CLASS_LEVELS, STATUSES, labelOf } from "~/lib/options";
+import { AREAS, CLASS_LEVELS, STATUSES, labelOf } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Refer a tuition · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
@@ -46,7 +47,7 @@ export default function Refer({ loaderData: { referrals, badges }, actionData }:
           <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">Guardian's name (optional)</span><input name="guardian_name" maxLength={80} className={inputClass} /></label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">Class</span>
-              <select name="class_level" required defaultValue="" className={inputClass}><option value="" disabled>Pick</option>{CLASS_CHOICES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+              <select name="class_level" required defaultValue="" className={inputClass}><option value="" disabled>Pick</option><ClassOptions /></select>
             </label>
             <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">Area</span>
               <select name="area" required defaultValue="" className={inputClass}><option value="" disabled>Pick</option>{AREAS.map((a) => <option key={a.key} value={a.key}>{a.label}</option>)}</select>

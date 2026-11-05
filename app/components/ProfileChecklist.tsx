@@ -1,7 +1,7 @@
 // The tutor's profile progress (owner, 2026-11-05: "should look like a senior designer made it"; inspired by an expanding
-// task card the owner sent, not copied). A light card: a ring that fills to the real percentage, a bar split into one
-// coloured segment per group, and the next step as the one highlighted row. Tapping opens the step tree: check circles
-// on a connector line, grouped by colour. Motion is short (fill, check, open) and stops under reduced motion.
+// task card the owner sent, not copied). A light card: a ring that fills to the real percentage and the next step as
+// the one highlighted row (an unlabeled bar of coloured segments went, owner 2026-11-05: it said nothing). Tapping
+// opens the step tree: check circles on a connector line, grouped by colour. Motion is short (fill, check, open) and stops under reduced motion.
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, ChevronDown } from "lucide-react";
 import { SECTION_TONES } from "~/components/SectionCard";
@@ -63,7 +63,6 @@ export function ProfileChecklist({ steps, code }: { steps: ProgressStep[]; code:
   const done = steps.filter((s) => s.done).length;
   const next = steps.find((s) => !s.done);
   const groups = STEP_GROUPS.map((g) => ({ ...g, steps: steps.filter((s) => s.group === g.key) })).filter((g) => g.steps.length);
-  const arrived = useArrive(1);
   const href = (s: ProgressStep) => (s.key === "photo" ? waLink(CONTACT.whatsapp, `Assalamu alaikum, I'm tutor T-${code}. Here is my photo for my profile.`) : `#${s.section}`);
   const ext = (s: ProgressStep) => (s.key === "photo" ? { target: "_blank", rel: "noreferrer" } : {});
   const nextTone = next ? SECTION_TONES[STEP_GROUPS.find((g) => g.key === next.group)!.tone] : null;
@@ -80,20 +79,6 @@ export function ProfileChecklist({ steps, code }: { steps: ProgressStep[]; code:
         </span>
         <ChevronDown size={20} aria-hidden className={`shrink-0 text-slate-400 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
       </button>
-
-      {/* One segment per group, sized by its weight, filled by what is done. */}
-      <div aria-hidden className="flex gap-1 px-4 sm:px-5">
-        {groups.map((g, i) => {
-          const total = g.steps.reduce((n, s) => n + s.weight, 0);
-          const got = g.steps.filter((s) => s.done).reduce((n, s) => n + s.weight, 0);
-          return (
-            <span key={g.key} title={g.label} className="h-1.5 overflow-hidden rounded-full bg-slate-100" style={{ flexGrow: total, flexBasis: 0 }}>
-              <span className={`block h-full rounded-full ${SECTION_TONES[g.tone].dot} transition-[width] duration-700 ease-out`}
-                style={{ width: `${arrived ? (100 * got) / total : 0}%`, transitionDelay: `${150 + i * 90}ms` }} />
-            </span>
-          );
-        })}
-      </div>
 
       {next && nextTone && (
         <a href={href(next)} {...ext(next)} className={`group mx-4 mt-4 mb-4 flex items-center gap-3 rounded-2xl px-3.5 py-3 ring-1 transition-shadow hover:shadow-card sm:mx-5 ${nextTone.soft} ${SECTION_TONES[STEP_GROUPS.find((g) => g.key === next.group)!.tone].frame}`}>

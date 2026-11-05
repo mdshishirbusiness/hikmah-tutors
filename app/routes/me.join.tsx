@@ -8,7 +8,7 @@ import type { Route } from "./+types/me.join";
 import { inputClass, primaryButton } from "~/components/admin";
 import { JoinDocuments } from "~/components/JoinDocuments";
 import { SiteHeader } from "~/components/site";
-import { AreaField, ClassField, SalaryField, SubjectField } from "~/components/TeachingFields";
+import { AreaField, ClassField, SalaryField, SubjectField, useClasses } from "~/components/TeachingFields";
 import { ChoiceChip, Step } from "~/components/tutor";
 import { requireUser } from "~/lib/auth.server";
 import { CONTACT, waLink } from "~/lib/contact";
@@ -114,6 +114,7 @@ export default function Join({ loaderData: { me, choices, documents, email, goog
   const count = Object.keys(actionData?.errors ?? {}).length;
   const [uni, setUni] = useState(me?.university ?? "");
   const picked = new Set(choices.subjects.map((s) => `${s.band}:${s.subject}`));
+  const [classes, setClasses] = useClasses(choices.classes);
 
   // After a failed send, bring the first problem into view.
   useEffect(() => {
@@ -220,11 +221,11 @@ export default function Join({ loaderData: { me, choices, documents, email, goog
             <Err>{errors.areas}</Err>
           </Step>
 
-          <Step n={5} icon={BookOpen} tone="violet" title="What you teach" hint="Classes first, then subjects for each level.">
-            <ClassField picked={choices.classes} />
+          <Step n={5} icon={BookOpen} tone="violet" title="What you teach" hint="Classes first, then the subjects at each level you teach.">
+            <ClassField value={classes} onChange={setClasses} />
             <Err>{errors.classes}</Err>
             <div className="mt-5 border-t border-brand-50 pt-4">
-              <SubjectField picked={picked} />
+              <SubjectField picked={picked} classes={classes} onClasses={setClasses} />
               <Err>{errors.subjects}</Err>
             </div>
           </Step>

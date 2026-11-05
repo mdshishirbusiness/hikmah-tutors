@@ -1,9 +1,10 @@
 // The tutor's Profile tab (owner, 2026-11-04; rebuilt 2026-11-05, part B). Top to bottom: progress with the next step
-// highlighted, the pause switch, then five sections with jump chips: Teaching, Experience (one block per level the
-// tutor teaches: students and years, how they teach, habits, a student they helped), Academic and About and skills.
-// Everything but the pause switch saves together from one sticky bar. Name, phone, gender and university are locked;
+// highlighted, the pause switch, then three tabs, one shown at a time (owner, 2026-11-05): Teaching, Experience (the
+// students they taught, then one block per level they teach: students and years, how they teach, habits, a student
+// they helped) and About you (study and results, about and skills). All three stay in one form, so everything but the
+// pause switch saves together from one sticky bar; a link to a section in another tab opens that tab first. Name, phone, gender and university are locked;
 // SSC/HSC results stay the tutor's own until HTR checks a new registration.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form, Link, useActionData, useNavigation } from "react-router";
 import {
   ArrowRight, Bike, BookOpen, Check, Clock, Eye, GraduationCap, Library, Lock, LogOut, MapPin, MessageCircle, NotebookPen, PauseCircle, PenLine,
@@ -14,17 +15,20 @@ import { Avatar } from "~/components/Avatar";
 import { inputClass } from "~/components/admin";
 import { FoldOnSave, SectionCard, type SectionTone } from "~/components/SectionCard";
 import { SitePage } from "~/components/site";
-import { AreaField, ClassField, SalaryField, SubjectField } from "~/components/TeachingFields";
+import { AreaField, ClassField, SalaryField, SubjectField, useClasses } from "~/components/TeachingFields";
 import { ChoiceChip, Sheet, TutorBar } from "~/components/tutor";
 import { CONTACT, waLink } from "~/lib/contact";
 import { FREE_TIMES, freeLabel } from "~/lib/fit";
 import { guardianSummary } from "~/lib/whatsapp";
-import { addStudent, deleteStudent, myChoices, myLevels, myStudents, requireTutor, saveProfile, setPaused, tutorBadges } from "~/lib/me.server";
-import { AREAS, CLASS_LEVELS, MEDIUMS, TRANSPORTS, labelOf } from "~/lib/options";
-import { type Band, type Level, type ProgressStep, bandLabel, bandShort, hasHabits, profileSteps, taughtBands } from "~/lib/profile";
+import { addStudent, deleteStudent, myChoices, myLevels, myStudents, mySubjectMarks, requireTutor, saveProfile, setPaused, tutorBadges } from "~/lib/me.server";
+import { AREAS, MEDIUMS, TRANSPORTS, classNames, labelOf } from "~/lib/options";
+import {
+  type Band, type Level, PROFILE_TABS, type ProfileTab, type ProgressStep, TAB_OF, bandLabel, bandShort, habitsDone, hasHabits, profilePercent, profileSteps, taughtBands,
+} from "~/lib/profile";
 import { ProfileChecklist } from "~/components/ProfileChecklist";
-import { type BarSection, ProfileBar } from "~/components/ProfileBar";
+import { ProfileTabs, panelId, tabId } from "~/components/ProfileTabs";
 import { StudentsCard } from "~/components/StudentsCard";
+import { ExperienceChart, GuidedText, HabitQuestions } from "~/components/ExperienceParts";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Profile · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
@@ -36,8 +40,8 @@ export function headers(_: Route.HeadersArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { viewer, me } = await requireTutor(request);
-  const [choices, levels, students, badges] = await Promise.all([myChoices(me.id), myLevels(me.id), myStudents(me.id), tutorBadges(viewer, me)]);
-  return { me, choices, levels, students, badges };
+  const [choices, levels, students, badges, marks] = await Promise.all([myChoices(me.id), myLevels(me.id), myStudents(me.id), tutorBadges(viewer, me), mySubjectMarks(me.id)]);
+  return { me, choices, levels, students, badges, marks };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -62,24 +66,14 @@ export async function action({ request }: Route.ActionArgs) {
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical", other: "Other" };
 const BAND_TONE: Record<Band, SectionTone> = { junior: "amber", ssc: "sky", hsc: "violet" };
-const HABITS = [
-  ["notes", "makes_notes", "Makes notes / sheets"],
-  ["tests", "takes_tests", "Takes regular tests"],
-  ["homework", "gives_homework", "Gives homework"],
-  ["reports", "reports_guardian", "Reports to the guardian"],
-] as const;
-
 function Count({ value, max }: { value: string; max: number }) {
   return <p className={`mt-1 text-right text-xs tabular-nums ${value.length > max * 0.9 ? "text-amber-700" : "text-slate-400"}`}>{value.length}/{max}</p>;
 }
 
 /** One level's experience: what the owner reads first when picking a tutor for a tuition at this level. */
 function LevelCard({ band, level, done }: { band: Band; level?: Level; done: boolean }) {
-  const [approach, setApproach] = useState(level?.approach ?? "");
-  const [story, setStory] = useState(level?.story ?? "");
   const p = (k: string) => `lv_${band}_${k}`;
-  const habits = level ? HABITS.filter(([, col]) => level[col]).length : 0;
-  const summary = level && [level.students && `${level.students} students`, level.years !== null && `${level.years} yrs`, hasHabits(level) && `${habits} habits`].filter(Boolean).join(" · ");
+  const summary = level && [level.students && `${level.students} students`, level.years !== null && `${level.years} yrs`, hasHabits(level) && `${habitsDone(level)} of 4 habits`].filter(Boolean).join(" · ");
   return (
     <SectionCard id={`exp-${band}`} icon={GraduationCap} tone={BAND_TONE[band]} title={`${bandShort(band)} experience`} hint={bandLabel(band)} done={done} summary={summary || undefined}>
       <input type="hidden" name={`lv_${band}`} value="1" />
@@ -93,22 +87,9 @@ function LevelCard({ band, level, done }: { band: Band; level?: Level; done: boo
           <input name={p("years")} type="number" inputMode="decimal" min={0} max={40} step={0.5} defaultValue={level?.years ?? ""} placeholder="e.g. 1.5" className={inputClass} />
         </label>
       </div>
-      <p className="mt-4 mb-1.5 text-xs font-bold tracking-wide text-slate-500 uppercase">Your habits</p>
-      <div className="flex flex-wrap gap-2">
-        {HABITS.map(([k, col, label]) => <ChoiceChip key={k} name={p(k)} value="1" checked={!!level?.[col]}>{label}</ChoiceChip>)}
-      </div>
-      <label className="mt-4 block">
-        <span className="mb-1 block text-xs font-bold text-slate-600">How you teach at this level</span>
-        <textarea name={p("approach")} rows={4} maxLength={2000} value={approach} onChange={(e) => setApproach(e.target.value)}
-          placeholder="যেমন: প্রতিটি অধ্যায় শেষে ছোট পরীক্ষা নিই, ভুলগুলো আলাদা খাতায় লিখে আবার করাই…" className={`${inputClass} py-3`} />
-        <Count value={approach} max={2000} />
-      </label>
-      <label className="block">
-        <span className="mb-1 block text-xs font-bold text-slate-600">A student you helped <span className="font-normal text-slate-400">(optional)</span></span>
-        <textarea name={p("story")} rows={3} maxLength={2000} value={story} onChange={(e) => setStory(e.target.value)}
-          placeholder="যেমন: অংকে দুর্বল একজনকে ৩ মাসে A+ পর্যন্ত নিয়ে গেছি। কীভাবে করেছিলেন লিখুন।" className={`${inputClass} py-3`} />
-        <Count value={story} max={2000} />
-      </label>
+      <GuidedText name={p("approach")} kind="approach" band={band} label="How you teach at this level" initial={level?.approach ?? ""} />
+      <GuidedText name={p("story")} kind="story" band={band} label="A student you helped" optional initial={level?.story ?? ""} rows={3} />
+      <HabitQuestions band={band} level={level} />
     </SectionCard>
   );
 }
@@ -189,21 +170,7 @@ const sectionDone = (steps: ProgressStep[], id: string) => steps.some((s) => s.s
 /** "Kazla, Binodpur +3". */
 const firstFew = (labels: string[], n = 2) => labels.length ? `${labels.slice(0, n).join(", ")}${labels.length > n ? ` +${labels.length - n}` : ""}` : undefined;
 
-/** A part of the Profile: its number, its name and a hairline, so the four parts read as chapters. */
-function GroupTitle({ id, n, children, hint }: { id: string; n: number; children: React.ReactNode; hint?: React.ReactNode }) {
-  return (
-    <div id={id} className="scroll-mt-28 pt-6">
-      <div className="flex items-center gap-3">
-        <span className="grid size-7 place-items-center rounded-lg bg-forest text-xs font-extrabold text-cream tabular-nums">{String(n).padStart(2, "0")}</span>
-        <h2 className="text-xl font-extrabold tracking-tight text-forest">{children}</h2>
-        <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-brand-200 to-transparent" />
-      </div>
-      {hint && <p className="mt-1.5 text-sm text-slate-600">{hint}</p>}
-    </div>
-  );
-}
-
-export default function Profile({ loaderData: { me, choices, levels, students, badges } }: Route.ComponentProps) {
+export default function Profile({ loaderData: { me, choices, levels, students, badges, marks } }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
   const busy = nav.state !== "idle";
@@ -218,6 +185,7 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
     return () => clearTimeout(t);
   }, [actionData]);
   const picked = new Set(choices.subjects.map((s) => `${s.band}:${s.subject}`));
+  const [classes, setClasses] = useClasses(choices.classes);
   const paused = me.availability_paused === 1;
   const steps = profileSteps(me, choices, levels, students.length);
   const taught = taughtBands(choices.classes, choices.subjects, levels);
@@ -226,12 +194,53 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
   const done = (id: string) => sectionDone(steps, id);
   const academicDone = !editableAcademic || !!(me.ssc_result && me.hsc_result);
   const subjectCounts = (["junior", "ssc", "hsc"] as Band[]).map((b) => [b, choices.subjects.filter((s) => s.band === b).length] as const).filter(([, n]) => n);
-  const sections: BarSection[] = [
-    ...(["areas", "classes", "subjects", "min_salary", "free_times", "transport", "demo", "students"] as const).map((id) => ({ id, label: steps.find((s) => s.section === id)?.label ?? id, done: done(id) })),
-    ...bands.map((b) => ({ id: `exp-${b}`, label: `${bandShort(b)} experience`, done: done(`exp-${b}`) })),
-    { id: "academic", label: "Study and results", done: academicDone },
-    { id: "about", label: "About you", done: done("about") },
+  // Each tab's own percent; About you also counts the study and results card, which the overall score leaves out.
+  const tabSteps = (t: ProfileTab): ProgressStep[] => [
+    ...steps.filter((s) => TAB_OF[s.group] === t),
+    ...(t === "you" ? [{ key: "academic", label: "Study and results", section: "academic", group: "you" as const, weight: 1, done: academicDone }] : []),
   ];
+  const percents = Object.fromEntries(PROFILE_TABS.map((t) => [t.key, profilePercent(tabSteps(t.key))])) as Record<ProfileTab, number>;
+  // Open on the tab that holds the next step, so the tutor lands where there is something to do.
+  const next = steps.find((s) => !s.done);
+  const [tab, setTab] = useState<ProfileTab>(next ? TAB_OF[next.group] : "teaching");
+  const bar = useRef<HTMLDivElement>(null);
+  const panels = useRef<HTMLDivElement>(null);
+  const form = useRef<HTMLFormElement>(null);
+  // Just under the sticky bar, so a section never hides behind it.
+  const under = () => 64 + (bar.current?.offsetHeight ?? 0) + 12;
+  const choose = (t: ProfileTab) => {
+    if (t === tab) return;
+    setTab(t);
+    // The bar stays put: if the page was scrolled into the old tab, the new one starts at its top.
+    const top = (panels.current?.getBoundingClientRect().top ?? 0) + window.scrollY - under();
+    if (window.scrollY > top) window.scrollTo({ top, behavior: "instant" });
+  };
+  // Links to a section (the checklist, Next, the guardian preview) open its tab, then glide to it. The browser's own
+  // jump can't reach a section in a hidden tab, and it jumped without easing, which read as a glitch.
+  useEffect(() => {
+    const go = (id: string, smooth: boolean) => {
+      const el = document.getElementById(id);
+      const t = el?.closest<HTMLElement>("[data-tab]")?.dataset.tab as ProfileTab | undefined;
+      if (!el || !t) return false;
+      setTab(t);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - under(), behavior: smooth && !still ? "smooth" : "instant" });
+      }));
+      return true;
+    };
+    if (location.hash) go(decodeURIComponent(location.hash.slice(1)), false);
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.<HTMLAnchorElement>('a[href^="#"]');
+      if (a && go(a.getAttribute("href")!.slice(1), true)) e.preventDefault();
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
+  const panel = (t: ProfileTab) => ({
+    id: panelId(t), role: "tabpanel", "aria-labelledby": tabId(t), "data-tab": t, hidden: tab !== t,
+    className: "space-y-4 animate-rise motion-reduce:animate-none",
+  });
 
   return (
     <SitePage app>
@@ -264,30 +273,26 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
           </button>
         </Form>
 
-        <div className="sticky top-16 z-20 -mx-4 mt-4 bg-cream/90 px-4 pt-2 pb-1 backdrop-blur sm:mx-0 sm:px-0">
-          <ProfileBar sections={sections} steps={steps} code={me.code} />
-          <nav aria-label="Profile sections" className="flex gap-2 overflow-x-auto py-1 scroll-thin">
-            {[["teaching", "Teaching"], ["experience", "Experience"], ["academic", "Academic"], ["about", "About & skills"]].map(([id, label]) => (
-              <a key={id} href={`#${id}`} className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-white px-4 text-sm font-bold text-forest shadow-ring hover:bg-brand-50">{label}</a>
-            ))}
-          </nav>
+        <div ref={bar} className="sticky top-16 z-20 -mx-4 mt-4 bg-cream/90 px-4 pt-2 pb-1 backdrop-blur sm:mx-0 sm:px-0">
+          <ProfileTabs tab={tab} onTab={choose} percents={percents} steps={steps} code={me.code} />
         </div>
 
         <FoldOnSave.Provider value={actionData && "profileSaved" in actionData && actionData.profileSaved ? actionData : null}>
-        <Form method="post" className="space-y-4" onChange={() => setDirty(true)}>
+        <Form ref={form} method="post" className="mt-3" onChange={() => setDirty(true)}>
           <input type="hidden" name="intent" value="save" />
 
-          <GroupTitle id="teaching" n={1}>Teaching</GroupTitle>
+          <div ref={panels}>
+          <div {...panel("teaching")}>
           <SectionCard id="areas" icon={MapPin} tone="amber" title="Where you teach" hint="Every area you can reach. No limit." done={done("areas")}
             summary={me.anywhere === 1 ? "Anywhere in Rajshahi" : firstFew(choices.areas.map((a) => labelOf(AREAS, a)))}>
             <AreaField picked={choices.areas} anywhere={me.anywhere === 1} />
           </SectionCard>
-          <SectionCard id="classes" icon={BookOpen} tone="violet" title="Classes you want" done={done("classes")} summary={firstFew(CLASS_LEVELS.filter((c) => choices.classes.includes(c.key)).map((c) => c.label), 3)}>
-            <ClassField picked={choices.classes} />
+          <SectionCard id="classes" icon={BookOpen} tone="violet" title="Classes you want" done={done("classes")} summary={firstFew(classNames(choices.classes), 3)}>
+            <ClassField value={classes} onChange={setClasses} />
           </SectionCard>
-          <SectionCard id="subjects" icon={Library} tone="sky" title="Subjects you teach" hint="By level, so an SSC tuition only matches your SSC subjects." done={done("subjects")}
+          <SectionCard id="subjects" icon={Library} tone="sky" title="Subjects you teach" hint="Yes or No for each level, then its subjects. An SSC tuition only matches your SSC subjects." done={done("subjects")}
             summary={subjectCounts.map(([b, n]) => `${bandShort(b)} ${n}`).join(" · ") || undefined}>
-            <SubjectField picked={picked} />
+            <SubjectField picked={picked} classes={classes} onClasses={setClasses} marks={marks} />
           </SectionCard>
           <SectionCard id="min_salary" icon={Wallet} tone="brand" title="Lowest salary you'll take" hint="Per month. Lower ones still show, with a warning." done={done("min_salary")}
             summary={me.min_salary !== null ? `৳${me.min_salary.toLocaleString("en-IN")} or more` : undefined}>
@@ -310,13 +315,17 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
               </div>
             </SectionCard>
           </div>
+          </div>
 
-          <GroupTitle id="experience" n={2} hint="HTR এই অংশটাই সবার আগে পড়ে। যাদের পড়িয়েছেন তাদের কথা, আর প্রতিটি লেভেলে কীভাবে পড়ান।">Experience</GroupTitle>
+          <div {...panel("experience")}>
+          <p className="text-sm text-slate-600">HTR এই অংশটাই সবার আগে পড়ে। যাদের পড়িয়েছেন তাদের কথা, আর প্রতিটি লেভেলে কীভাবে পড়ান।</p>
+          <ExperienceChart form={form} bands={bands} added={students.length} />
           <StudentsCard students={students} />
-          {!taught.length && <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Pick your classes above and save; the levels you teach will show here. Until then, all three are open.</p>}
+          {!taught.length && <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Pick your classes in Teaching and save; the levels you teach will show here. Until then, all three are open.</p>}
           {bands.map((b) => <LevelCard key={b} band={b} level={levels.find((l) => l.band === b)} done={done(`exp-${b}`)} />)}
+          </div>
 
-          <GroupTitle id="academic-part" n={3}>Academic</GroupTitle>
+          <div {...panel("you")}>
           <SectionCard id="academic" icon={NotebookPen} tone="slate" title="Study and results" done={academicDone}
             summary={[me.ssc_result && `SSC ${me.ssc_result}`, me.hsc_result && `HSC ${me.hsc_result}`, !editableAcademic && "Checked by HTR"].filter(Boolean).join(" · ") || undefined} hint={editableAcademic ? "You can change these until HTR checks your profile." : "Locked so guardians can trust them. Wrong? Message HTR."}>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
@@ -344,9 +353,25 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
                 ))}
               </dl>
             )}
+            {/* Optional numbers many tutors wrote in the sheet anyway (owner, 2026-11-05); editable after HTR's check too. */}
+            <div className="mt-4 rounded-xl bg-slate-50 p-3">
+              <p className="text-sm font-bold text-forest">More results <span className="font-normal text-slate-500">· optional</span></p>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                {([["ssc_marks", "SSC total marks", me.ssc_marks], ["hsc_marks", "HSC total marks", me.hsc_marks]] as const).map(([name, label, value]) => (
+                  <label key={name} className="block">
+                    <span className="mb-1 block text-xs font-bold text-slate-600">{label}</span>
+                    <input name={name} defaultValue={value ?? ""} maxLength={20} placeholder="e.g. 1180/1300" className={inputClass} />
+                  </label>
+                ))}
+              </div>
+              <label className="mt-3 block">
+                <span className="mb-1 block text-xs font-bold text-slate-600">Admission result</span>
+                <input name="admission_result" defaultValue={me.admission_result ?? ""} maxLength={300} placeholder="e.g. RU A unit merit 640, RUET waiting" className={inputClass} />
+              </label>
+              <p className="mt-2 text-xs text-slate-500">বিষয়ভিত্তিক মার্ক Teaching ট্যাবে, প্রতিটি লেভেলের বিষয়ের নিচে দিতে পারবেন।</p>
+            </div>
           </SectionCard>
 
-          <GroupTitle id="about-part" n={4}>About & skills</GroupTitle>
           <SectionCard id="about" icon={PenLine} tone="brand" title="About you" done={done("about")} summary={me.about?.trim() || undefined} hint="Two or three lines HTR can share with guardians: how you teach, what you're good at.">
             <textarea name="about" rows={4} maxLength={500} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="e.g. I explain with examples and give a short test every week." className={`${inputClass} py-3`} />
             <Count value={about} max={500} />
@@ -359,6 +384,8 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
               <input name="demo_video_url" type="url" defaultValue={me.demo_video_url ?? ""} maxLength={300} placeholder="https://…" className={inputClass} />
             </label>
           </SectionCard>
+          </div>
+          </div>
 
           <div aria-live="polite" className={`fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 px-4 transition-transform duration-200 lg:bottom-4 ${dirty || toast ? "translate-y-0" : "translate-y-[200%]"}`}>
             {dirty ? (

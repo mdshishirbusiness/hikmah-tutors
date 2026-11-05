@@ -5,13 +5,21 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { MultiSelect } from "~/components/MultiSelect";
 import { ChoiceChip } from "~/components/tutor";
-import { AREAS, AREAS_TOP, CLASS_CHOICES, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM, TUTOR_GENDERS } from "~/lib/options";
+import { AREAS, AREAS_TOP, CLASS_GROUPS, GROUPED_CLASSES, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM, TUTOR_GENDERS } from "~/lib/options";
 import { REQUIREMENTS, TIME_STEPS, timeLabel } from "~/lib/request";
 import { sessionLength } from "~/lib/tuition";
 
 const box = "min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
 const Chips = ({ children }: { children: React.ReactNode }) => <div className="flex flex-wrap gap-2">{children}</div>;
 const Sub = ({ children }: { children: React.ReactNode }) => <p className="mb-1.5 text-xs font-bold tracking-wide text-slate-500 uppercase">{children}</p>;
+
+/** The class `<option>`s under the eight level headings (owner, 2026-11-05); a group of one needs no heading. */
+export function ClassOptions() {
+  return CLASS_GROUPS.map((g) => {
+    const opts = GROUPED_CLASSES.filter((c) => c.group === g.label).map((c) => <option key={c.key} value={c.key}>{c.label}</option>);
+    return g.keys.length > 1 ? <optgroup key={g.label} label={g.label}>{opts}</optgroup> : opts;
+  });
+}
 
 /** One class or batch from a dropdown (Play, Nursery and KG each their own), and Other with the guardian's words. */
 export function ClassPicker({ value, other }: { value?: string | null; other?: string | null }) {
@@ -20,7 +28,7 @@ export function ClassPicker({ value, other }: { value?: string | null; other?: s
     <div className="space-y-2">
       <select name="class_level" value={v} onChange={(e) => setV(e.target.value)} aria-label="Class" className={box}>
         <option value="">Choose class</option>
-        {CLASS_CHOICES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+        <ClassOptions />
       </select>
       {v === "other" && <input name="class_other" defaultValue={other ?? ""} maxLength={60} autoFocus placeholder="Which class? e.g. Hifz, IELTS, Honours 1st year" aria-label="Which class" className={box} />}
     </div>

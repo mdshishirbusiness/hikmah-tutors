@@ -1,9 +1,10 @@
 // The scroll progress line (owner, 2026-11-05): the header's bottom edge fills with emerald as the page scrolls, and a
 // small rickshaw rides it toward a house at the right end, the way a tutor rides to a student's home. The wheels turn
 // with the scroll (backwards on the way up), the rickshaw shows only while the page moves and passes behind the header's
-// logo and buttons, and the logo's star pops over the house at the bottom of the page. Short pages show nothing, and so
-// does the Profile, which has its own progress line (ProfileBar). Put it inside a `relative` header whose row sits above
-// it (`relative z-10`); `bare` draws the line alone, for places with no header above it.
+// logo and buttons, and the logo's star pops over the house at the bottom of the page. It rides on every page that
+// scrolls at least a quarter of a screen (owner, 2026-11-05: every page, the Profile too); shorter pages show nothing.
+// Put it inside a `relative` header whose row sits above it (`relative z-10`); `bare` draws the line alone, for places
+// with no header above it.
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 
@@ -11,7 +12,6 @@ const RIDE_W = 30; // the rickshaw's width in px, as drawn below
 const HOUSE_W = 14;
 const BACK_R = 4.4; // wheel radii, for turning them by the distance travelled
 const FRONT_R = 2.9;
-const HIDE_ON = ["/me/profile"];
 
 export function ScrollRide({ bare = false }: { bare?: boolean }) {
   const { pathname } = useLocation();
@@ -19,11 +19,11 @@ export function ScrollRide({ bare = false }: { bare?: boolean }) {
   const ride = useRef<SVGSVGElement>(null);
   const back = useRef<SVGGElement>(null);
   const front = useRef<SVGGElement>(null);
-  const hidden = HIDE_ON.includes(pathname);
+
 
   useEffect(() => {
     const el = root.current;
-    if (!el || hidden) return;
+    if (!el) return;
     const still = window.matchMedia("(prefers-reduced-motion: reduce)");
     let frame = 0;
     let idle = 0;
@@ -32,7 +32,7 @@ export function ScrollRide({ bare = false }: { bare?: boolean }) {
       frame = 0;
       const doc = document.documentElement;
       const room = doc.scrollHeight - window.innerHeight;
-      const on = doc.scrollHeight > window.innerHeight * 1.5;
+      const on = room > window.innerHeight * 0.25;
       el.toggleAttribute("data-on", on);
       if (!on) return;
       const p = Math.min(1, Math.max(0, window.scrollY / room));
@@ -70,9 +70,8 @@ export function ScrollRide({ bare = false }: { bare?: boolean }) {
       window.removeEventListener("resize", onScroll);
       el.removeAttribute("data-moving");
     };
-  }, [pathname, hidden, bare]);
+  }, [pathname, bare]);
 
-  if (hidden) return null;
   return (
     <div ref={root} aria-hidden className={`group pointer-events-none absolute inset-x-0 z-0 opacity-0 ${bare ? "top-0 h-[3px]" : "-bottom-px h-7"} transition-opacity duration-300 data-on:opacity-100`}>
       <div className="absolute inset-x-0 bottom-0 h-[3px] overflow-hidden">

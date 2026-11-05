@@ -892,3 +892,27 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
   house at the right end (a tutor riding to a student's home), wheels turning with the scroll; it shows only while the
   page moves and passes behind the header's buttons; the logo's star pops over the house at the bottom. No percent
   number. Hidden on short pages and on the Profile (it has its own progress line). Admin on a computer gets the line only.
+  Changed the same day (owner: "every page"): it rides on every page that scrolls at least a quarter of a screen,
+  the Profile too. Before, pages under 1.5 screens tall (most pages on a computer) showed nothing.
+- **Classes are grouped into eight levels** (owner, 2026-11-05): Play – Class 5, Class 6 – 8 (Junior), SSC (9 – 10),
+  HSC (11 – 12), University admission, Medical admission, Engineering admission, O Level / A Level, plus Other
+  (`CLASS_GROUPS` in `options.ts`). A tutor ticks a whole level at once and can open it to untick single classes; the
+  keys stored stay single classes, so matching is unchanged. A tuition still names one class or batch, now picked under
+  the same headings (native `<optgroup>`).
+- **Profile is three tabs, one shown at a time** (owner, 2026-11-05, replacing one long page with jump chips):
+  Teaching · Experience · About you (study and results, about, skills). Each tab shows its own percent and a thin line
+  that fills, with the logo's star at its end when complete (the same "arrival" as the rickshaw). It opens on the tab
+  with the next step. All tabs stay in one form and save together. The browser's instant anchor jump (felt as a glitch)
+  is replaced by opening the right tab and gliding to the section.
+  Revised the same day: no star on the tabs (the star belongs to the rickshaw's arrival only; motifs are not to be
+  sprinkled everywhere), a plain check and "Done" instead. The checklist's unlabeled bar of coloured segments is gone.
+- **Subjects: Yes/No per level, then one dropdown** (owner, 2026-11-05). Junior, SSC and HSC each ask "teach this?";
+  Yes adds the level's main classes, No removes every class at that level, so Classes and Subjects always agree.
+- **Habits are how-often questions with an honest "no"** (owner, 2026-11-05: plain ticks get ticked by everyone). Tests,
+  homework, notes and guardian updates (migration 0023). The old 0/1 ticks are written from the answers.
+- **Writing help modelled on the best sheet entries** (owner, 2026-11-05). They name a method, a hard topic and a
+  number, so each box offers starter chips, an invented example per level and a meter that asks for a number.
+- **Experience ring**: students taught per level, live as the tutor types (no chart library, CSS conic-gradient).
+- **Optional results** (owner, 2026-11-05): SSC/HSC total marks, admission result, and the tutor's own marks in each
+  SSC/HSC subject they teach (`tutor_subject_marks`). The owner sees "Own SSC marks: Physics 95" beside an applicant for
+  a tuition in that subject. Editable after HTR's check; HTR may ask for the marksheet.

@@ -230,6 +230,8 @@ export type Applicant = {
   areas: string | null; // the tutor's chosen areas, comma-separated (empty until they sign in)
   experience: string | null; // the tutor's experience statement for the tuition's band
   photo_key: string | null; about: string | null; demo_willing: number | null; paused: number | null; updated_at: number;
+  ssc_marks: string | null; hsc_marks: string | null; admission_result: string | null;
+  own_marks: string | null; // the tutor's own marks in this tuition's subjects ("physics:95,math:98"): HSC marks for HSC tuitions, else SSC
   called_at: number | null; met_at: number | null; demo_done_at: number | null; seen_at: number | null;
   free_times: string | null; // TIMES_OF_DAY keys the tutor is free at; null = any time
   total_apps: number; placed: number; // this tutor's whole record with HTR, for the admin's judgement
@@ -263,14 +265,16 @@ export async function getTuition(code: number) {
               (SELECT group_concat(ar.area) FROM tutor_areas ar WHERE ar.tutor_id = a.tutor_id) areas,
               (SELECT body FROM tutor_statements st WHERE st.tutor_id = a.tutor_id AND st.kind = ?) experience,
               t.photo_key, t.about, t.demo_willing, t.availability_paused paused, t.flag_reason, a.updated_at, a.called_at, a.met_at, a.demo_done_at,
-              a.seen_at, t.free_times,
+              a.seen_at, t.free_times, t.ssc_marks, t.hsc_marks, t.admission_result,
+              (SELECT group_concat(m.subject || : || m.marks) FROM tutor_subject_marks m WHERE m.tutor_id = a.tutor_id AND m.exam = ?
+                 AND instr(, || ? || ,, , || m.subject || ,) > 0) own_marks,
               (SELECT count(*) FROM applications x WHERE x.tutor_id = a.tutor_id) total_apps,
               (SELECT count(*) FROM placements pl WHERE pl.tutor_id = a.tutor_id AND pl.status IN ('confirmed', 'joined', 'ended')) placed,
               EXISTS (SELECT 1 FROM premium_members pm WHERE pm.tutor_id = a.tutor_id AND pm.status = 'active') premium,
               (SELECT json_group_array(json_object('body', n.body, 'at', n.created_at)) FROM (SELECT body, created_at FROM tutor_notes x
                  WHERE x.application_id = a.id AND x.removed_at IS NULL ORDER BY created_at DESC) n) tutor_notes
        FROM applications a LEFT JOIN tutors t ON t.id = a.tutor_id WHERE a.tuition_code = ? ORDER BY a.created_at`,
-      band, band, tuition.subjects, band ? `${band}_experience` : "", code,
+      band, band, tuition.subjects, band ? `${band}_experience` : "", band === "hsc" ? "hsc" : "ssc", tuition.subjects, code,
     ),
     all<{ id: number; status: string; tutor_id: number | null; tutor_name: string | null; legacy_tutor_name: string | null; legacy_tutor_phone: string | null }>(
       `SELECT p.id, p.status, p.tutor_id, t.full_name tutor_name, p.legacy_tutor_name, p.legacy_tutor_phone
@@ -295,7 +299,7 @@ export async function getTuition(code: number) {
   const ids = `SELECT tutor_id FROM applications WHERE tuition_code = ? AND tutor_id IS NOT NULL`;
   const [levels, students, records] = await Promise.all([
     band ? all<Level & { tutor_id: number }>(
-      `SELECT tutor_id, band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian
+      `SELECT tutor_id, band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian, tests_how, homework_how, notes_how, report_how
        FROM tutor_levels WHERE band = ? AND tutor_id IN (${ids})`, band, code,
     ) : Promise.resolve([] as (Level & { tutor_id: number })[]),
     all<Student & { tutor_id: number }>(
@@ -683,7 +687,7 @@ export async function getTutor(code: number) {
     all<{ tuition_code: number; status: string; confirmed_at: number | null; agreed_salary: number | null }>(`SELECT tuition_code, status, confirmed_at, agreed_salary FROM placements WHERE tutor_id = ? ORDER BY id DESC`, tutor.id),
     all<{ area: string }>(`SELECT area FROM tutor_areas WHERE tutor_id = ?`, tutor.id),
     all<{ class_level: string }>(`SELECT class_level FROM tutor_classes WHERE tutor_id = ?`, tutor.id),
-    all<Level>(`SELECT band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian FROM tutor_levels WHERE tutor_id = ?
+    all<Level>(`SELECT band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian, tests_how, homework_how, notes_how, report_how FROM tutor_levels WHERE tutor_id = ?
                 ORDER BY CASE band WHEN 'junior' THEN 1 WHEN 'ssc' THEN 2 ELSE 3 END`, tutor.id),
     all<Student>(`SELECT id, class_level, class_other, area, subjects, started, ended, result_before, result_after, improvement, source FROM tutor_students
                   WHERE tutor_id = ? ORDER BY COALESCE(ended, '9999-12') DESC, started DESC, id DESC`, tutor.id),

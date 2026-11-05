@@ -161,8 +161,11 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
   ];
 
   const facts: [string, string | null][] = [
-    ["SSC", [a.ssc_group, a.ssc_result && `GPA ${a.ssc_result}`].filter(Boolean).join(" · ") || null],
-    ["HSC", [a.hsc_group, a.hsc_result && `GPA ${a.hsc_result}`].filter(Boolean).join(" · ") || null],
+    ["SSC", [a.ssc_group, a.ssc_result && `GPA ${a.ssc_result}`, a.ssc_marks && `${a.ssc_marks} marks`].filter(Boolean).join(" · ") || null],
+    ["HSC", [a.hsc_group, a.hsc_result && `GPA ${a.hsc_result}`, a.hsc_marks && `${a.hsc_marks} marks`].filter(Boolean).join(" · ") || null],
+    // Their own marks in this tuition's subjects, from the exam at its level (owner, 2026-11-05).
+    [`Own ${bandOf(t.class_level) === "hsc" ? "HSC" : "SSC"} marks`, (a.own_marks ?? "").split(",").filter(Boolean).map((m) => { const [k, n] = m.split(":"); return `${labelOf(SUBJECTS, k)} ${n}`; }).join(", ") || null],
+    ["Admission", a.admission_result],
     ["Session", a.session_year],
     ["Lives in", a.location],
     ["Transport", a.transport ? labelOf(TRANSPORTS, a.transport) : null],

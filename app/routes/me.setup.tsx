@@ -10,9 +10,8 @@ import { SalaryField } from "~/components/TeachingFields";
 import { ChoiceChip, Step } from "~/components/tutor";
 import { CONTACT, waLink } from "~/lib/contact";
 import { safeNext } from "~/lib/google-auth";
-import { bandOf } from "~/lib/fit";
 import { requireTutor, saveSetup, setupChoices } from "~/lib/me.server";
-import { AREAS, AREAS_TOP, CLASS_CHOICES, TUTOR_FROM, labelOf } from "~/lib/options";
+import { AREAS, AREAS_TOP, CLASS_GROUPS, GROUPED_CLASSES, TUTOR_FROM, labelOf } from "~/lib/options";
 
 import { firstName } from "~/lib/whatsapp";
 
@@ -37,13 +36,6 @@ export async function action({ request }: Route.ActionArgs) {
   if (error) return { error };
   throw redirect(safeNext(new URL(request.url).searchParams.get("next")) ?? "/");
 }
-
-const GROUPS = [
-  { band: "junior", label: "Play–Class 8" },
-  { band: "ssc", label: "Class 9–10 · SSC" },
-  { band: "hsc", label: "Class 11–12 · HSC · Admission" },
-  { band: null, label: "Other" },
-];
 
 export default function Setup({ loaderData: { me, choices, first }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
@@ -99,11 +91,11 @@ export default function Setup({ loaderData: { me, choices, first }, actionData }
 
           <Step n={4} icon={BookOpen} tone="violet" title="Classes you want" hint={first ? "We picked the levels you teach on the old form. Change freely." : undefined}>
             <div className="space-y-3">
-              {GROUPS.map((g) => (
+              {CLASS_GROUPS.map((g) => (
                 <div key={g.label}>
                   <p className="mb-1.5 text-xs font-semibold tracking-wide text-slate-500">{g.label.toUpperCase()}</p>
                   <div className="flex flex-wrap gap-2">
-                    {CLASS_CHOICES.filter((c) => bandOf(c.key) === g.band).map((c) => (
+                    {GROUPED_CLASSES.filter((c) => c.group === g.label).map((c) => (
                       <ChoiceChip key={c.key} name="classes" value={c.key} checked={choices.classes.includes(c.key)}>{c.label}</ChoiceChip>
                     ))}
                   </div>

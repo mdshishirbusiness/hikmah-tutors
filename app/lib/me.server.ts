@@ -9,7 +9,7 @@ import { DIDNT_WORK_OUT, NOTE_MAX } from "./admin-labels";
 import { AREAS, BANDS, CLASS_CHOICES, SUBJECTS, TRANSPORTS } from "./options";
 import type { PublicTuition } from "./tuition";
 import { openTuitions, visibleTuition } from "./tuitions.server";
-import { type Band, type Level, type Student, profileSteps } from "./profile";
+import { type Band, HABITS, type Level, MARK_EXAMS, type Student, markable, profileSteps } from "./profile";
 
 export type MyTutor = {
   id: number; code: number; full_name: string; gender: string | null; email: string | null; phone: string; alt_phone: string | null; institution: string | null; department: string | null;
@@ -20,12 +20,13 @@ export type MyTutor = {
   availability_paused: number; about: string | null; updates_seen_at: number | null;
   review_status: "waiting" | "needs_fix" | "approved"; review_note: string | null; created_via: string;
   skills: string | null; demo_video_url: string | null; free_times: string | null;
+  ssc_marks: string | null; hsc_marks: string | null; admission_result: string | null;
 };
 
 const COLUMNS = `id, code, full_name, gender, email, phone, alt_phone, institution, department, session_year, ssc_school, ssc_year, ssc_result, ssc_group,
   hsc_college, hsc_year, hsc_result, hsc_group, mediums, current_location, home_division, home_district, demo_willing, transport, availability_confirmed_at, photo_key,
   university, min_salary, anywhere, setup_done_at, terms_accepted_at, availability_paused, about, updates_seen_at, review_status, review_note, created_via, skills, demo_video_url,
-  free_times`;
+  free_times, ssc_marks, hsc_marks, admission_result`;
 
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -374,10 +375,17 @@ export async function deleteStudent(viewer: Viewer, me: MyTutor, id: number) {
   ]);
 }
 
+/** The tutor's own marks per subject, keyed "ssc:physics". */
+export async function mySubjectMarks(tutorId: number): Promise<Record<string, number>> {
+  const r = await env.DB.prepare(`SELECT exam, subject, marks FROM tutor_subject_marks WHERE tutor_id = ?`).bind(tutorId).all<{ exam: string; subject: string; marks: number }>();
+  return Object.fromEntries(r.results.map((m) => [`${m.exam}:${m.subject}`, m.marks]));
+}
+
 /** The tutor's experience rows (part B), one per level they wrote about. */
 export async function myLevels(tutorId: number): Promise<Level[]> {
   const r = await env.DB.prepare(
-    `SELECT band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian FROM tutor_levels WHERE tutor_id = ?`,
+    `SELECT band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian, tests_how, homework_how, notes_how, report_how
+     FROM tutor_levels WHERE tutor_id = ?`,
   ).bind(tutorId).all<Level>();
   return r.results;
 }
@@ -471,9 +479,27 @@ export async function saveProfile(viewer: Viewer, me: MyTutor, form: FormData): 
     const textOf = (k: string) => String(form.get(`lv_${b}_${k}`) ?? "").replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, "").trim();
     const approach = textOf("approach"), story = textOf("story");
     if (approach.length > 2000 || story.length > 2000) return "Keep each text under 2000 characters.";
-    const tick = (k: string) => (form.get(`lv_${b}_${k}`) === "1" ? 1 : 0);
-    levels.push({ band: b, students, years, approach: approach || null, story: story || null,
-      makes_notes: tick("notes"), takes_tests: tick("tests"), gives_homework: tick("homework"), reports_guardian: tick("reports") });
+    // How often, from each question's own choices; the old tick follows the answer (1 unless it is the "no" one).
+    const how = Object.fromEntries(HABITS.map((h) => {
+      const v = String(form.get(`lv_${b}_${h.key}`) ?? "");
+      return [h.col, (h.options as readonly (readonly [string, string])[]).some(([k]) => k === v) ? v : null];
+    })) as Record<(typeof HABITS)[number]["col"], string | null>;
+    const tick = (h: (typeof HABITS)[number]) => (how[h.col] && how[h.col] !== h.no ? 1 : 0);
+    const [tests, homework, notes, report] = HABITS;
+    levels.push({ band: b, students, years, approach: approach || null, story: story || null, ...how,
+      takes_tests: tick(tests), gives_homework: tick(homework), makes_notes: tick(notes), reports_guardian: tick(report) });
+  }
+  // Optional numbers: total marks, admission result, and marks in the subjects taught at SSC and HSC.
+  const short = (k: string, max: number) => String(form.get(k) ?? "").replace(/s+/g, " ").trim().slice(0, max) || null;
+  const marks: { exam: string; subject: string; marks: number }[] = [];
+  for (const exam of MARK_EXAMS) {
+    for (const subject of markable(subjects.filter(([band]) => band === exam).map(([, s]) => s))) {
+      const v = String(form.get(`mk_${exam}_${subject}`) ?? "").trim();
+      if (!v) continue;
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < 0 || n > 100) return "Subject marks are out of 100, e.g. 95.";
+      marks.push({ exam, subject, marks: n });
+    }
   }
   // Results are the tutor's own until HTR checks a new registration; after that they change through HTR.
   const academic = me.review_status !== "approved" && form.has("ssc_result")
@@ -493,12 +519,19 @@ export async function saveProfile(viewer: Viewer, me: MyTutor, form: FormData): 
     ...subjects.map(([band, subject]) => env.DB.prepare(`INSERT INTO tutor_subjects (tutor_id, band, subject) VALUES (?, ?, ?)`).bind(me.id, band, subject)),
     env.DB.prepare(`UPDATE tutors SET skills = ?, demo_video_url = ?, free_times = ? WHERE id = ?`).bind(skills || null, video || null, free, me.id),
     ...levels.map((l) => isEmptyLevel(l) ? env.DB.prepare(`DELETE FROM tutor_levels WHERE tutor_id = ? AND band = ?`).bind(me.id, l.band) : env.DB.prepare(
-      `INSERT INTO tutor_levels (tutor_id, band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO tutor_levels (tutor_id, band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian,
+         tests_how, homework_how, notes_how, report_how, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (tutor_id, band) DO UPDATE SET students = excluded.students, years = excluded.years, approach = excluded.approach, story = excluded.story,
          makes_notes = excluded.makes_notes, takes_tests = excluded.takes_tests, gives_homework = excluded.gives_homework,
-         reports_guardian = excluded.reports_guardian, updated_at = excluded.updated_at`,
-    ).bind(me.id, l.band, l.students, l.years, l.approach, l.story, l.makes_notes, l.takes_tests, l.gives_homework, l.reports_guardian, t)),
+         reports_guardian = excluded.reports_guardian, tests_how = excluded.tests_how, homework_how = excluded.homework_how,
+         notes_how = excluded.notes_how, report_how = excluded.report_how, updated_at = excluded.updated_at`,
+    ).bind(me.id, l.band, l.students, l.years, l.approach, l.story, l.makes_notes, l.takes_tests, l.gives_homework, l.reports_guardian,
+      l.tests_how, l.homework_how, l.notes_how, l.report_how, t)),
+    env.DB.prepare(`UPDATE tutors SET ssc_marks = ?, hsc_marks = ?, admission_result = ? WHERE id = ?`)
+      .bind(short("ssc_marks", 20), short("hsc_marks", 20), short("admission_result", 300), me.id),
+    env.DB.prepare(`DELETE FROM tutor_subject_marks WHERE tutor_id = ?`).bind(me.id),
+    ...marks.map((m) => env.DB.prepare(`INSERT INTO tutor_subject_marks (tutor_id, exam, subject, marks) VALUES (?, ?, ?, ?)`).bind(me.id, m.exam, m.subject, m.marks)),
     ...(academic ? [env.DB.prepare(`UPDATE tutors SET ssc_group = ?, ssc_result = ?, hsc_group = ?, hsc_result = ? WHERE id = ?`).bind(...academic, me.id)] : []),
     audit(viewer.id, "tutor_profile_saved", "tutor", String(me.code), { areas: areas.length, anywhere, classes: classes.length, subjects: subjects.length, levels: levels.length }),
   ]);
@@ -508,7 +541,7 @@ export async function saveProfile(viewer: Viewer, me: MyTutor, form: FormData): 
 /** The Profile tab's pause switch, saved on its own so it takes one tap. */
 /** A level with nothing written, counted or ticked is not stored (so an untouched block adds no empty row). */
 const isEmptyLevel = (l: Omit<Level, "band">) =>
-  l.students === null && l.years === null && !l.approach && !l.story && l.makes_notes + l.takes_tests + l.gives_homework + l.reports_guardian === 0;
+  l.students === null && l.years === null && !l.approach && !l.story && HABITS.every((h) => l[h.col] === null);
 
 export async function setPaused(viewer: Viewer, me: MyTutor, paused: boolean) {
   await env.DB.batch([

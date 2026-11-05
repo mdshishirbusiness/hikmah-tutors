@@ -19,13 +19,6 @@ export function sessionYears(today = new Date()) {
 
 export const SALARIES = [2500, 3000, 4000, 5000, 6000, 8000];
 
-export const CLASS_GROUPS = [
-  { band: "junior", label: "Play–Class 8" },
-  { band: "ssc", label: "Class 9–10 · SSC" },
-  { band: "hsc", label: "Class 11–12 · HSC · Admission" },
-  { band: null, label: "Other" },
-] as const;
-
 // Subjects that make sense at each band; the rest stay one tap away.
 export const BAND_SUBJECTS: Record<string, string[]> = {
   junior: ["all", "math", "english", "science", "bangla", "bgs", "islam", "quran"],

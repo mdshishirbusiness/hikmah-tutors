@@ -7,7 +7,26 @@ export type Band = "junior" | "ssc" | "hsc";
 export type Level = {
   band: Band; students: number | null; years: number | null; approach: string | null; story: string | null;
   makes_notes: number; takes_tests: number; gives_homework: number; reports_guardian: number;
+  tests_how: string | null; homework_how: string | null; notes_how: string | null; report_how: string | null;
 };
+
+/**
+ * Habits as how-often questions (owner, 2026-11-05: plain ticks get ticked by everyone). Every question has an honest
+ * "no" answer (`no`). `col` is the how-often column, `tick` the old 0/1 column written from it (1 unless the answer is
+ * `no`). Keys match migration 0023.
+ */
+export const HABITS = [
+  { key: "tests", col: "tests_how", tick: "takes_tests", q: "Tests", owner: "Tests", no: "none",
+    options: [["topic", "After every topic"], ["week", "Every week"], ["month", "Every month"], ["exam", "Before exams only"], ["none", "I don't take tests"]] },
+  { key: "homework", col: "homework_how", tick: "gives_homework", q: "Homework", owner: "Homework", no: "none",
+    options: [["every", "Every class"], ["most", "Most classes"], ["some", "Now and then"], ["none", "I don't give homework"]] },
+  { key: "notes", col: "notes_how", tick: "makes_notes", q: "Notes", owner: "Notes", no: "none",
+    options: [["own", "My own notes"], ["sheets", "Sheets I prepare"], ["book", "From the book / guide"], ["none", "No notes"]] },
+  { key: "report", col: "report_how", tick: "reports_guardian", q: "Guardian updates", owner: "Tells the guardian", no: "asked",
+    options: [["week", "Every week"], ["month", "Every month"], ["exam", "After each exam"], ["asked", "When asked"]] },
+] as const;
+export type HabitCol = (typeof HABITS)[number]["col"];
+export const habitAnswer = (l: Level, h: (typeof HABITS)[number]) => (h.options as readonly (readonly [string, string])[]).find(([k]) => k === l[h.col])?.[1] ?? null;
 /** One student the tutor taught (no names): class, place, period, result before and after, what improved. */
 export type Student = {
   id: number; class_level: string; class_other: string | null; area: string | null; subjects: string | null; started: string | null;
@@ -33,7 +52,17 @@ export const bandLabel = (b: Band) => labelOf(BANDS, b);
 
 /** Real sentences, not "ok": a few words at least. */
 const written = (s: string | null | undefined, min = 40) => (s ?? "").trim().length >= min;
-export const hasHabits = (l: Level) => l.makes_notes + l.takes_tests + l.gives_homework + l.reports_guardian > 0;
+/**
+ * The tutor's own marks, shown under the subjects they teach (owner, 2026-11-05: many wrote "Physics 95" in the sheet):
+ * SSC marks beside SSC subjects, HSC marks beside HSC ones. "All subjects" picks and Quran have no exam mark.
+ */
+export const MARK_EXAMS = ["ssc", "hsc"] as const;
+export const markable = (subjects: string[]) => subjects.filter((s) => !s.startsWith("all") && s !== "quran");
+
+/** All four habit questions answered (old ticks alone don't count: the tutor is asked how often). */
+export const hasHabits = (l: Level) => HABITS.every((h) => l[h.col] !== null);
+/** How many of the four the tutor actually does (an answer other than "no"). */
+export const habitsDone = (l: Level) => HABITS.filter((h) => l[h.col] !== null && l[h.col] !== h.no).length;
 
 /**
  * The levels a tutor teaches. Once they have picked classes, those decide: a Junior-only tutor is never asked for SSC or
@@ -84,6 +113,15 @@ export function profilePercent(steps: ProgressStep[]) {
   const total = steps.reduce((n, s) => n + s.weight, 0);
   return total ? Math.round((100 * steps.filter((s) => s.done).reduce((n, s) => n + s.weight, 0)) / total) : 0;
 }
+
+/** The Profile's three tabs (owner, 2026-11-05: one tab at a time, not one long page), and where each group lives. */
+export type ProfileTab = "teaching" | "experience" | "you";
+export const PROFILE_TABS: { key: ProfileTab; label: string }[] = [
+  { key: "teaching", label: "Teaching" },
+  { key: "experience", label: "Experience" },
+  { key: "you", label: "About you" },
+];
+export const TAB_OF: Record<StepGroup, ProfileTab> = { teaching: "teaching", students: "experience", junior: "experience", ssc: "experience", hsc: "experience", you: "you" };
 
 /** What one missing step adds, in percent points. */
 export const stepGain = (steps: ProgressStep[], step: ProgressStep) =>

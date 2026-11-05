@@ -1,11 +1,15 @@
 // A tutor's experience at one level, as the owner reads it when picking (part B; the applicant panel uses it in part C).
 import { Check } from "lucide-react";
-import { type Level, bandLabel, bandShort } from "~/lib/profile";
+import { HABITS, type Level, bandLabel, bandShort, habitAnswer } from "~/lib/profile";
 
-const HABIT_LABELS = [["makes_notes", "Notes / sheets"], ["takes_tests", "Regular tests"], ["gives_homework", "Homework"], ["reports_guardian", "Reports to guardian"]] as const;
+const OLD_TICKS = [["makes_notes", "Notes / sheets"], ["takes_tests", "Regular tests"], ["gives_homework", "Homework"], ["reports_guardian", "Reports to guardian"]] as const;
 
 export function LevelSummary({ level, compact = false }: { level: Level; compact?: boolean }) {
-  const habits = HABIT_LABELS.filter(([k]) => level[k] === 1);
+  // How often, as the tutor answered (migration 0023); a tutor who has not answered yet shows the old ticks.
+  const answered = HABITS.filter((h) => level[h.col] !== null);
+  const habits: [string, string, boolean][] = answered.length
+    ? answered.map((h) => [h.key, `${h.owner}: ${habitAnswer(level, h)}`, level[h.col] !== h.no])
+    : OLD_TICKS.filter(([k]) => level[k] === 1).map(([k, label]) => [k, label, true]);
   const numbers = [level.students ? `${level.students} students` : null, level.years !== null ? `${level.years} ${level.years === 1 ? "year" : "years"}` : null].filter(Boolean);
   return (
     <div className="rounded-2xl bg-white p-4 shadow-ring">
@@ -15,7 +19,7 @@ export function LevelSummary({ level, compact = false }: { level: Level; compact
       </div>
       {habits.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-1.5">
-          {habits.map(([k, label]) => <li key={k} className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-forest"><Check size={12} aria-hidden />{label}</li>)}
+          {habits.map(([k, label, does]) => <li key={k} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${does ? "bg-brand-50 text-forest" : "bg-slate-100 text-slate-500"}`}>{does && <Check size={12} aria-hidden />}{label}</li>)}
         </ul>
       )}
       {level.approach && (

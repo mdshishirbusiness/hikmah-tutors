@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 import { ArrowRight, MapPin, Plus, Trash2, Users } from "lucide-react";
 import { SectionCard } from "~/components/SectionCard";
-import { AREAS, CLASS_CHOICES, SUBJECTS, labelOf } from "~/lib/options";
+import { ClassOptions } from "~/components/RequestFields";
+import { AREAS, SUBJECTS, labelOf } from "~/lib/options";
 import { type Student, periodLabel } from "~/lib/profile";
 import { classLabel } from "~/lib/request";
 
@@ -116,7 +117,7 @@ export function StudentsCard({ students }: { students: Student[] }) {
                   <span className={lbl}>Class</span>
                   <select data-f="class_level" value={cls} onChange={(e) => setCls(e.target.value)} className={box}>
                     <option value="">Choose class</option>
-                    {CLASS_CHOICES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                    <ClassOptions />
                   </select>
                 </label>
                 <label className="block">
