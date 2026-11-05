@@ -14,7 +14,7 @@ import { ShareCard } from "~/components/ShareCard";
 import { SitePage } from "~/components/site";
 import { TutorBar } from "~/components/tutor";
 import { cardDate, paymentOf, receiptCard, refundOf, welcomeCard, welcomeOf } from "~/lib/cards";
-import { CONTACT } from "~/lib/contact";
+import { CONTACT, PAY_METHODS } from "~/lib/contact";
 import { requireTutor, tutorBadges } from "~/lib/me.server";
 import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
 import {
@@ -98,7 +98,7 @@ function Hero({ who, members }: { who: Person; members: number }) {
         <p className="mt-6 mb-2 text-xs font-semibold text-brand-200">Your pass could look like this</p>
         <div className="px-1 pb-2"><MemberPass who={who} no="No. ——" stub="90" stubLabel="DAYS" tilt /></div>
         <a href="#apply" className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-mango text-base font-extrabold text-forest transition-transform hover:-translate-y-0.5">
-          Apply now · it's free to apply
+          Apply now
         </a>
         {members >= 5 && <p className="mt-3 text-center text-xs font-semibold text-brand-100">{members} tutors are Premium now</p>}
       </div>
@@ -136,7 +136,7 @@ function Apply({ me, missing, choices, busy }: {
   const n = Number(min.replace(/\D/g, ""));
   const ready = me.review_status === "approved" && missing.length === 0;
   return (
-    <SectionCard id="apply" icon={Crown} tone="brand" title="Apply for Premium" hint="এখন কোনো টাকা লাগবে না। HTR 24 ঘণ্টার মধ্যে WhatsApp-এ জানাবে, তারপর পেমেন্ট।" className="mt-5 scroll-mt-20">
+    <SectionCard id="apply" icon={Crown} tone="brand" title="Apply for Premium" hint="আবেদনের সাথেই টাকা পাঠান। HTR 24 ঘণ্টার মধ্যে যাচাই করে WhatsApp-এ জানাবে; নিতে না পারলে পুরো টাকা ফেরত।" className="mt-5 scroll-mt-20">
       {me.review_status !== "approved" ? (
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">HTR is still checking your registration. You can apply once it's approved.</p>
       ) : missing.length > 0 ? (
@@ -172,8 +172,13 @@ function Apply({ me, missing, choices, busy }: {
         </div>
         <label className="flex min-h-11 items-start gap-3 text-sm text-slate-700"><input type="checkbox" name="confirm" value="1" required disabled={!ready} className="mt-0.5 size-5 shrink-0 accent-forest" />আমার এলাকা, ক্লাস আর বিষয় ঠিক আছে।</label>
         <label className="flex min-h-11 items-start gap-3 text-sm text-slate-700"><input type="checkbox" name="terms" value="1" required disabled={!ready} className="mt-0.5 size-5 shrink-0 accent-forest" />ওপরের কথা আর দুই পক্ষের প্রতিশ্রুতি পড়েছি। বুঝেছি, Premium টিউশনের নিশ্চয়তা নয়; HTR সর্বাত্মক চেষ্টা করবে।</label>
+        <div className="border-t border-brand-100 pt-4">
+          <p className="mb-2 text-sm font-bold text-forest">{n >= MIN_SALARY_FLOOR ? `Send ${taka(premiumPrice(n))} to` : "Send the Premium price to"}</p>
+          <PayNumber compact />
+          <div className="mt-3"><PayFields amount={n >= MIN_SALARY_FLOOR ? premiumPrice(n) : 0} disabled={!ready} /></div>
+        </div>
         <button disabled={!ready || busy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-forest text-base font-extrabold text-cream hover:bg-brand-700 disabled:opacity-50">
-          <Crown size={18} className="text-mango" aria-hidden />Apply for Premium
+          <Crown size={18} className="text-mango" aria-hidden />I've paid · Apply
         </button>
       </Form>
     </SectionCard>
@@ -184,7 +189,7 @@ type Person = { name: string; code: number; school: string; hasPhoto: boolean };
 
 /** The last term, once it ended: what happened, and the refund receipt to save. */
 function LastTerm({ m, person }: { m: PremiumMember; person: Person }) {
-  const ended = m.status === "ended" || m.status === "delivered";
+  const ended = m.status === "ended" || m.status === "delivered" || m.status === "declined"; // declined after paying: full refund
   return (
     <div className="mt-4 rounded-2xl bg-white p-4 shadow-ring">
       <p className="font-bold text-forest">
@@ -230,10 +235,10 @@ function Term({ m, person, problems, now, busy }: {
           ) : (
             <>
               <p className="mt-4 flex items-center gap-2 text-[28px] leading-tight font-extrabold tracking-tight">
-                {m.status === "applied" ? <><Hourglass size={26} className="text-mango" aria-hidden />HTR is checking</> : m.status === "accepted" ? <><Wallet size={26} className="text-mango" aria-hidden />Accepted · pay {taka(m.price)}</> : <><Hourglass size={26} className="text-mango" aria-hidden />Checking your payment</>}
+                {m.status === "applied" ? <><Hourglass size={26} className="text-mango" aria-hidden />HTR is checking</> : m.status === "accepted" ? <><Wallet size={26} className="text-mango" aria-hidden />Pay {taka(m.price)}</> : <><Hourglass size={26} className="text-mango" aria-hidden />Checking your payment</>}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-brand-100">
-                {m.status === "applied" ? "HTR 24 ঘণ্টার মধ্যে WhatsApp-এ জানাবে।" : m.status === "accepted" ? "নিচের নম্বরে টাকা পাঠিয়ে TrxID লিখুন। HTR যাচাই করলেই 90 দিন শুরু।" : `TrxID ${m.pay_trx}. HTR যাচাই করলে এখানে আর WhatsApp-এ জানাবে।`}
+                {m.status === "applied" ? "HTR 24 ঘণ্টার মধ্যে WhatsApp-এ জানাবে।" : m.status === "accepted" ? "নিচের নম্বরে টাকা পাঠিয়ে TrxID লিখুন। HTR যাচাই করলেই 90 দিন শুরু।" : `TrxID ${m.pay_trx}. HTR 24 ঘণ্টার মধ্যে যাচাই করে এখানে আর WhatsApp-এ জানাবে। নিতে না পারলে পুরো টাকা ফেরত।`}
               </p>
             </>
           )}
@@ -296,34 +301,60 @@ function Term({ m, person, problems, now, busy }: {
   );
 }
 
-function Pay({ m, busy }: { m: PremiumMember; busy: boolean }) {
+/** HTR's payment number with a copy button, and how to send: it's a personal number (owner, 2026-11-05). */
+function PayNumber({ compact }: { compact?: boolean }) {
   const [copied, setCopied] = useState(false);
   return (
-    <SectionCard icon={Wallet} tone="brand" title={`Pay ${taka(m.price)}`} hint="bKash বা Nagad থেকে Send Money অথবা Cash In করুন, তারপর নিচে লিখুন।" className="mt-5">
-      <div className="flex items-center justify-between gap-3 rounded-2xl bg-cream p-4 ring-1 ring-brand-100">
-        <div>
-          <p className="text-xs font-bold text-slate-500">bKash / Nagad (Personal)</p>
-          <p className="text-2xl font-extrabold tracking-wide text-forest tabular-nums">{CONTACT.pay}</p>
+    <div className="rounded-2xl bg-cream p-4 ring-1 ring-brand-100">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-slate-500">{Object.values(PAY_METHODS).join(" / ")} · Personal</p>
+          <p className={`${compact ? "text-xl" : "text-2xl"} font-extrabold tracking-wide text-forest tabular-nums`}>{CONTACT.pay}</p>
         </div>
-        <button type="button" onClick={() => navigator.clipboard?.writeText(CONTACT.pay).then(() => setCopied(true))} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-bold text-forest shadow-ring">
+        <button type="button" onClick={() => navigator.clipboard?.writeText(CONTACT.pay).then(() => setCopied(true))} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-bold text-forest shadow-ring">
           {copied ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}{copied ? "Copied" : "Copy"}
         </button>
       </div>
+      <p className="mt-3 flex flex-wrap items-center gap-1.5 text-xs font-bold">
+        <span className="rounded-full bg-forest px-2.5 py-1 text-cream">Send Money</span>
+        <span className="text-slate-500">or</span>
+        <span className="rounded-full bg-forest px-2.5 py-1 text-cream">Cash In</span>
+        <span className="rounded-full bg-rose-100 px-2.5 py-1 text-rose-800 line-through decoration-2">Payment</span>
+      </p>
+      <p className="mt-2 text-sm text-slate-600">এটা পার্সোনাল নম্বর, তাই Send Money বা Cash In করুন। Payment অপশনে পাঠালে টাকা আসবে না।</p>
+    </div>
+  );
+}
+
+/** What the tutor sent: method, their number and the TrxID. The amount is the price, fixed. */
+function PayFields({ amount, disabled }: { amount: number; disabled?: boolean }) {
+  return (
+    <div className="space-y-3">
+      <fieldset disabled={disabled}>
+        <legend className="mb-1 text-sm font-bold text-forest">Sent with</legend>
+        <div className="flex gap-2">
+          {Object.entries(PAY_METHODS).map(([k, l]) => (
+            <label key={k} className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-xl border border-brand-100 bg-white text-sm font-bold text-forest has-checked:border-forest has-checked:bg-forest has-checked:text-cream">
+              <input type="radio" name="method" value={k} required className="sr-only" />{l}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <label className="block"><span className="mb-1 block text-sm font-bold text-forest">Your number you sent from</span><input name="from" required disabled={disabled} inputMode="tel" placeholder="01XXXXXXXXX" className={inputClass} /></label>
+      <label className="block"><span className="mb-1 block text-sm font-bold text-forest">TrxID</span><input name="trx" required disabled={disabled} autoCapitalize="characters" placeholder="9AB7C6D5E4" className={`${inputClass} uppercase`} /></label>
+      <input type="hidden" name="amount" value={amount || ""} />
+    </div>
+  );
+}
+
+function Pay({ m, busy }: { m: PremiumMember; busy: boolean }) {
+  return (
+    <SectionCard icon={Wallet} tone="brand" title={`Pay ${taka(m.price)}`} hint="নিচের নম্বরে টাকা পাঠান, তারপর নিচে TrxID লিখুন।" className="mt-5">
+      <PayNumber />
+
       <Form method="post" className="mt-4 space-y-3">
         <input type="hidden" name="intent" value="pay" />
-        <fieldset>
-          <legend className="mb-1 text-sm font-bold text-forest">Sent with</legend>
-          <div className="flex gap-2">
-            {[["bkash", "bKash"], ["nagad", "Nagad"]].map(([k, l]) => (
-              <label key={k} className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-xl border border-brand-100 bg-white text-sm font-bold text-forest has-checked:border-forest has-checked:bg-forest has-checked:text-cream">
-                <input type="radio" name="method" value={k} required className="sr-only" />{l}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <label className="block"><span className="mb-1 block text-sm font-bold text-forest">Your number you sent from</span><input name="from" required inputMode="tel" placeholder="01XXXXXXXXX" className={inputClass} /></label>
-        <label className="block"><span className="mb-1 block text-sm font-bold text-forest">TrxID</span><input name="trx" required autoCapitalize="characters" placeholder="9AB7C6D5E4" className={`${inputClass} uppercase`} /></label>
-        <label className="block"><span className="mb-1 block text-sm font-bold text-forest">Amount</span><input name="amount" required inputMode="numeric" defaultValue={m.price} className={`${inputClass} tabular-nums`} /></label>
+        <PayFields amount={m.price} />
         <button disabled={busy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-forest text-base font-extrabold text-cream hover:bg-brand-700 disabled:opacity-50">I've paid</button>
       </Form>
     </SectionCard>

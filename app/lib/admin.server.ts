@@ -240,6 +240,7 @@ export type Applicant = {
   demos: number; // demo classes done through HTR
   dropped: number; // tuitions that didn't work out for the tutor's own reasons
   premium: number; // 1 while the tutor has an active Premium term (part E): first within their Strength level
+  tutor_notes: string; // the selected tutor's own notes on this tuition, JSON [{ body, at }] newest first (owner, 2026-11-05)
 };
 
 export async function getTuition(code: number) {
@@ -265,7 +266,9 @@ export async function getTuition(code: number) {
               a.seen_at, t.free_times,
               (SELECT count(*) FROM applications x WHERE x.tutor_id = a.tutor_id) total_apps,
               (SELECT count(*) FROM placements pl WHERE pl.tutor_id = a.tutor_id AND pl.status IN ('confirmed', 'joined', 'ended')) placed,
-              EXISTS (SELECT 1 FROM premium_members pm WHERE pm.tutor_id = a.tutor_id AND pm.status = 'active') premium
+              EXISTS (SELECT 1 FROM premium_members pm WHERE pm.tutor_id = a.tutor_id AND pm.status = 'active') premium,
+              (SELECT json_group_array(json_object('body', n.body, 'at', n.created_at)) FROM (SELECT body, created_at FROM tutor_notes x
+                 WHERE x.application_id = a.id AND x.removed_at IS NULL ORDER BY created_at DESC) n) tutor_notes
        FROM applications a LEFT JOIN tutors t ON t.id = a.tutor_id WHERE a.tuition_code = ? ORDER BY a.created_at`,
       band, band, tuition.subjects, band ? `${band}_experience` : "", code,
     ),

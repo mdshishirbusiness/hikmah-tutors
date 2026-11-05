@@ -137,6 +137,7 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
   const pending = fetcher.formData?.get("to");
   const shares = SHARE_STEPS.has(a.status);
   const selected = a.status === "trial_arranged" || a.status === "confirmed";
+  const tutorNotes = JSON.parse(a.tutor_notes || "[]") as { body: string; at: number }[];
   const next = NEXT[a.status];
   const back = BACK[a.status];
   const band = bandOf(t.class_level);
@@ -248,6 +249,19 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
                 </li>
               ))}
             </ol>
+            {tutorNotes.length > 0 && (
+              <>
+                <p className="mt-4 text-xs font-bold tracking-wide text-slate-500 uppercase">Tutor's notes</p>
+                <ul className="mt-2 space-y-2">
+                  {tutorNotes.map((n, i) => (
+                    <li key={i} className="rounded-xl bg-cream px-3 py-2 text-sm ring-1 ring-brand-100">
+                      <span className="block whitespace-pre-line break-words text-slate-800">{n.body}</span>
+                      <span className="block text-xs text-slate-500">{ago(n.at)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </section>
         )}
 

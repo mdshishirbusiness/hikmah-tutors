@@ -1,6 +1,8 @@
 // Premium cards drawn on the phone (owner, 2026-11-05: like the Towfique HSC English share cards). A canvas, no
 // library and nothing uploaded: the picture goes to the share sheet or is saved (ShareCard.tsx). Runs in the browser
 // only, from a button press. Latin in Plus Jakarta Sans, Bangla in Hind Siliguri: the site's own fonts.
+import { PAY_METHODS } from "./contact";
+
 const C = { forest: "#09332a", forestMid: "#0f4438", emerald: "#11816d", mint: "#cfede6", pale: "#ebf6f3", mango: "#fed262", cream: "#fefdf8", ink: "#1e293b", muted: "#64748b", line: "#e2e8f0" };
 const EN = '"Plus Jakarta Sans", "Hind Siliguri", sans-serif';
 const BN = '"Hind Siliguri", "Plus Jakarta Sans", sans-serif';
@@ -222,7 +224,7 @@ type Term = {
   refund_amount: number | null; refund_trx: string | null; refund_sent_at: number | null; end_reason: string | null;
 };
 type Person = { name: string; code: number; school: string; hasPhoto: boolean };
-const METHOD: Record<string, string> = { bkash: "bKash", nagad: "Nagad" };
+const METHOD = PAY_METHODS;
 const pad = (id: number) => String(id).padStart(4, "0");
 const tk = (n: number) => `৳${new Intl.NumberFormat("en-IN").format(n)}`;
 

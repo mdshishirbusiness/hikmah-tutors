@@ -1,15 +1,19 @@
 // The tutor's Applied tab (owner, 2026-11-04). A selected tuition comes first: the guardian's number (each view
 // logged) and the tutor's own checklist Called → Met → Demo done → Confirmed, with a way out if it didn't work out.
-import { useState } from "react";
+// Under it, the tutor's own notes on the tuition (owner, 2026-11-05), each with a one-tap WhatsApp to HTR.
+import { useEffect, useState } from "react";
 import { Form, Link, useFetcher, useNavigation, useSearchParams } from "react-router";
-import { Check, CheckCheck, MessageCircle, Phone } from "lucide-react";
+import { Check, CheckCheck, MessageCircle, NotebookPen, Phone, Trash2 } from "lucide-react";
 import type { Route } from "./+types/applied";
 import { APPLICATION_TONE, Badge, ago, primaryButton, when } from "~/components/admin";
 import { SiteHeader } from "~/components/site";
 import { Sheet, TutorBar } from "~/components/tutor";
-import { APPLICATION_STATUS, DIDNT_WORK_OUT } from "~/lib/admin-labels";
-import { waLink } from "~/lib/contact";
-import { type MyApplication, didntWorkOut, guardianPhone, myApplications, requireTutor, tick, tutorBadges, tutorConfirm, withdraw } from "~/lib/me.server";
+import { APPLICATION_STATUS, DIDNT_WORK_OUT, NOTE_MAX } from "~/lib/admin-labels";
+import { CONTACT, waLink } from "~/lib/contact";
+import {
+  type MyApplication, type TutorNote, addNote, didntWorkOut, guardianPhone, myApplications, myNotes, removeNote, requireTutor, tick, tutorBadges,
+  tutorConfirm, withdraw,
+} from "~/lib/me.server";
 import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
 import { feeDisplay, taka } from "~/lib/tuition";
 
@@ -23,8 +27,8 @@ export function headers(_: Route.HeadersArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { viewer, me } = await requireTutor(request);
-  const [applications, badges] = await Promise.all([myApplications(me.id), tutorBadges(viewer, me)]);
-  return { applications, name: me.full_name, dot: badges.home };
+  const [applications, badges, notes] = await Promise.all([myApplications(me.id), tutorBadges(viewer, me), myNotes(me)]);
+  return { applications, notes, code: me.code, name: me.full_name, dot: badges.home };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -40,6 +44,8 @@ export async function action({ request }: Route.ActionArgs) {
     case "confirm": return { id, error: await tutorConfirm(viewer, me, id, form.get("agree") === "1") };
     case "didnt": return { id, error: await didntWorkOut(viewer, me, id, String(form.get("reason") ?? "")) };
     case "withdraw": return { id, error: await withdraw(viewer, me, id) };
+    case "note": return { id, error: await addNote(viewer, me, id, String(form.get("body") ?? "")) };
+    case "unnote": return { id, error: await removeNote(viewer, me, Number(form.get("note"))) };
   }
   return { id, error: "Unknown request." };
 }
@@ -89,6 +95,65 @@ function GuardianNumber({ a }: { a: MyApplication }) {
   );
 }
 
+/** What the WhatsApp button fills in; the tutor still decides whether to send it. */
+const noteText = (tutor: number, tuition: number, body: string) => `Assalamu alaikum. Tutor T-${tutor}, note on HTR-${tuition}:\n\n${body}`;
+
+function WhatsAppHtr({ text, disabled }: { text: string; disabled?: boolean }) {
+  const cls = "wa-btn inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-brand-100 bg-white text-brand-700";
+  return disabled
+    ? <span aria-hidden className={`${cls} opacity-40`}><MessageCircle size={18} /></span>
+    : <a href={waLink(CONTACT.whatsapp, text)} target="_blank" rel="noreferrer" aria-label="Send to HTR on WhatsApp" title="Send to HTR on WhatsApp" className={cls}><MessageCircle size={18} aria-hidden /></a>;
+}
+
+function Notes({ a, notes, tutor }: { a: MyApplication; notes: TutorNote[]; tutor: number }) {
+  const f = useFetcher<typeof action>();
+  const [body, setBody] = useState("");
+  const saving = f.state !== "idle" && f.formData?.get("intent") === "note";
+  const error = f.data && "error" in f.data ? f.data.error : null;
+  // Clear the box once the note is saved; keep it if the save failed.
+  useEffect(() => { if (f.state === "idle" && f.data && !f.data.error && f.data.id === a.id) setBody(""); }, [f.state, f.data, a.id]);
+  return (
+    <section aria-labelledby={`notes-${a.id}`} className="rounded-2xl bg-white p-4 text-forest">
+      <h3 id={`notes-${a.id}`} className="flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500"><NotebookPen size={15} aria-hidden />MY NOTES</h3>
+      <p className="mt-1 text-sm text-slate-600">গার্ডিয়ান কী বললেন, কী ঠিক হলো, লিখে রাখুন। শুধু আপনি আর HTR দেখবে।</p>
+      {notes.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {notes.map((n) => (
+            <li key={n.id} className="flex items-start gap-2 rounded-xl bg-cream px-3 py-2.5 ring-1 ring-brand-100">
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm whitespace-pre-line break-words text-slate-800">{n.body}</span>
+                <span className="mt-0.5 block text-xs text-slate-500">{ago(n.created_at)}</span>
+              </span>
+              <WhatsAppHtr text={noteText(tutor, a.tuition_code, n.body)} />
+              <f.Form method="post" onSubmit={(e) => { if (!window.confirm("Remove this note?")) e.preventDefault(); }}>
+                <input type="hidden" name="intent" value="unnote" />
+                <input type="hidden" name="id" value={a.id} />
+                <input type="hidden" name="note" value={n.id} />
+                <button aria-label="Remove note" title="Remove note" className="inline-flex size-11 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-700"><Trash2 size={17} aria-hidden /></button>
+              </f.Form>
+            </li>
+          ))}
+        </ul>
+      )}
+      <f.Form method="post" className="mt-3">
+        <input type="hidden" name="intent" value="note" />
+        <input type="hidden" name="id" value={a.id} />
+        <label htmlFor={`note-${a.id}`} className="sr-only">New note</label>
+        <textarea id={`note-${a.id}`} name="body" rows={3} maxLength={NOTE_MAX} value={body} onChange={(e) => setBody(e.target.value)}
+          placeholder="e.g. Guardian wants Maths first. Class starts Sunday 5 pm."
+          className="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
+        <div className="mt-2 flex items-center gap-2">
+          <button disabled={saving || !body.trim()} className={`${primaryButton} min-h-11 flex-1`}>{saving ? "Saving…" : "Save note"}</button>
+          <WhatsAppHtr text={noteText(tutor, a.tuition_code, body.trim())} disabled={!body.trim()} />
+        </div>
+        {body.length > NOTE_MAX - 100 && <p className="mt-1 text-right text-xs text-slate-500 tabular-nums">{body.length}/{NOTE_MAX}</p>}
+        {error && <p role="alert" className="mt-2 text-sm font-semibold text-rose-800">{error}</p>}
+      </f.Form>
+      <p className="mt-2 text-xs text-slate-500">The green button opens WhatsApp to HTR with the note. Sending is up to you.</p>
+    </section>
+  );
+}
+
 function Checklist({ a, onConfirm, busy }: { a: MyApplication; onConfirm: () => void; busy: boolean }) {
   const confirmed = a.status === "confirmed";
   const steps = [
@@ -128,7 +193,7 @@ function Checklist({ a, onConfirm, busy }: { a: MyApplication; onConfirm: () => 
   );
 }
 
-function SelectedCard({ a, busy, error }: { a: MyApplication; busy: boolean; error: string | null }) {
+function SelectedCard({ a, busy, error, notes, tutor }: { a: MyApplication; busy: boolean; error: string | null; notes: TutorNote[]; tutor: number }) {
   const [sheet, setSheet] = useState<"confirm" | "didnt" | null>(null);
   const fees = feeDisplay({ salary_kind: a.salary_kind as "fixed", salary_amount: a.salary_amount, salary_period: a.salary_period as "per_month" });
   const confirmed = a.status === "confirmed";
@@ -147,6 +212,7 @@ function SelectedCard({ a, busy, error }: { a: MyApplication; busy: boolean; err
         <GuardianNumber a={a} />
         {error && <p role="alert" className="rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{error}</p>}
         <Checklist a={a} onConfirm={() => setSheet("confirm")} busy={busy} />
+        <Notes a={a} notes={notes} tutor={tutor} />
         <button type="button" onClick={() => setSheet("didnt")} className="min-h-11 w-full text-sm font-semibold text-brand-200 underline-offset-2 hover:underline">হয়নি? HTR-কে জানান</button>
       </div>
 
@@ -229,7 +295,7 @@ function ActiveCard({ a, busy }: { a: MyApplication; busy: boolean }) {
   );
 }
 
-export default function Applied({ loaderData: { applications, dot }, actionData }: Route.ComponentProps) {
+export default function Applied({ loaderData: { applications, notes, code, dot }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const [sp] = useSearchParams();
   const [showClosed, setShowClosed] = useState(false);
@@ -251,7 +317,7 @@ export default function Applied({ loaderData: { applications, dot }, actionData 
         {selected.length > 0 && (
           <section className="mt-6" aria-labelledby="selected">
             <h2 id="selected" className="mb-2 text-sm font-semibold tracking-wide text-slate-500">NEEDS YOU</h2>
-            <ul className="space-y-4">{selected.map((a) => <SelectedCard key={a.id} a={a} busy={busy} error={errorFor(a.id)} />)}</ul>
+            <ul className="space-y-4">{selected.map((a) => <SelectedCard key={a.id} a={a} busy={busy} error={errorFor(a.id)} notes={notes.filter((n) => n.application_id === a.id)} tutor={code} />)}</ul>
           </section>
         )}
 

@@ -3,6 +3,27 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-05 (tutor's notes, WhatsApp to HTR, Premium payment)
+
+- **A selected tutor keeps their own notes on the tuition** (owner): on the Selected card in Applied, while the status
+  is Selected or Confirmed ("the guardian said …"). Only that tutor and the admin see them; the admin reads them in
+  the applicant detail under "Tutor's progress". Notes are written once and can be removed, not edited (migration
+  0022, `tutor_notes`).
+- **One-tap WhatsApp to HTR beside each note** (owner): opens WhatsApp to the admin number 01522136687 with the tutor
+  code, the tuition code and the note filled in. Optional; the tutor decides whether to send.
+- **Premium money: bKash, Nagad or Rocket to 01845359242, by Send Money or Cash In, not Payment** (owner): it is a
+  personal number. Shown with a copy button on the Apply step and on the Pay step. Both numbers and the methods live
+  in `app/lib/contact.ts`.
+- **The tutor pays when applying; no accept-then-pay** (owner), replacing "Apply first, pay after selection"
+  (2026-10-29). The Apply form takes the payment (method, number, TrxID; the amount is the price). HTR checks the
+  profile and the payment within 24 hours: Verify starts the 90 days (and saves "a matching tuition" as it stands),
+  Decline sends the whole payment back within 7 days (tracked like any refund, with a WhatsApp text). Owner's reason:
+  most tutors apply only once they qualify, and the rare one HTR can't take is refunded separately. "Not found · ask
+  again" still sends the tutor to the Pay step to enter the payment again.
+- **Premium asks experience only for the levels the tutor picked** (owner): once a tutor has chosen classes, those
+  classes decide which levels (Junior, SSC, HSC) Profile and Premium ask about. A Junior-only tutor is not asked for
+  SSC or HSC experience, even if the sheet prefilled it or an old subject is left at that level.
+
 ## 2026-11-05 (signed-in tutor: bar everywhere, earnings chart back)
 
 - **The bottom bar (Home · Tuitions · Applied · Profile) shows on every page while a tutor is signed in** (owner):
@@ -80,7 +101,9 @@ are Claude's (migration 0021).
 - **One delivered tuition ends Premium** (first salary received and the remaining fee paid); the tutor may buy
   again. The fee left is 50% of the real salary minus the deposit, within 7 days of the first salary.
 - **Payment is manual**: the tutor sends money by Send Money or Cash In and enters the number used, the TrxID and
-  the amount; the admin verifies. HTR's payment number shows only after HTR accepts the tutor.
+  the amount; the admin verifies. HTR's payment number shows only after HTR accepts the tutor (changed 2026-11-05:
+  the tutor now pays with the application;
+  also shown on the Apply step).
 - **Only tutors who have finished the required Profile steps can apply.** The form is short: minimum salary,
   areas and classes confirmed, terms accepted. Voice note and teaching sheets wait.
 - **What "matching tuition" means is saved when HTR accepts** (areas, classes, subjects, minimum salary); the

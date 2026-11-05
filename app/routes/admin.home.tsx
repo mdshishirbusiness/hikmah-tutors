@@ -111,7 +111,7 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
   // Premium (part E): new applications, payments to check, refunds owed (red once 7 days have passed).
   const premiumTasks: Task[] = [
     premium.applied > 0 && { key: "pr-applied", to: "/admin/premium?tab=applied", icon: Crown, tone: "bg-mango text-forest", title: `Premium: ${premium.applied} new ${premium.applied === 1 ? "application" : "applications"}`, sub: "24 ঘণ্টার মধ্যে গ্রহণ বা না করুন" },
-    premium.paid > 0 && { key: "pr-paid", to: "/admin/premium?tab=payment", icon: Crown, tone: "bg-forest text-mango", title: `Premium: check ${premium.paid} ${premium.paid === 1 ? "payment" : "payments"}`, sub: "bKash/Nagad-এ TrxID মিলিয়ে Verify করুন" },
+    premium.paid > 0 && { key: "pr-paid", to: "/admin/premium?tab=payment", icon: Crown, tone: "bg-forest text-mango", title: `Premium: check ${premium.paid} ${premium.paid === 1 ? "payment" : "payments"}`, sub: "bKash/Nagad/Rocket-এ TrxID মিলিয়ে Verify করুন" },
     premium.refunds > 0 && { key: "pr-refund", to: "/admin/premium?tab=ended", icon: Crown, tone: premium.refunds_late ? "bg-rose-100 text-rose-900" : "bg-amber-100 text-amber-900", title: `Premium: ${premium.refunds} ${premium.refunds === 1 ? "refund" : "refunds"} to send`, sub: "7 দিনের মধ্যে একই নম্বরে পাঠান", late: premium.refunds_late > 0 && "7 দিন পার" },
     premium.ending > 0 && { key: "pr-ending", to: "/admin/premium?tab=ending", icon: Crown, tone: "bg-sky-100 text-sky-900", title: `Premium: ${premium.ending} ending in 5 days`, sub: "রিফান্ড না আরও 90 দিন, জেনে নিন" },
   ].filter(Boolean) as Task[];

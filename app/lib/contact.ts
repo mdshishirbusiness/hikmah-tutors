@@ -3,9 +3,12 @@
 export const CONTACT = {
   whatsapp: "01522136687",
   call: "01522136687",
-  // Premium payments (docs/DECISIONS.md 2026-10-29): Send Money or Cash In. Shown only after HTR accepts a tutor.
+  // Premium payments (docs/DECISIONS.md 2026-10-29, 2026-11-05): a personal number, so Send Money or Cash In, not Payment.
   pay: "01845359242",
 };
+
+/** Where Premium money can be sent from, all to CONTACT.pay (owner, 2026-11-05: Rocket too). */
+export const PAY_METHODS: Record<string, string> = { bkash: "bKash", nagad: "Nagad", rocket: "Rocket" };
 
 const intl = (phone: string) => {
   const n = phone.replace(/\D/g, "");

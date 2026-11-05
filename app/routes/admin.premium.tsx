@@ -12,7 +12,7 @@ import { ShareCard } from "~/components/ShareCard";
 import { Sheet } from "~/components/tutor";
 import { requireAdmin } from "~/lib/auth.server";
 import { cardDate, paymentOf, receiptCard, refundOf, welcomeCard, welcomeOf } from "~/lib/cards";
-import { CONTACT, waLink } from "~/lib/contact";
+import { CONTACT, PAY_METHODS, waLink } from "~/lib/contact";
 import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
 import {
   END_REASON, PROBLEMS, PROBLEM_LIMIT, type MessageKind, type ProblemKind, feeLeft, premiumDays, premiumMessage, receiptNo, refundNo,
@@ -239,17 +239,23 @@ function Detail({ r, detail, origin, now }: { r: AdminPremium; detail: Route.Com
       {r.status === "paid" && (
         <section className="space-y-3">
           <dl className="rounded-2xl bg-mango/40 px-4 py-2">
-            <Fact k="Method" v={r.pay_method === "nagad" ? "Nagad" : "bKash"} />
+            <Fact k="Method" v={PAY_METHODS[r.pay_method ?? ""] ?? "—"} />
             <Fact k="From" v={r.pay_from} />
             <Fact k="TrxID" v={<span className="font-mono">{r.pay_trx}</span>} />
             <Fact k="Amount" v={`${taka(r.pay_amount ?? 0)}${r.pay_amount !== r.price ? " (not the price!)" : ""}`} />
             <Fact k="Sent" v={ago(r.paid_at)} />
           </dl>
-          <p className="text-sm text-slate-600">আপনার bKash/Nagad-এ এই TrxID আর টাকা মিলিয়ে দেখুন, তারপর Verify।</p>
+          <p className="text-sm text-slate-600">প্রোফাইল দেখুন, আর আপনার bKash/Nagad/Rocket-এ এই TrxID আর টাকা মিলিয়ে দেখুন, তারপর Verify। এই এলাকা ও ক্লাসে 90 দিনে টিউশন দেওয়া অসম্ভব মনে হলে Decline: পুরো টাকা ফেরত যাবে।</p>
           <div className="flex flex-wrap gap-2">
             <Step intent="verify" id={r.id} label="Verify · start 90 days" busy={busy} />
             <Step intent="reject_payment" id={r.id} label="Not found · ask again" tone="danger" busy={busy} />
           </div>
+          <div className="flex flex-wrap gap-2">
+            <Wa phone={r.phone} text={msg("declined_paid", { refund: r.pay_amount })} label="Decline message" />
+          </div>
+          <Step intent="decline" id={r.id} label={`Decline · refund ${taka(r.pay_amount ?? 0)}`} tone="danger" busy={busy}>
+            <input name="note" maxLength={300} placeholder="Reason the tutor sees (optional)" aria-label="Reason" className={`${inputClass} min-h-11 flex-1 text-sm`} />
+          </Step>
         </section>
       )}
 
@@ -333,7 +339,7 @@ function Detail({ r, detail, origin, now }: { r: AdminPremium; detail: Route.Com
           {r.status === "delivered" && <dl className="rounded-2xl bg-cream px-4 py-2 ring-1 ring-brand-100"><Fact k="Salary" v={taka(r.real_salary ?? 0)} /><Fact k="Fee left" v={taka(r.fee_left ?? 0)} />{r.fee_trx && <Fact k="Fee TrxID" v={r.fee_trx} />}</dl>}
           {refundWaiting(r) && (
             <>
-              <p className={`text-sm font-bold ${(r.refund_due_at ?? 0) < now ? "text-rose-700" : "text-amber-800"}`}>Refund {taka(r.refund_amount ?? 0)} to {r.pay_method === "nagad" ? "Nagad" : "bKash"} {r.pay_from} · due {when(r.refund_due_at)}</p>
+              <p className={`text-sm font-bold ${(r.refund_due_at ?? 0) < now ? "text-rose-700" : "text-amber-800"}`}>Refund {taka(r.refund_amount ?? 0)} to {PAY_METHODS[r.pay_method ?? ""] ?? "—"} {r.pay_from} · due {when(r.refund_due_at)}</p>
               <Step intent="refund_sent" id={r.id} label="Refund sent" busy={busy}>
                 <input name="trx" required placeholder="TrxID" aria-label="TrxID" className={`${inputClass} min-h-11 w-44 text-sm uppercase`} />
               </Step>

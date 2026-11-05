@@ -5,7 +5,7 @@ import { redirect } from "react-router";
 import { moveApplication } from "./admin.server";
 import { type Viewer, getViewer, requireUser } from "./auth.server";
 import { FREE_TIMES, type Fit, bandOf, fitOf } from "./fit";
-import { DIDNT_WORK_OUT } from "./admin-labels";
+import { DIDNT_WORK_OUT, NOTE_MAX } from "./admin-labels";
 import { AREAS, BANDS, CLASS_CHOICES, SUBJECTS, TRANSPORTS } from "./options";
 import type { PublicTuition } from "./tuition";
 import { openTuitions, visibleTuition } from "./tuitions.server";
@@ -240,6 +240,36 @@ export async function guardianPhone(viewer: Viewer, me: MyTutor, id: number): Pr
   if (!row) return null;
   await env.DB.prepare(`INSERT INTO contact_views (application_id, user_id, created_at) VALUES (?, ?, ?)`).bind(id, viewer.id, now()).run();
   return row;
+}
+
+// ---------- The selected tutor's own notes (owner, 2026-11-05) ----------
+// Private to the tutor and the admin. Written once; a mistake is removed, never edited.
+
+export type TutorNote = { id: number; application_id: number; body: string; created_at: number };
+
+export async function myNotes(me: MyTutor): Promise<TutorNote[]> {
+  const { results } = await env.DB.prepare(
+    `SELECT id, application_id, body, created_at FROM tutor_notes WHERE tutor_id = ? AND removed_at IS NULL ORDER BY created_at DESC LIMIT 300`,
+  ).bind(me.id).all<TutorNote>();
+  return results;
+}
+
+export async function addNote(viewer: Viewer, me: MyTutor, id: number, text: string): Promise<string | null> {
+  const body = text.trim();
+  if (!body) return "Write something first.";
+  if (body.length > NOTE_MAX) return `Keep it under ${NOTE_MAX} letters.`;
+  const app = await ownApplication(me, id);
+  if (!app || (app.status !== "trial_arranged" && app.status !== "confirmed")) return "Notes open once you're selected.";
+  await env.DB.prepare(`INSERT INTO tutor_notes (application_id, tutor_id, body, created_at) VALUES (?, ?, ?, ?)`).bind(id, me.id, body, now()).run();
+  return null;
+}
+
+export async function removeNote(viewer: Viewer, me: MyTutor, noteId: number): Promise<string | null> {
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE tutor_notes SET removed_at = ? WHERE id = ? AND tutor_id = ? AND removed_at IS NULL`).bind(now(), noteId, me.id),
+    audit(viewer.id, "tutor_note_removed", "tutor_note", String(noteId), {}),
+  ]);
+  return null;
 }
 
 // ---------- Home and Profile (step 3) ----------

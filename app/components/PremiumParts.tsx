@@ -152,9 +152,8 @@ const Level = ({ strong }: { strong?: boolean }) => (
 /** The way in, step by step, each step on its own colour. */
 export function HowItWorks() {
   const steps = [
-    { title: "Apply", sub: "এখন কোনো টাকা লাগে না।", tone: "bg-brand-50 text-brand-700" },
-    { title: "HTR replies", sub: "24 ঘণ্টার মধ্যে, WhatsApp-এ।", tone: "bg-sky-50 text-sky-800" },
-    { title: "Pay and get verified", sub: "bKash বা Nagad, তারপর TrxID লিখুন।", tone: "bg-amber-50 text-amber-800" },
+    { title: "Apply and pay", sub: "bKash, Nagad বা Rocket-এ Send Money বা Cash In করে TrxID লিখুন।", tone: "bg-brand-50 text-brand-700" },
+    { title: "HTR checks", sub: "24 ঘণ্টার মধ্যে, WhatsApp-এ জানাবে। নিতে না পারলে পুরো টাকা ফেরত।", tone: "bg-sky-50 text-sky-800" },
     { title: "90 days, first among equals", sub: "যাচাইয়ের দিন থেকে গোনা শুরু।", tone: "bg-violet-50 text-violet-800" },
   ];
   return (

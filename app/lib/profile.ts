@@ -35,9 +35,14 @@ export const bandLabel = (b: Band) => labelOf(BANDS, b);
 const written = (s: string | null | undefined, min = 40) => (s ?? "").trim().length >= min;
 export const hasHabits = (l: Level) => l.makes_notes + l.takes_tests + l.gives_homework + l.reports_guardian > 0;
 
-/** The levels a tutor teaches: from their classes and subjects, plus any level they already wrote about. */
+/**
+ * The levels a tutor teaches. Once they have picked classes, those decide: a Junior-only tutor is never asked for SSC or
+ * HSC experience, even if the sheet prefilled it or an old subject is left at that level (owner, 2026-11-05). Before
+ * any class is picked: their subjects, plus any level they already wrote about.
+ */
 export function taughtBands(classes: string[], subjects: { band: string }[], levels: Pick<Level, "band">[]): Band[] {
-  const set = new Set<string>([...classes.map((c) => bandOf(c) ?? ""), ...subjects.map((s) => s.band), ...levels.map((l) => l.band)]);
+  const fromClasses = classes.map((c) => bandOf(c) ?? "").filter(Boolean);
+  const set = new Set<string>(fromClasses.length ? fromClasses : [...subjects.map((s) => s.band), ...levels.map((l) => l.band)]);
   return (["junior", "ssc", "hsc"] as Band[]).filter((b) => set.has(b));
 }
 

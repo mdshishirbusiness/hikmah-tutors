@@ -1,8 +1,9 @@
 // Premium Tutor (owner, 2026-11-05, part E). Tutor functions are keyed on the signed-in tutor; admin functions are
-// only called after requireAdmin. The database triggers (migration 0019) hold the status order and fix a verified
+// only called after requireAdmin. The database triggers (migrations 0019, 0022) hold the status order and fix a verified
 // receipt, so a page cannot skip a step or change money already recorded.
 import { env } from "cloudflare:workers";
 import type { Viewer } from "./auth.server";
+import { PAY_METHODS } from "./contact";
 import { type MyTutor, myChoices, myLevels, myStudents } from "./me.server";
 import { profileSteps } from "./profile";
 import {
@@ -76,15 +77,20 @@ export async function applyPremium(viewer: Viewer, me: MyTutor, form: FormData):
   if (!Number.isInteger(min) || min < MIN_SALARY_FLOOR || min > 100000) return `Minimum salary must be at least ৳${MIN_SALARY_FLOOR.toLocaleString("en-IN")}.`;
   if (form.get("confirm") !== "1") return "Confirm that your areas, classes and subjects are right.";
   if (form.get("terms") !== "1") return "Read and accept the terms.";
+  // The tutor pays with the application (owner, 2026-11-05); HTR checks it and refunds anyone it can't take.
+  const price = premiumPrice(min);
+  const pay = readPayment(form, price);
+  if (typeof pay === "string") return pay;
   const s = await snapshot(me.id, me.anywhere);
   const t = now();
   const row = await env.DB.prepare(`SELECT id FROM premium_members WHERE tutor_id = ? AND status IN ${OPEN}`).bind(me.id).first();
   if (row) return "You already have an open Premium application.";
   const err = await run([
     env.DB.prepare(
-      `INSERT INTO premium_members (tutor_id, min_salary, price, areas, anywhere, classes, subjects, terms_version, applied_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(me.id, min, premiumPrice(min), s.areas, s.anywhere, s.classes, s.subjects, PREMIUM_TERMS_VERSION, t, t, t),
+      `INSERT INTO premium_members (tutor_id, status, min_salary, price, areas, anywhere, classes, subjects, terms_version, applied_at,
+         pay_method, pay_from, pay_trx, pay_amount, paid_at, created_at, updated_at)
+       VALUES (?, 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(me.id, min, price, s.areas, s.anywhere, s.classes, s.subjects, PREMIUM_TERMS_VERSION, t, pay.method, pay.from, pay.trx, pay.amount, t, t, t),
     // The minimum salary is one fact: Premium's price and the Profile's lowest salary agree.
     env.DB.prepare(`UPDATE tutors SET min_salary = ?, updated_at = ? WHERE id = ?`).bind(min, t, me.id),
   ]);
@@ -104,24 +110,31 @@ export async function cancelPremium(viewer: Viewer, me: MyTutor): Promise<string
   ]);
 }
 
-/** After HTR accepts: the tutor tells HTR which number they paid from and the TrxID. */
-export async function submitPayment(viewer: Viewer, me: MyTutor, form: FormData): Promise<string | null> {
-  const m = await env.DB.prepare(`SELECT * FROM premium_members WHERE tutor_id = ? AND status = 'accepted'`).bind(me.id).first<PremiumMember>();
-  if (!m) return "HTR hasn't accepted an application to pay for.";
+/** The number the tutor paid from, the method, the TrxID and the amount, or an error sentence. */
+function readPayment(form: FormData, price: number): { method: string; from: string; trx: string; amount: number } | string {
   const method = String(form.get("method") ?? "");
-  if (method !== "bkash" && method !== "nagad") return "Pick bKash or Nagad.";
+  if (!(method in PAY_METHODS)) return "Pick bKash, Nagad or Rocket.";
   const from = String(form.get("from") ?? "").replace(/\D/g, "").replace(/^88/, "");
   if (!/^01[3-9]\d{8}$/.test(from)) return "Write the 11-digit number you sent from.";
   const trx = String(form.get("trx") ?? "").replace(/\s/g, "").toUpperCase();
   if (!/^[A-Z0-9]{6,20}$/.test(trx)) return "The TrxID is letters and numbers, like 9AB7C6D5E4.";
   const amount = Number(String(form.get("amount") ?? "").replace(/[^\d]/g, ""));
-  if (amount !== m.price) return `Send exactly ৳${m.price.toLocaleString("en-IN")} and write that amount.`;
+  if (amount !== price) return `Send exactly ৳${price.toLocaleString("en-IN")} and write that amount.`;
+  return { method, from, trx, amount };
+}
+
+/** When HTR couldn't find a payment (or an older term HTR accepted first): the tutor sends the payment details again. */
+export async function submitPayment(viewer: Viewer, me: MyTutor, form: FormData): Promise<string | null> {
+  const m = await env.DB.prepare(`SELECT * FROM premium_members WHERE tutor_id = ? AND status = 'accepted'`).bind(me.id).first<PremiumMember>();
+  if (!m) return "There is no payment waiting.";
+  const pay = readPayment(form, m.price);
+  if (typeof pay === "string") return pay;
   const t = now();
   return run([
     env.DB.prepare(
       `UPDATE premium_members SET status = 'paid', pay_method = ?, pay_from = ?, pay_trx = ?, pay_amount = ?, paid_at = ?, updated_at = ? WHERE id = ?`,
-    ).bind(method, from, trx, amount, t, t, m.id),
-    audit(viewer.id, "premium_payment_sent", m.id, { method }),
+    ).bind(pay.method, pay.from, pay.trx, pay.amount, t, t, m.id),
+    audit(viewer.id, "premium_payment_sent", m.id, { method: pay.method }),
   ]);
 }
 
@@ -201,8 +214,14 @@ export async function premiumAction(intent: string, id: number, form: FormData, 
       ]);
     }
     case "decline": {
-      if (m.status !== "applied") return "Only a new application can be declined.";
-      return run([set(`status = 'declined', decided_at = ?, ended_at = ?, decline_note = ?`, t, t, clean(form.get("note"), 300) || null), audit(actorId, "premium_declined", id)]);
+      if (m.status !== "applied" && m.status !== "paid") return "Only a new application can be declined.";
+      // A paid application HTR can't take: the whole payment goes back within 7 days (owner, 2026-11-05).
+      const refund = m.status === "paid" ? m.pay_amount : null;
+      return run([
+        set(`status = 'declined', decided_at = ?, ended_at = ?, decline_note = ?, refund_amount = ?, refund_due_at = ?`,
+          t, t, clean(form.get("note"), 300) || null, refund, refund ? t + 7 * DAY : null),
+        audit(actorId, "premium_declined", id, { refund }),
+      ]);
     }
     case "cancel": {
       if (!["applied", "accepted", "paid"].includes(m.status)) return "Only an unpaid term can be cancelled.";
@@ -211,8 +230,12 @@ export async function premiumAction(intent: string, id: number, form: FormData, 
     case "verify": {
       if (m.status !== "paid") return "No payment to verify.";
       const ends = t + PREMIUM_DAYS * DAY;
+      // Verifying is also HTR's yes, so "a matching tuition" is saved again as it stands today.
+      const anywhere = (await env.DB.prepare(`SELECT anywhere FROM tutors WHERE id = ?`).bind(m.tutor_id).first<{ anywhere: number }>())?.anywhere ?? 0;
+      const s = await snapshot(m.tutor_id, anywhere);
       return run([
-        set(`status = 'active', verified_at = ?, starts_at = ?, ends_at = ?`, t, t, ends),
+        set(`status = 'active', verified_at = ?, starts_at = ?, ends_at = ?, decided_at = COALESCE(decided_at, ?), areas = ?, anywhere = ?, classes = ?, subjects = ?`,
+          t, t, ends, t, s.areas, s.anywhere, s.classes, s.subjects),
         followup(m.tutor_id, ends - 5 * DAY, "Premium ends in 5 days: ask refund or renew. Premium 5 দিনে শেষ: রিফান্ড না আরও 90 দিন?", actorId),
         audit(actorId, "premium_verified", id, { amount: m.pay_amount }),
       ]);

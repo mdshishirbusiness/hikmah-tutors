@@ -79,6 +79,9 @@ export const REVIEW_ISSUE: Record<string, string> = {
 
 // Why a selected tutor's match ended (owner, 2026-11-04); the key goes into the application event's reason.
 // The tutor's reasons, in Bangla (owner, 2026-11-05). Keys are stored; labels may change.
+/** The longest note a selected tutor can write on a tuition (tutor_notes, migration 0022). */
+export const NOTE_MAX = 600;
+
 export const DIDNT_WORK_OUT: Record<string, string> = {
   guardian_chose_other: "গার্ডিয়ান অন্য কাউকে নিয়েছেন",
   schedule: "সময় মেলেনি",

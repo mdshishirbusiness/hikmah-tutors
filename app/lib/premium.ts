@@ -22,7 +22,7 @@ export type PremiumMember = {
   id: number; tutor_id: number; status: PremiumStatus; min_salary: number; price: number;
   areas: string; anywhere: number; classes: string; subjects: string; terms_version: string;
   applied_at: number; decided_at: number | null; decline_note: string | null;
-  pay_method: "bkash" | "nagad" | null; pay_from: string | null; pay_trx: string | null; pay_amount: number | null; paid_at: number | null;
+  pay_method: "bkash" | "nagad" | "rocket" | null; pay_from: string | null; pay_trx: string | null; pay_amount: number | null; paid_at: number | null;
   verified_at: number | null; starts_at: number | null; ends_at: number | null; renewals: number;
   placement_id: number | null; real_salary: number | null; first_salary_at: number | null; fee_left: number | null; fee_paid_at: number | null; fee_trx: string | null;
   updated_at: number; ended_at: number | null; end_reason: EndReason | null; refund_amount: number | null; refund_due_at: number | null; refund_sent_at: number | null; refund_trx: string | null;
@@ -88,15 +88,16 @@ export const PREMIUM_TERMS: { htr: string[]; tutor: string[]; money: string[] } 
     "টিউশন পেলে প্রথম মাসের বেতনের 50% থেকে এই টাকা বাদ যাবে; বাকিটা প্রথম বেতনের 7 দিনের মধ্যে দেবেন।",
     "90 দিনের আগে রিফান্ড চাওয়া যাবে না। 90 দিনে টিউশন না পেলে পুরো টাকা ফেরত, অথবা আরও 90 দিন।",
     "3টি সমস্যা হলে Premium শেষ, অর্ধেক টাকা ফেরত। অসদাচরণ বা ভুল যোগ্যতা দিলে Premium শেষ, টাকা ফেরত নেই।",
+    "আবেদনের সাথেই টাকা পাঠাবেন। HTR আপনাকে নিতে না পারলে পুরো টাকা 7 দিনের মধ্যে ফেরত।",
     "HTR আপনাকে বাদ দিলে বা Premium বন্ধ করলে পুরো টাকা সাথে সাথে ফেরত।",
-    "রিফান্ড 7 দিনের মধ্যে একই bKash/Nagad নম্বরে যাবে; পাঠানোর খরচ HTR দেবে।",
+    "রিফান্ড 7 দিনের মধ্যে একই bKash/Nagad/Rocket নম্বরে যাবে; পাঠানোর খরচ HTR দেবে।",
   ],
 };
 
 // ---------- WhatsApp texts the admin sends at each step ----------
 
 const tk = (n: number) => `৳${new Intl.NumberFormat("en-IN").format(n)}`;
-export type MessageKind = "accepted" | "declined" | "reminder" | "verified" | "problem" | "day85" | "refund";
+export type MessageKind = "accepted" | "declined" | "declined_paid" | "reminder" | "verified" | "problem" | "day85" | "refund";
 
 /** `first` = the tutor's first name; `origin` = the site, for the link to their Premium page. */
 export function premiumMessage(kind: MessageKind, d: {
@@ -107,9 +108,11 @@ export function premiumMessage(kind: MessageKind, d: {
   const link = `${d.origin}/me/premium`;
   switch (kind) {
     case "accepted":
-      return `${hello}\n\nআপনার Premium আবেদন গ্রহণ করা হয়েছে।\n\n${tk(d.price)} পাঠান bKash বা Nagad (Personal) ${d.pay} নম্বরে, Send Money অথবা Cash In করে। তারপর TrxID লিখুন এখানে:\n${link}\n\nযাচাইয়ের দিন থেকে 90 দিন শুরু হবে। HTR সর্বাত্মক চেষ্টা করবে; রিযিকে থাকলে ইনশাআল্লাহ পাবেন।`;
+      return `${hello}\n\nআপনার Premium আবেদন গ্রহণ করা হয়েছে।\n\n${tk(d.price)} পাঠান bKash, Nagad বা Rocket (Personal) ${d.pay} নম্বরে, Send Money অথবা Cash In করে (Payment অপশনে নয়)। তারপর TrxID লিখুন এখানে:\n${link}\n\nযাচাইয়ের দিন থেকে 90 দিন শুরু হবে। HTR সর্বাত্মক চেষ্টা করবে; রিযিকে থাকলে ইনশাআল্লাহ পাবেন।`;
     case "declined":
       return `${hello}\n\nএই মুহূর্তে আপনার এলাকা ও ক্লাসে টিউশন কম আসছে, তাই 90 দিনের প্রতিশ্রুতি রাখা কঠিন। তাই এবার Premium আবেদন গ্রহণ করা গেল না। কোনো টাকা নেওয়া হয়নি।\n\nসাধারণভাবে আবেদন চালিয়ে যান; পরে আবার চেষ্টা করতে পারেন।`;
+    case "declined_paid":
+      return `${hello}\n\nএই মুহূর্তে আপনার এলাকা ও ক্লাসে টিউশন কম আসছে, তাই 90 দিনের প্রতিশ্রুতি রাখা কঠিন। তাই এবার Premium আবেদন গ্রহণ করা গেল না।\n\nআপনার পাঠানো ${tk(d.refund ?? d.price)} পুরোটা 7 দিনের মধ্যে একই নম্বরে ফেরত পাঠানো হবে। সাধারণভাবে আবেদন চালিয়ে যান; পরে আবার চেষ্টা করতে পারেন।`;
     case "reminder":
       return `${hello}\n\nআপনার Premium পেমেন্ট এখনো পাইনি। ${tk(d.price)} পাঠিয়ে TrxID লিখুন:\n${link}`;
     case "verified":
