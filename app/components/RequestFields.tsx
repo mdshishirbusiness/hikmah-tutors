@@ -3,6 +3,7 @@
 // checkboxes underneath (ChoiceChip), so every page reads the values with FormData.
 import { useState } from "react";
 import { Search } from "lucide-react";
+import { MultiSelect } from "~/components/MultiSelect";
 import { ChoiceChip } from "~/components/tutor";
 import { AREAS, AREAS_TOP, CLASS_CHOICES, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM, TUTOR_GENDERS } from "~/lib/options";
 import { REQUIREMENTS, TIME_STEPS, timeLabel } from "~/lib/request";
@@ -57,12 +58,12 @@ export function SessionPicker({ value }: { value?: number | null }) {
 }
 
 /** Every subject to tick (several allowed), and Other with a box for the guardian's words (owner, 2026-11-05: a plain
- * list is easier than a list of combinations). */
+ * list is easier than a list of combinations; one dropdown box, not a wall of chips). */
 export function SubjectPicker({ picked = [], other }: { picked?: string[]; other?: string | null }) {
   const [hasOther, setHasOther] = useState(picked.includes("other"));
   return (
-    <div onChange={(e) => { const t = e.target as HTMLInputElement; if (t.name === "subjects" && t.value === "other") setHasOther(t.checked); }} className="space-y-2">
-      <Chips>{SUBJECTS.map((s) => <ChoiceChip key={s.key} name="subjects" value={s.key} checked={picked.includes(s.key)}>{s.label}</ChoiceChip>)}</Chips>
+    <div className="space-y-2">
+      <MultiSelect name="subjects" options={SUBJECTS} picked={picked} title="Subjects" placeholder="Choose subjects" onChange={(p) => setHasOther(p.includes("other"))} />
       {hasOther && <input name="subject_other" defaultValue={other ?? ""} maxLength={60} autoFocus placeholder="Which subject? e.g. Drawing, Spoken English" aria-label="Which subject" className={box} />}
     </div>
   );
@@ -144,7 +145,7 @@ export function TutorPicker({ genderName, gender, from = [] }: { genderName: "tu
       </Chips>
       <div>
         <Sub>From <span className="font-normal normal-case">· none picked = any</span></Sub>
-        <Chips>{TUTOR_FROM.map((u) => <ChoiceChip key={u.key} name="tutor_from" value={u.key} checked={from.includes(u.key)}>{u.label}</ChoiceChip>)}</Chips>
+        <MultiSelect name="tutor_from" options={TUTOR_FROM} picked={from} title="Tutor from" placeholder="Any university" />
       </div>
     </div>
   );

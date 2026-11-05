@@ -860,3 +860,7 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
   (295 tests pass), phone/text helpers, status labels.
 - **Real personal data never goes to an AI tool** (PRD §0 rule 10, SEC-021). Build and test with synthetic data. The
   sheet import runs as a local script on the owner's computer.
+- **Long multi-pick lists are one dropdown box, not a wall of chips** (owner, 2026-11-05). `MultiSelect.tsx`: the box
+  shows the picks ("Math, English, Physics +1"); a tap opens a sheet with search (English or Bangla) and ticks; Other
+  opens a text box under the field. Used for request subjects, "Tutor from" universities, and the tutor's areas
+  (Anywhere stays a chip beside it) and classes (under level headings). Short lists (3-6 choices, e.g. gender, time of day, requirements) stay as one-tap chips.

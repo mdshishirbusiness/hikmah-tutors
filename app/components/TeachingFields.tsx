@@ -1,53 +1,29 @@
-// What a tutor teaches, as tap-chips: areas (with search), classes by level, subjects by level and lowest salary.
-// Registration and Profile both use these, so the choices and their keys stay the same everywhere.
+// What a tutor teaches: areas and classes as dropdowns (owner, 2026-11-05), subjects by level and lowest salary as
+// chips. Registration and Profile both use these, so the choices and their keys stay the same everywhere.
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { MultiSelect } from "~/components/MultiSelect";
 import { ChoiceChip } from "~/components/tutor";
 import { bandOf } from "~/lib/fit";
 import { BAND_SUBJECTS, CLASS_GROUPS, SALARIES } from "~/lib/join";
-import { AREAS, AREAS_TOP, BANDS, CLASS_CHOICES, SUBJECTS } from "~/lib/options";
+import { AREAS, BANDS, CLASS_CHOICES, SUBJECTS } from "~/lib/options";
 import { taka } from "~/lib/tuition";
 
+/** Anywhere, or the areas picked in one dropdown (most-asked first, search in English or Bangla). */
 export function AreaField({ picked, anywhere: anywhereAtFirst }: { picked: string[]; anywhere: boolean }) {
   const [anywhere, setAnywhere] = useState(anywhereAtFirst);
-  const [query, setQuery] = useState("");
-  const [showAll, setShowAll] = useState(false);
-  const q = query.trim().toLowerCase();
   return (
-    <>
+    <div className="space-y-3">
       <ChoiceChip name="anywhere" value="1" checked={anywhere} onChange={setAnywhere}>Anywhere in Rajshahi</ChoiceChip>
-      <div className={anywhere ? "pointer-events-none opacity-40" : ""} aria-disabled={anywhere}>
-        <label className="relative mt-3 block">
-          <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" aria-hidden />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find an area (English or বাংলা)" aria-label="Find an area"
-            className="min-h-11 w-full rounded-xl bg-cream pr-3 pl-9 text-base outline-none ring-1 ring-brand-100 focus:ring-2 focus:ring-brand-200" />
-        </label>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {AREAS.map((a, i) => {
-            const on = picked.includes(a.key);
-            const match = q ? `${a.label} ${a.alt ?? ""}`.toLowerCase().includes(q) : showAll || i < AREAS_TOP || on;
-            return <ChoiceChip key={a.key} name="areas" value={a.key} checked={on} hidden={!match}>{a.label}</ChoiceChip>;
-          })}
-        </div>
-        {!q && <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-2 min-h-11 text-sm font-bold text-brand-700">{showAll ? "Show fewer" : `Show all ${AREAS.length} areas`}</button>}
-      </div>
-    </>
+      <MultiSelect name="areas" options={AREAS} picked={picked} title="Areas" placeholder={anywhere ? "Anywhere in Rajshahi" : "Choose areas"} disabled={anywhere} />
+    </div>
   );
 }
 
+const CLASS_OPTIONS = CLASS_GROUPS.flatMap((g) => CLASS_CHOICES.filter((c) => bandOf(c.key) === g.band).map((c) => ({ ...c, group: g.label })));
+
+/** Classes in one dropdown, under level headings. */
 export function ClassField({ picked }: { picked: string[] }) {
-  return (
-    <div className="space-y-3">
-      {CLASS_GROUPS.map((g) => (
-        <div key={g.label}>
-          <p className="mb-1.5 text-xs font-bold tracking-wide text-slate-500 uppercase">{g.label}</p>
-          <div className="flex flex-wrap gap-2">
-            {CLASS_CHOICES.filter((c) => bandOf(c.key) === g.band).map((c) => <ChoiceChip key={c.key} name="classes" value={c.key} checked={picked.includes(c.key)}>{c.label}</ChoiceChip>)}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return <MultiSelect name="classes" options={CLASS_OPTIONS} picked={picked} title="Classes" placeholder="Choose classes" />;
 }
 
 /** Subjects per level ("ssc:physics"), so an SSC tuition only matches the tutor's SSC subjects. */
