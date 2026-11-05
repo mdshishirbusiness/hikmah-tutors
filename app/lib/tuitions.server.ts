@@ -54,17 +54,6 @@ export async function visibleTuition(code: number): Promise<PublicTuition | null
   return row && toPublic(row);
 }
 
-export async function similarTuitions(t: PublicTuition): Promise<PublicTuition[]> {
-  const { results } = await env.DB.prepare(
-    `SELECT ${PUBLIC_COLUMNS} FROM tuitions
-     WHERE ${OPEN} AND code != ?1 AND (area = ?2 OR class_level = ?3)
-     ORDER BY posted_at DESC LIMIT 4`,
-  )
-    .bind(t.code, t.area, t.class_level)
-    .all<Row>();
-  return results.map(toPublic);
-}
-
 export type BookedTuition = {
   code: number; class_level: string; area: string; mode: string; salary_kind: string; salary_amount: number | null; subjects: string;
   applicants: number; hours: number | null; university: string | null; department: string | null; booked_at: number;

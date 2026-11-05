@@ -4,17 +4,22 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { Link } from "react-router";
 import { ArrowLeft, ArrowUpRight, BookOpen, MessageCircle, Phone } from "lucide-react";
 import { SiteFooter, SiteHeader } from "~/components/SiteHeader";
+import { SiteTutorBar } from "~/components/tutor";
 import { CONTACT, telLink, waLink } from "~/lib/contact";
 
 export { SiteFooter, SiteHeader };
 
-/** Header, page body and footer: every public page sits in this. `app` pages (the tutor's tabs) drop the footer. */
+/**
+ * Header, page body and footer: every public page sits in this. `app` pages (the tutor's tabs) drop the footer and
+ * draw their own bar with badges; other pages get the plain bar when a tutor is signed in.
+ */
 export function SitePage({ children, app = false }: { children: ReactNode; app?: boolean }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
       <main className="flex-1">{children}</main>
       {!app && <SiteFooter />}
+      {!app && <SiteTutorBar />}
     </div>
   );
 }

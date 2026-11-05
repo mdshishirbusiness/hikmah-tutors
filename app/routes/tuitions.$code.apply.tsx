@@ -4,13 +4,15 @@ import { Form, Link, data, redirect, useNavigation } from "react-router";
 import { AlertTriangle, Check, X } from "lucide-react";
 import type { Route } from "./+types/tuitions.$code.apply";
 import { inputClass, primaryButton } from "~/components/admin";
+import { EarningsChart } from "~/components/EarningsChart";
 import { SiteHeader } from "~/components/site";
+import { SiteTutorBar } from "~/components/tutor";
 import { SalaryText, placeLabel, subjectList } from "~/components/TuitionCard";
 import type { Fit } from "~/lib/fit";
 import { atTime, timeOfDay, tutorFromLabel } from "~/lib/fit";
 import { applyTo, applyView, requireTutor } from "~/lib/me.server";
 import { CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
-import { type PublicTuition, needText, taka } from "~/lib/tuition";
+import { type PublicTuition, feeDisplay, needText, taka } from "~/lib/tuition";
 import { classLabel } from "~/lib/request";
 
 export function meta({ params }: Route.MetaArgs) {
@@ -96,7 +98,7 @@ export default function Apply({ loaderData: { t, fit, applied, minSalary, paused
         </div>
 
         {/* No transform animation here: it would pin the fixed Confirm bar to this box instead of the screen. */}
-        <div className="mx-auto max-w-lg rounded-t-3xl bg-cream px-4 pt-6 pb-32 sm:px-6">
+        <div className="mx-auto max-w-lg rounded-t-3xl bg-cream px-4 pt-6 pb-48 sm:px-6 lg:pb-32">
           <h1 className="text-2xl font-bold text-forest">{applied ? "You've applied" : `Apply to ${t.code_label}`}</h1>
 
           {applied ? (
@@ -156,6 +158,7 @@ export default function Apply({ loaderData: { t, fit, applied, minSalary, paused
                     <span className="mb-1 block text-sm font-semibold text-forest">Note for HTR <span className="font-normal text-slate-500">(optional)</span></span>
                     <textarea name="note" rows={3} maxLength={300} placeholder="e.g. I can start next week. I live 5 minutes away." className={`${inputClass} py-3`} />
                   </label>
+                  <EarningsChart fees={feeDisplay(t)} />
                   <p className="text-sm text-slate-600">
                     If you get it: a one-time media fee from the first month's salary, 60% in two parts or 50% within 7 days.{" "}
                     <Link to="/fees" className="font-semibold text-brand-700 underline">Fees</Link>
@@ -163,7 +166,8 @@ export default function Apply({ loaderData: { t, fit, applied, minSalary, paused
                 </>
               )}
 
-              <div className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-100 bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
+              {/* Sits on top of the tutor's bottom bar on phones (3.5 rem + its border), at the bottom on wide screens. */}
+              <div className="fixed inset-x-0 bottom-[calc(3.5rem+1px+env(safe-area-inset-bottom))] z-30 border-t border-brand-100 bg-white/95 px-4 py-3 backdrop-blur lg:bottom-0 lg:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
                 {blocked ? (
                   <Link to="/" className={`${primaryButton} mx-auto flex w-full max-w-lg`}>See other tuitions</Link>
                 ) : (
@@ -174,6 +178,7 @@ export default function Apply({ loaderData: { t, fit, applied, minSalary, paused
           )}
         </div>
       </main>
+      <SiteTutorBar />
     </>
   );
 }

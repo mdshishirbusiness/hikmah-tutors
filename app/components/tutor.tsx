@@ -1,8 +1,9 @@
 // Shared pieces of the signed-in tutor's pages: the bottom bar, a bottom sheet and choice chips.
 import { useEffect, useRef } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { ClipboardCheck, House, LayoutList, type LucideIcon, UserRound } from "lucide-react";
 import { SectionCard, type SectionTone } from "~/components/SectionCard";
+import { useViewer } from "~/components/SiteHeader";
 
 // Home · Tuitions · Applied · Profile (owner, 2026-11-04).
 const TABS = [
@@ -16,7 +17,7 @@ const TABS = [
  * `count` is the applications waiting on the tutor (a selected tuition), shown as a badge on Applied; `dot` is Home's
  * red dot (something needs action or an update is unread).
  */
-export function TutorBar({ active, count = 0, dot = false }: { active: (typeof TABS)[number]["key"]; count?: number; dot?: boolean }) {
+export function TutorBar({ active, count = 0, dot = false }: { active?: (typeof TABS)[number]["key"]; count?: number; dot?: boolean }) {
   return (
     <nav aria-label="Tutor" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-brand-100 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       {TABS.map((t) => {
@@ -36,6 +37,20 @@ export function TutorBar({ active, count = 0, dot = false }: { active: (typeof T
       })}
     </nav>
   );
+}
+
+/** A signed-in tutor sees the bar on every page (owner, 2026-11-05); pages with their own bar pass badges instead. */
+export const useTutorSignedIn = () => {
+  const viewer = useViewer();
+  return viewer?.role === "tutor" && viewer.code !== null;
+};
+
+/** The bar on public pages (board detail, apply, fees…), without badges; the tab follows the address. */
+export function SiteTutorBar() {
+  const { pathname } = useLocation();
+  if (!useTutorSignedIn()) return null;
+  const active = pathname === "/" || pathname.startsWith("/tuitions/") ? "tuitions" : pathname === "/applied" ? "applied" : undefined;
+  return <TutorBar active={active} />;
 }
 
 /** A sheet that rises from the bottom; Escape or a tap outside closes it. */

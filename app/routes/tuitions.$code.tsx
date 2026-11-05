@@ -1,14 +1,16 @@
 import { data, Link } from "react-router";
 import type { Route } from "./+types/tuitions.$code";
+import { EarningsChart } from "~/components/EarningsChart";
 import { FeeBox } from "~/components/FeeBox";
 import { Icon } from "~/components/Icon";
 import { SiteFooter, SiteHeader, Toast, useShare } from "~/components/site";
-import { SalaryText, StatusBadges, TuitionCard, placeLabel, subjectList } from "~/components/TuitionCard";
+import { SiteTutorBar } from "~/components/tutor";
+import { SalaryText, StatusBadges, placeLabel, subjectList } from "~/components/TuitionCard";
 import { MEDIUMS, MODES, STUDENT_GENDERS, labelOf } from "~/lib/options";
 import { GENDER_NEED, GENDER_STYLE, feeDisplay, formatDate, scheduleNote } from "~/lib/tuition";
 import { classLabel, requirementLabels } from "~/lib/request";
 import { tutorFromLabel } from "~/lib/fit";
-import { similarTuitions, visibleTuition } from "~/lib/tuitions.server";
+import { visibleTuition } from "~/lib/tuitions.server";
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Tuition not found · Hikmah Tutors" }];
@@ -24,7 +26,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   const m = /^(?:HTR-)?(\d{1,9})$/i.exec(params.code);
   const t = m && (await visibleTuition(Number(m[1])));
   if (!t) throw data("Tuition not found", { status: 404 });
-  return { t, similar: await similarTuitions(t), now: Math.floor(Date.now() / 1000) };
+  return { t, now: Math.floor(Date.now() / 1000) };
 }
 
 type Row = { icon: Parameters<typeof Icon>[0]["name"]; label: string; value: string };
@@ -42,8 +44,9 @@ function Fact({ icon, label, value }: Row) {
   );
 }
 
-export default function TuitionDetail({ loaderData: { t, similar, now } }: Route.ComponentProps) {
+export default function TuitionDetail({ loaderData: { t, now } }: Route.ComponentProps) {
   const { share, toast } = useShare();
+  const fees = feeDisplay(t);
   const rows: Row[] = [
     { icon: "tag", label: "Subjects", value: subjectList(t) },
     { icon: "pin", label: "Location", value: t.mode === "online" ? "Online" : `${placeLabel(t)}, Rajshahi · ${labelOf(MODES, t.mode)}` },
@@ -65,7 +68,7 @@ export default function TuitionDetail({ loaderData: { t, similar, now } }: Route
             {!t.is_available && (
               <div role="status" className="mt-2 rounded-2xl bg-slate-100 px-4 py-3 text-slate-800">
                 <p className="font-semibold">This tuition is no longer open</p>
-                <p className="text-sm">See similar tuitions below.</p>
+                <Link to="/" className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 underline">See open tuitions</Link>
               </div>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -112,19 +115,13 @@ export default function TuitionDetail({ loaderData: { t, similar, now } }: Route
           </dl>
           {t.posted_at && <p className="-mt-3 px-1 text-xs text-slate-500">Posted {formatDate(t.posted_at)}</p>}
 
-          <FeeBox fees={feeDisplay(t)} />
-
-          {similar.length > 0 && (
-            <section>
-              <h2 className="mb-4 text-lg font-semibold text-forest">Similar tuitions</h2>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {similar.map((s, i) => <TuitionCard key={s.code} t={s} now={now} index={i} />)}
-              </div>
-            </section>
-          )}
+          {/* No similar tuitions here (owner, 2026-11-05): the page is about this one tuition. */}
+          <EarningsChart fees={fees} />
+          <FeeBox fees={fees} />
         </div>
       </main>
       <SiteFooter />
+      <SiteTutorBar />
       <Toast message={toast} />
     </>
   );

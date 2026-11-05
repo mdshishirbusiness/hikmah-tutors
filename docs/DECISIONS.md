@@ -3,6 +3,18 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-05 (signed-in tutor: bar everywhere, earnings chart back)
+
+- **The bottom bar (Home · Tuitions · Applied · Profile) shows on every page while a tutor is signed in** (owner):
+  also the tuition page, the apply page and the text pages (fees, how it works…). Those pages show it without badges.
+  On the apply page, Confirm sits just above the bar.
+- **The phone menu ends above the bar**, so WhatsApp us is no longer hidden behind it.
+- **No "For guardians" / "For tutors" bands in the footer for a signed-in tutor** (owner): they are for visitors.
+- **No similar tuitions on the tuition page** (owner): the page is about one tuition. A closed one links to the board.
+- **"Your pay over 6 months" is back** (owner: it was in the design lab and should not have been dropped):
+  `EarningsChart.tsx` on the tuition page and the apply page, with a Standard / Early toggle; the first month's bar is
+  cut by the fee. Only for a fixed monthly salary, never an example figure.
+
 ## 2026-11-05 (Profile: folding sections and a progress line)
 
 - **Done sections fold** (owner: the Profile looked messy). A section on `/me/profile` folds to one line once every

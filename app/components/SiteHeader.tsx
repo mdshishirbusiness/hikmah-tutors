@@ -89,7 +89,8 @@ export function SiteHeader() {
       </div>
     </header>
       {open && (
-        <nav id="mobile-site-nav" aria-label="Main navigation" className="fixed inset-x-0 top-16 bottom-0 z-40 flex animate-fade flex-col gap-1 overflow-y-auto bg-cream px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] lg:hidden">
+        // A tutor's bottom bar stays over the menu, so the menu ends above it (owner, 2026-11-05: WhatsApp was hidden).
+        <nav id="mobile-site-nav" aria-label="Main navigation" className={`fixed inset-x-0 top-16 bottom-0 z-40 flex animate-fade flex-col gap-1 overflow-y-auto bg-cream px-4 pt-4 lg:hidden ${viewer?.role === "tutor" && viewer.code !== null ? "pb-[calc(5rem+env(safe-area-inset-bottom))]" : "pb-[calc(1.5rem+env(safe-area-inset-bottom))]"}`}>
           {NAV.map(([to, label], i) => (
             <NavLink key={to} to={to} end={to === "/"} style={{ animationDelay: `${i * 40}ms` }}
               className={({ isActive }) => `flex min-h-14 animate-rise items-center justify-between rounded-2xl px-4 text-xl font-extrabold tracking-tight text-forest ${isActive ? "bg-white shadow-ring" : ""}`}>
@@ -124,9 +125,11 @@ const FOOTER_GROUPS: { title: string; links: [string, string][] }[] = [
 
 export function SiteFooter() {
   const contactClass = "inline-flex min-h-11 items-center gap-2 text-sm text-brand-100 transition-colors hover:text-mango";
+  // A signed-in tutor doesn't need the guardian and join bands (owner, 2026-11-05), and their bottom bar needs room.
+  const tutor = useViewer()?.role === "tutor";
   return (
     <footer className="mt-16">
-      <div className="mx-auto grid max-w-7xl gap-3 px-4 sm:grid-cols-2 sm:px-6 lg:px-8">
+      {!tutor && <div className="mx-auto grid max-w-7xl gap-3 px-4 sm:grid-cols-2 sm:px-6 lg:px-8">
         <Link to="/request-tutor" className="group rounded-3xl bg-mango p-6 text-forest sm:p-8">
           <p className="text-xs font-extrabold tracking-[0.16em] uppercase">For guardians</p>
           <p className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">টিউটর খুঁজছেন?</p>
@@ -142,8 +145,8 @@ export function SiteFooter() {
             <Link to="/" className="inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-bold text-white ring-1 ring-white/40 hover:bg-white/10">See tuitions</Link>
           </div>
         </div>
-      </div>
-      <div className="mt-10 bg-forest text-cream">
+      </div>}
+      <div className={`bg-forest text-cream ${tutor ? "pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0" : "mt-10"}`}>
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:px-8">
           <div className="col-span-2 lg:col-span-1 lg:pr-12">
             <Link to="/" className="inline-flex items-center gap-3 rounded-lg">
