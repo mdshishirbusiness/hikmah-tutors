@@ -60,3 +60,18 @@ test("a top-up adds only what is new and keeps the owner's edits", () => {
   assert.equal(one(db, "SELECT count(*) n FROM guardians").n, 1);
   assert.equal(one(db, "SELECT guardian_id g FROM tuition_private WHERE tuition_code = 946").g, 1);
 });
+
+test("a sheet tutor after 2488 is held, and sheet applications link to site tutors by code", () => {
+  const db = freshDb();
+  run(db, buildLoadSql(first, 100, 100).sql);
+  // A site sign-up: code 2489, its own id.
+  db.exec("INSERT INTO tutors (id, code, created_via, full_name, phone, created_at, updated_at) VALUES (5000, 2489, 'signup', 'Site Tutor', '01811000008', 1, 1);");
+
+  const later = { ...first, tutors: [...first.tutors, tutor(2489, "01811000009")], applications: [...first.applications, app(3, 945, 2489, "01811000003", 20)] };
+  run(db, buildAddOnlySql(later, 200, 200).sql);
+  run(db, buildAddOnlySql(later, 300, 300).sql);
+
+  assert.equal(one(db, "SELECT full_name FROM tutors WHERE code = 2489").full_name, "Site Tutor");
+  assert.equal(one(db, "SELECT count(*) n FROM import_rows WHERE legacy_ref = '2489' AND issues LIKE '%code_after_sheet%'").n, 1);
+  assert.equal(one(db, "SELECT tutor_id FROM applications WHERE created_at = 20").tutor_id, 5000);
+});

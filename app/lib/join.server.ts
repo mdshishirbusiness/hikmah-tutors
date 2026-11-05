@@ -1,5 +1,5 @@
 // Tutor registration on the site (owner, 2026-11-04, review step 2). A Google account with no tutor record fills one
-// form and gets a code from 5001 up (the sheet's codes run from 1001 and still grow with top-ups). The tutor then waits
+// form and gets the next code after the sheet's last one, 2488 (owner, 2026-11-05: new tutors join only here). The tutor then waits
 // for the owner's check before applying. While waiting or asked to fix, they may change everything; once checked, the
 // details lock as for every tutor and change through HTR.
 import { env } from "cloudflare:workers";
@@ -111,8 +111,8 @@ export async function saveJoin(viewer: Viewer, me: MyTutor | null, form: FormDat
       const row = await env.DB.prepare(
         `INSERT INTO tutors (code, user_id, claim_status, created_via, email, full_name, gender, phone, institution, department, session_year, university,
                              transport, min_salary, anywhere, availability_confirmed_at, terms_accepted_at, setup_done_at, registered_at, review_status, created_at, updated_at)
-         SELECT COALESCE(MAX(code), 5000) + 1, ?, 'claimed', 'signup', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting', ?, ?
-         FROM tutors WHERE code BETWEEN 5001 AND 89999
+         SELECT COALESCE(MAX(code), 2488) + 1, ?, 'claimed', 'signup', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting', ?, ?
+         FROM tutors WHERE code BETWEEN 2489 AND 89999
          RETURNING id, code`,
       ).bind(viewer.id, viewer.email.toLowerCase(), name, gender, phone, institution, department, session, uniKey, transport || null, minSalary, anywhere ? 1 : 0, t, t, t, t, t, t)
         .first<{ id: number; code: number }>();

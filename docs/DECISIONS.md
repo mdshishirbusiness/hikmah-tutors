@@ -285,7 +285,9 @@ The owner approved step 2 of `docs/REVIEW-2026-11-04.md`. Choices Claude made:
 - **Photo required.** The browser shrinks it to a 512 px square (WebP, or JPEG on Safari) before upload. This also
   drops the hidden photo details, such as where it was taken. The server keeps only real JPEG/PNG/WebP files under
   900 KB, in the private bucket as `tutors/T<code>.<ext>`.
-- **Codes from 5001.** The sheet's codes run 1001–2488 and still grow with top-ups, so site sign-ups never meet them.
+- **Codes from 2489** (owner, 2026-11-05; was 5001). The sheet's codes end at 2488 and new tutors now join only on the
+  site, so site codes carry on the sheet's numbering. A sheet top-up holds any tutor row above 2488 for review instead
+  of adding it, and links sheet applications to tutors by code. The first site sign-up was renumbered to 2489.
 - **The owner checks every new tutor** (`review_status`: waiting → approved, or needs fix with a note). Tutors from the
   sheet and ones staff made count as checked.
   - While waiting, a tutor can browse and see For You, but not apply. The server refuses too.

@@ -15,7 +15,9 @@ const insertWhen = (table, row, when, verb = "INSERT") =>
   `${verb} INTO ${table} (${Object.keys(row).join(", ")}) SELECT ${Object.values(row).map(val).join(", ")} WHERE ${when};`;
 
 const MEDIUMS = [[/বাংলা/, "bangla"], [/english version/i, "ev"], [/english medium/i, "em"], [/মাদ্রাসা|madrasa/i, "madrasa"]];
-export const mediumKeys = (s) => MEDIUMS.filter(([re]) => re.test(s ?? "")).map(([, key]) => key).join(",") || null;
+// The sheet's last tutor code. Site sign-ups take 2489 and up (app/lib/join.server.ts).
+export const LAST_SHEET_CODE = 2488;
+export const mediumKeys =(s) => MEDIUMS.filter(([re]) => re.test(s ?? "")).map(([, key]) => key).join(",") || null;
 
 /** Removes an earlier batch from the real tables. The batch row stays as a record. */
 export function rollbackSql(batchFilter = "SELECT id FROM import_batches WHERE status = 'committed'") {
@@ -144,9 +146,10 @@ export function buildAddOnlySql({ tutors, tuitions, applications, placements, re
   const sql = [];
   const batch = { import_batch_id: batchId };
   const stamps = { created_at: now, updated_at: now };
-  const newTutor = (code) => `EXISTS (SELECT 1 FROM tutors WHERE id = ${q(code)} AND import_batch_id = ${batchId})`;
+  const newTutor = (code) => `EXISTS (SELECT 1 FROM tutors WHERE code = ${q(code)} AND import_batch_id = ${batchId})`;
   const newTuition = (code) => `EXISTS (SELECT 1 FROM tuitions WHERE code = ${q(code)} AND import_batch_id = ${batchId})`;
-  const tutorRef = (code) => (code === null ? null : sqlExpr(`(SELECT id FROM tutors WHERE id = ${q(code)})`)); // a held tutor links nobody
+  // By code, not id: a site tutor's id can equal another tutor's code. A held tutor links nobody.
+  const tutorRef = (code) => (code === null ? null : sqlExpr(`(SELECT id FROM tutors WHERE code = ${q(code)})`));
   sql.push(insert("import_batches", { id: batchId, source: "mastersheet_top_up", status: "committed", report_json: JSON.stringify(report), created_at: now, committed_at: now }));
 
   // A held row is listed once, however many top-ups see it.
@@ -155,6 +158,11 @@ export function buildAddOnlySql({ tutors, tuitions, applications, placements, re
     `NOT EXISTS (SELECT 1 FROM import_rows WHERE tab = ${q(tab)} AND legacy_ref = ${q(String(legacyRef))} AND status = 'needs_review') AND ${also}`));
 
   for (const t of tutors) {
+    // Codes after the sheet's last one belong to site sign-ups (owner, 2026-11-05): a sheet row there is held, never added.
+    if (t.code > LAST_SHEET_CODE) {
+      hold("registration", t.rowNo, t.code, { tutor: t.tutor, subjects: t.subjects, statements: t.statements }, [...t.issues, "code_after_sheet"], "1");
+      continue;
+    }
     if (t.needsReview) {
       hold("registration", t.rowNo, t.code, { tutor: t.tutor, subjects: t.subjects, statements: t.statements }, t.issues, `NOT EXISTS (SELECT 1 FROM tutors WHERE code = ${q(t.code)})`);
       continue;
