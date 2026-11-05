@@ -8,6 +8,7 @@ import { Avatar } from "~/components/Avatar";
 import { CONTACT, telLink, waLink } from "~/lib/contact";
 import { JOIN } from "~/lib/join";
 import { InstallButton } from "~/components/InstallApp";
+import { ScrollRide } from "~/components/ScrollRide";
 import { firstName } from "~/lib/whatsapp";
 
 const NAV: [string, string][] = [
@@ -55,7 +56,8 @@ export function SiteHeader() {
   return (
     <>
     <header className="sticky top-0 z-40 border-b border-brand-100/60 bg-cream/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+      <ScrollRide />
+      <div className="relative z-10 mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         {/* The full logo, not the mark with the name typed beside it (owner, 2026-11-05). */}
         <Link to="/" className="flex shrink-0 items-center rounded-lg" aria-label="Hikmah Tutors Rajshahi, home">
           <img src="/brand/logo.webp" alt="Hikmah Tutors Rajshahi" width={80} height={52} className="h-[52px] w-auto" />

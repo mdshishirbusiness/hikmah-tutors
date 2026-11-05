@@ -887,3 +887,8 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
   shows the picks ("Math, English, Physics +1"); a tap opens a sheet with search (English or Bangla) and ticks; Other
   opens a text box under the field. Used for request subjects, "Tutor from" universities, and the tutor's areas
   (Anywhere stays a chip beside it) and classes (under level headings). Short lists (3-6 choices, e.g. gender, time of day, requirements) stay as one-tap chips.
+- **Scroll progress: a rickshaw rides the header's bottom edge** (owner, 2026-11-05, chosen over a plain line and a
+  car like other sites). `ScrollRide.tsx`: the edge fills emerald; a small forest-and-mango rickshaw rides it toward a
+  house at the right end (a tutor riding to a student's home), wheels turning with the scroll; it shows only while the
+  page moves and passes behind the header's buttons; the logo's star pops over the house at the bottom. No percent
+  number. Hidden on short pages and on the Profile (it has its own progress line). Admin on a computer gets the line only.

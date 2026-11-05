@@ -8,6 +8,7 @@ import { SectionCard, type SectionTone } from "~/components/SectionCard";
 import type { Route } from "./+types/admin.quick";
 import { AddressDetails, AreaPicker, ClassPicker, MediumPicker, RequirementPicker, SessionPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
 import { ChoiceChip } from "~/components/tutor";
+import { ScrollRide } from "~/components/ScrollRide";
 import { requireAdmin } from "~/lib/auth.server";
 import { type LeadErrors, leadFromForm, parseLead } from "~/lib/lead";
 import { flushPending, saveLead, usePendingCount } from "~/lib/lead-queue";
@@ -102,7 +103,8 @@ export default function QuickPad() {
   return (
     <div className="min-h-dvh bg-cream pb-32">
       <header className="sticky top-0 z-20 border-b border-brand-100/70 bg-cream/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-xl items-center gap-2 px-4">
+        <ScrollRide />
+        <div className="relative z-10 mx-auto flex h-14 max-w-xl items-center gap-2 px-4">
           <Link to="/admin" aria-label="Back to admin" className="-ml-2 grid size-11 place-items-center rounded-xl text-forest hover:bg-brand-50"><ArrowLeft size={20} aria-hidden /></Link>
           <h1 className="text-lg font-extrabold tracking-tight text-forest">New lead</h1>
           {pending > 0 && (

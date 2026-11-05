@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, NavLink, Outlet, type ShouldRevalidateFunctionArgs, useFetcher, useLocation, useNavigate } from "react-router";
 import { InstallButton } from "~/components/InstallApp";
+import { ScrollRide } from "~/components/ScrollRide";
 import {
   ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, Plus, Search, UserRound, Users, X, Zap,
 } from "lucide-react";
@@ -248,11 +249,12 @@ function PhoneBars({ counts, onSearch }: { counts: Counts; onSearch: () => void 
   return (
     <>
       <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-brand-100/70 bg-cream/90 px-4 backdrop-blur-md lg:hidden">
-        <Link to="/admin" className="flex items-center gap-2">
+        <ScrollRide />
+        <Link to="/admin" className="relative z-10 flex items-center gap-2">
           <img src="/brand/mark.webp" alt="" width={32} height={32} className="size-8" />
           <span className="font-bold text-forest">Admin</span>
         </Link>
-        <button type="button" onClick={onSearch} className="ml-auto flex min-h-11 flex-1 items-center gap-2 rounded-xl bg-white px-3 text-sm text-slate-500 shadow-ring max-w-56">
+        <button type="button" onClick={onSearch} className="relative z-10 ml-auto flex min-h-11 flex-1 items-center gap-2 rounded-xl bg-white px-3 text-sm text-slate-500 shadow-ring max-w-56">
           <Search size={16} aria-hidden />Search
         </button>
       </header>
@@ -318,6 +320,8 @@ export default function AdminLayout({ loaderData: { counts } }: Route.ComponentP
     <div className="min-h-dvh bg-[#f7f8f4]">
       <Sidebar counts={counts} onSearch={() => setSearch(true)} />
       <PhoneBars counts={counts} onSearch={() => setSearch(true)} />
+      {/* On a computer there is no top bar to ride, so the line runs alone along the top of the page. */}
+      <div className="fixed top-0 right-0 left-64 z-30 hidden lg:block"><ScrollRide bare /></div>
       <div className="lg:pl-64">
         <div className="mx-auto max-w-[1360px] px-4 pt-5 pb-36 sm:px-6 lg:px-10 lg:pt-8 lg:pb-16">
           <Outlet />
