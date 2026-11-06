@@ -402,7 +402,8 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
 
         <section className="mt-6 rounded-2xl bg-white p-4 shadow-ring sm:p-5">
           <h2 className="flex items-center gap-2 font-extrabold text-forest"><Lock size={16} aria-hidden />Details HTR keeps</h2>
-          <p className="mt-0.5 text-sm text-slate-500">Phone {me.phone} · {me.gender === "female" ? "Female" : me.gender === "male" ? "Male" : "—"}. To change these, message HTR.</p>
+          <p className="mt-0.5 text-sm text-slate-500">Phone {me.phone} · {me.gender === "female" ? "Female" : me.gender === "male" ? "Male" : "—"}{me.email ? ` · ${me.email}` : ""}. To change these, message HTR.</p>
+          <p className="mt-1 text-sm text-slate-500">Gmail বদলাতে চাইলে নতুন Gmail লিখে HTR-কে পাঠান। বদলের পর নতুন Gmail দিয়ে log in করলে সব তথ্য আগের মতোই থাকবে।</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <a href={waLink(CONTACT.whatsapp, `Assalamu alaikum, I'm tutor T-${me.code}. One of my details needs a fix: `)} target="_blank" rel="noreferrer" className="wa-btn inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-forest shadow-ring"><MessageCircle size={16} aria-hidden />Message HTR</a>
             <Link to="/terms" className="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-brand-700">Terms</Link>

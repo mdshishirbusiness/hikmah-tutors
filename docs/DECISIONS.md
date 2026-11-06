@@ -938,3 +938,9 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
   "Open in Chrome" (Android intent link) or "Open in Safari" when opened inside Facebook or Messenger, which cannot
   install; Samsung Internet and iPhone steps; Copy link and Share on WhatsApp. Install app buttons now lead there when
   the browser has no prompt (the iPhone pop-up is replaced by the page). No loader, so it never reads the database.
+- **Admin changes every personal detail of a tutor** (owner): tutors message HTR, and the admin's tutor page has a
+  "Personal details" editor for name, phone, other phone, gender, university, sign-in Gmail, study, SSC/HSC and
+  address. A new Gmail unlinks the old Google account and ends its sessions; the tutor logs in with the new Gmail and
+  keeps everything (linked at once if that Gmail had already signed in with no tutor record). A phone or Gmail another
+  tutor uses is refused with that tutor's code. Each save is in the audit log (field names only) and shows on the
+  tutor's Home as "HTR updated your profile". Admin only: staff, when added, get narrower rights.

@@ -1,7 +1,9 @@
 // Queries behind the admin screens. Private data: only routes under /admin that call requireAdmin may import this.
 import { env } from "cloudflare:workers";
-import { ADMIN_PAGE_SIZE, TUITION_MOVES, publishGaps } from "./admin-labels";
+import { ADMIN_PAGE_SIZE, TUITION_MOVES, TUTOR_DETAIL_FIELDS, publishGaps } from "./admin-labels";
 import { bandOf } from "./fit";
+import { UNIVERSITIES } from "./join";
+import { bdPhone } from "./lead";
 import { AREAS, CLASS_CHOICES, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM } from "./options";
 import { parseWindow, requirementKeys } from "./request";
 import type { Level, Student } from "./profile";
@@ -671,7 +673,7 @@ export type TutorFull = AdminTutorRow & {
   university: string | null; min_salary: number | null; anywhere: number; setup_done_at: number | null; availability_paused: number; about: string | null;
   flag_reason: string | null; user_id: number | null;
   review_status: "waiting" | "needs_fix" | "approved"; review_note: string | null; reviewed_at: number | null; created_via: string; created_at: number;
-  skills: string | null; demo_video_url: string | null;
+  skills: string | null; demo_video_url: string | null; ssc_marks: string | null; hsc_marks: string | null; admission_result: string | null;
 };
 
 export async function getTutor(code: number) {
@@ -1021,17 +1023,78 @@ export async function reviewTutor(id: number, op: "approve" | "fix", note: strin
  * Sets the Google email a tutor signs in with, for one who registered before under another account (the phone check
  * on registration sends them to HTR). Only while no account is linked; the tutor then logs in again with that email.
  */
-export async function setTutorEmail(id: number, raw: string, actorId: number | null): Promise<string | null> {
-  const email = raw.trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Write a valid email.";
-  const row = await env.DB.prepare(`SELECT user_id FROM tutors WHERE id = ?`).bind(id).first<{ user_id: number | null }>();
-  if (row?.user_id) return "This tutor already signs in with a Google account.";
-  if (await count(`SELECT count(*) n FROM tutors WHERE email = ? AND id <> ? AND deleted_at IS NULL`, email, id)) return "Another tutor has this email.";
+/**
+ * Every personal detail of a tutor (owner, 2026-11-06: tutors message HTR to change them). Admin only: when staff are
+ * added, they get a narrower version of this. Name, phone, gender, university, Gmail, study, results and address. A new Gmail unlinks the old Google account and signs it out everywhere; the tutor
+ * then logs in with the new one, or is linked at once if that Gmail has already signed in here without a tutor record.
+ */
+export async function setTutorAccount(id: number, form: FormData, actorId: number | null): Promise<{ error: string | null; done?: string }> {
+  const detailCols = TUTOR_DETAIL_FIELDS.map((f) => f.key);
+  const t = await env.DB.prepare(`SELECT code, user_id, email, full_name, phone, alt_phone, gender, university, institution, ${detailCols.join(", ")} FROM tutors WHERE id = ? AND deleted_at IS NULL`)
+    .bind(id).first<{ code: number; user_id: number | null; email: string | null; full_name: string; phone: string; alt_phone: string | null; gender: string | null; university: string | null; institution: string | null } & Record<string, string | number | null>>();
+  if (!t) return { error: "Tutor not found." };
+  const text = (k: string, max: number) => String(form.get(k) ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+
+  // The other personal details: empty clears; years are four digits; the Facebook link must be a web address.
+  const details: (string | number | null)[] = [];
+  for (const f of TUTOR_DETAIL_FIELDS) {
+    const v = text(f.key, f.max);
+    if ("year" in f && v && !/^(19|20)\d{2}$/.test(v)) return { error: `${f.label}: write a year like 2021.` };
+    if ("url" in f && v && !/^https?:\/\/\S+$/i.test(v)) return { error: `${f.label}: paste the full link (https://…).` };
+    details.push(v ? ("year" in f ? Number(v) : v) : null);
+  }
+  const name = text("full_name", 80);
+  const phone = bdPhone(form.get("phone"));
+  const altPhone = text("alt_phone", 20) ? bdPhone(form.get("alt_phone")) : "";
+  const gender = ["male", "female"].includes(text("gender", 10)) ? text("gender", 10) : t.gender;
+  const uni = UNIVERSITIES.find((u) => u.key === text("university", 20));
+  const institution = uni?.institution ?? (text("institution", 120) || null);
+  const email = text("email", 120).toLowerCase();
+
+  if (name.length < 2) return { error: "Write the tutor's name." };
+  if (!phone) return { error: "Phone not valid. Write 11 digits: 01XXXXXXXXX." };
+  if (text("alt_phone", 20) && !altPhone) return { error: "Other phone not valid. Write 11 digits, or leave it empty." };
+  if (altPhone && altPhone === phone) return { error: "Other phone is the same as the phone." };
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Write a valid Gmail." };
+  if (!email && t.email) return { error: "The sign-in Gmail cannot be empty." };
+
+  for (const p of [phone, altPhone].filter((p) => p && p !== t.phone && p !== t.alt_phone)) {
+    const other = await env.DB.prepare(`SELECT code FROM tutors WHERE (phone = ?1 OR alt_phone = ?1) AND id <> ?2 AND deleted_at IS NULL`).bind(p, id).first<{ code: number }>();
+    if (other) return { error: `T-${other.code} already has ${p}. Check whether it is the same person.` };
+  }
+
+  const emailChanged = email !== (t.email ?? "");
+  let linkTo: number | null = t.user_id;
+  if (emailChanged) {
+    const other = await env.DB.prepare(`SELECT code FROM tutors WHERE email = ? AND id <> ? AND deleted_at IS NULL`).bind(email, id).first<{ code: number }>();
+    if (other) return { error: `T-${other.code} already signs in with this Gmail. If it is a second registration of the same person, remove that one first.` };
+    // That Gmail may have signed in already and landed on registration with no tutor record: link it now.
+    const user = await env.DB.prepare(`SELECT u.id, u.role, (SELECT code FROM tutors WHERE user_id = u.id AND deleted_at IS NULL) tutor_code FROM users u WHERE u.email = ?`)
+      .bind(email).first<{ id: number; role: string; tutor_code: number | null }>();
+    if (user?.role === "owner") return { error: "This is an admin Gmail." };
+    if (user?.tutor_code) return { error: `This Gmail is linked to T-${user.tutor_code}.` };
+    linkTo = user?.id ?? null;
+  }
+
+  const changed = [
+    name !== t.full_name && "name", phone !== t.phone && "phone", (altPhone || null) !== t.alt_phone && "other phone", gender !== t.gender && "gender",
+    ((uni?.key ?? t.university) !== t.university || institution !== t.institution) && "university", emailChanged && "Gmail",
+    ...TUTOR_DETAIL_FIELDS.map((f, i) => details[i] !== (t[f.key] ?? null) && f.label.toLowerCase()),
+  ].filter((c): c is string => !!c);
+  if (!changed.length) return { error: null, done: "Nothing changed." };
+
+  const at = now();
   await env.DB.batch([
-    env.DB.prepare(`UPDATE tutors SET email = ?, updated_at = ? WHERE id = ?`).bind(email, now(), id),
-    audit(actorId, "tutor_email_set", "tutor_review", String(id), {}),
+    env.DB.prepare(
+      `UPDATE tutors SET full_name = ?, phone = ?, alt_phone = ?, gender = ?, university = ?, institution = ?, email = ?, user_id = ?,
+              claim_status = CASE WHEN ? IS NULL THEN 'unclaimed' ELSE 'claimed' END, ${detailCols.map((c) => `${c} = ?`).join(", ")}, updated_at = ? WHERE id = ?`,
+    ).bind(name, phone, altPhone || null, gender, uni?.key ?? t.university, institution, email || null, linkTo, linkTo, ...details, at, id),
+    // The old Google account stops at once: its sessions end, so it cannot keep acting as this tutor.
+    ...(emailChanged && t.user_id && t.user_id !== linkTo ? [env.DB.prepare(`DELETE FROM sessions WHERE user_id = ?`).bind(t.user_id)] : []),
+    audit(actorId, "tutor_account_changed", "tutor", String(t.code), { fields: changed }),
   ]);
-  return null;
+  const gmail = !emailChanged ? "" : linkTo ? " The new Gmail is linked; they can use it now." : " They log in with the new Gmail (the old one was signed out).";
+  return { error: null, done: `Saved: ${changed.join(", ")}.${gmail}` };
 }
 
 // ---------- Placements: tracking selected tutors and the check-in calls ----------

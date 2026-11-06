@@ -99,3 +99,27 @@ export function publishGaps(t: { class_level: string; area: string; medium: stri
   if (!t.subjects) gaps.push("Subjects");
   return gaps;
 }
+
+/**
+ * The rest of a tutor's personal details the admin can change (owner, 2026-11-06: admins change every personal detail;
+ * staff, when added, get less). Name, phone, gender, university and Gmail have their own checks in setTutorAccount.
+ */
+export const TUTOR_DETAIL_FIELDS = [
+  { key: "department", label: "Department", max: 80, group: "Study" },
+  { key: "session_year", label: "Session", max: 20, group: "Study", placeholder: "2023-24" },
+  { key: "admission_result", label: "Admission result", max: 300, group: "Study" },
+  { key: "ssc_school", label: "SSC school", max: 120, group: "SSC" },
+  { key: "ssc_year", label: "SSC year", max: 4, group: "SSC", year: true },
+  { key: "ssc_group", label: "SSC group", max: 40, group: "SSC" },
+  { key: "ssc_result", label: "SSC GPA", max: 20, group: "SSC" },
+  { key: "ssc_marks", label: "SSC marks", max: 20, group: "SSC" },
+  { key: "hsc_college", label: "HSC college", max: 120, group: "HSC" },
+  { key: "hsc_year", label: "HSC year", max: 4, group: "HSC", year: true },
+  { key: "hsc_group", label: "HSC group", max: 40, group: "HSC" },
+  { key: "hsc_result", label: "HSC GPA", max: 20, group: "HSC" },
+  { key: "hsc_marks", label: "HSC marks", max: 20, group: "HSC" },
+  { key: "current_location", label: "Lives at (Rajshahi)", max: 120, group: "Address" },
+  { key: "home_district", label: "Home district", max: 60, group: "Address" },
+  { key: "home_division", label: "Home division", max: 60, group: "Address" },
+  { key: "facebook_url", label: "Facebook link", max: 300, group: "Links", url: true },
+] as const satisfies readonly { key: string; label: string; max: number; group: string; placeholder?: string; year?: boolean; url?: boolean }[];

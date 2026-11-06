@@ -9,13 +9,13 @@ import { DocViewer } from "~/components/DocViewer";
 import { LevelSummary } from "~/components/LevelSummary";
 import { StudentTimeline } from "~/components/StudentsCard";
 import { APPLICATION_TONE, Badge, Card, Facts, PageHead, ago, inputClass, num, safeUrl, when } from "~/components/admin";
-import { APPLICATION_STATUS } from "~/lib/admin-labels";
+import { APPLICATION_STATUS, TUTOR_DETAIL_FIELDS } from "~/lib/admin-labels";
 import { NotesPanel } from "~/components/FollowUps";
-import { getTutor, reviewTutor, setFlag, setTutorEmail } from "~/lib/admin.server";
+import { getTutor, reviewTutor, setFlag, setTutorAccount } from "~/lib/admin.server";
 import { followupsFor } from "~/lib/followups.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
-import { DOC_LABELS } from "~/lib/join";
+import { DOC_LABELS, UNIVERSITIES } from "~/lib/join";
 import { AREAS, BANDS, CLASS_LEVELS, MEDIUMS, SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
 import { taka } from "~/lib/tuition";
 
@@ -37,7 +37,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const form = await request.formData();
   const intent = form.get("intent");
   if (intent === "approve" || intent === "fix") return { error: await reviewTutor(found.tutor.id, intent, String(form.get("note") ?? ""), viewer?.id ?? null) };
-  if (intent === "email") return { error: await setTutorEmail(found.tutor.id, String(form.get("email") ?? ""), viewer?.id ?? null) };
+  if (intent === "account") return await setTutorAccount(found.tutor.id, form, viewer?.id ?? null);
   return { error: await setFlag("tutor", found.tutor.id, form.get("intent") === "clear" ? "" : String(form.get("reason") ?? ""), viewer?.id ?? null) };
 }
 
@@ -218,16 +218,9 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
               ["Registered", when(t.registered_at)], ["Email", t.email],
             ]} />
           </Card>
-          {!t.user_id && (
-            <Card>
-              <h2 className="flex items-center gap-1.5 text-sm font-bold text-forest"><KeyRound size={15} aria-hidden />Sign-in email</h2>
-              <p className="mt-1 text-xs text-slate-500">Not linked to a Google account yet. If they use another Gmail, put it here; they log in again with it.</p>
-              <Form method="post" className="mt-3 flex gap-2">
-                <input type="hidden" name="intent" value="email" />
-                <input name="email" type="email" defaultValue={t.email ?? ""} placeholder="name@gmail.com" className={`${inputClass} min-h-11 text-sm`} />
-                <button disabled={busy} className="inline-flex min-h-11 shrink-0 items-center rounded-xl bg-forest px-4 text-sm font-bold text-cream disabled:opacity-60">Save</button>
-              </Form>
-            </Card>
+          <AccountCard t={t} busy={busy} />
+          {actionData && "done" in actionData && actionData.done && (
+            <p role="status" className="flex items-start gap-2 rounded-xl bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-900"><Check size={16} className="mt-0.5 shrink-0" aria-hidden />{actionData.done}</p>
           )}
           <Card className={t.flag_reason ? "ring-2 ring-rose-200" : ""}>
             <h2 className="flex items-center gap-1.5 text-sm font-bold text-forest"><Flag size={15} aria-hidden />Do-not-place flag</h2>
@@ -257,5 +250,65 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
         </aside>
       </div>
     </>
+  );
+}
+
+/** Name, phone, gender, university and the sign-in Gmail: the details a tutor asks HTR to change. Closed until needed. */
+function AccountCard({ t, busy }: { t: Route.ComponentProps["loaderData"]["tutor"]; busy: boolean }) {
+  const field = `${inputClass} min-h-11 text-sm`;
+  const label = "block text-xs font-semibold text-slate-600";
+  return (
+    <Card>
+      <details className="group">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
+          <span>
+            <span className="flex items-center gap-1.5 text-sm font-bold text-forest"><KeyRound size={15} aria-hidden />Personal details</span>
+            <span className="mt-0.5 block text-xs text-slate-500">{t.user_id ? "Signs in with Google" : "Not signed in yet"} · name, phone, Gmail, study, address</span>
+          </span>
+          <span className="rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-bold text-forest group-open:hidden">Edit</span>
+        </summary>
+        <Form method="post" className="mt-3 space-y-3">
+          <input type="hidden" name="intent" value="account" />
+          <label className={label}>Name<input name="full_name" required defaultValue={t.full_name} className={`${field} mt-1`} /></label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className={label}>Phone<input name="phone" required inputMode="tel" defaultValue={t.phone} className={`${field} mt-1`} /></label>
+            <label className={label}>Other phone<input name="alt_phone" inputMode="tel" defaultValue={t.alt_phone ?? ""} className={`${field} mt-1`} /></label>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className={label}>Gender
+              <select name="gender" defaultValue={t.gender ?? ""} className={`${field} mt-1`}>
+                {!t.gender && <option value="">—</option>}<option value="male">Male</option><option value="female">Female</option>
+              </select>
+            </label>
+            <label className={label}>University
+              <select name="university" defaultValue={t.university ?? "other"} className={`${field} mt-1`}>
+                {UNIVERSITIES.map((u) => <option key={u.key} value={u.key}>{u.label}</option>)}
+              </select>
+            </label>
+          </div>
+          <label className={label}>Institution <span className="font-normal text-slate-400">(Medical or Other)</span>
+            <input name="institution" defaultValue={t.institution ?? ""} placeholder="e.g. Rajshahi Medical College" className={`${field} mt-1`} />
+          </label>
+          <label className={label}>Sign-in Gmail
+            <input name="email" type="email" defaultValue={t.email ?? ""} placeholder="name@gmail.com" className={`${field} mt-1`} />
+          </label>
+          <p className="text-xs leading-relaxed text-slate-500">নতুন Gmail দিলে পুরনো Google অ্যাকাউন্ট থেকে সাথে সাথে log out হয়ে যাবে। টিউটর নতুন Gmail দিয়ে log in করলে একই প্রোফাইল, আবেদন আর সব তথ্য পাবেন।</p>
+          {[...new Set(TUTOR_DETAIL_FIELDS.map((f) => f.group))].map((group) => (
+            <fieldset key={group} className="border-t border-brand-50 pt-3">
+              <legend className="text-xs font-extrabold tracking-wide text-forest uppercase">{group}</legend>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {TUTOR_DETAIL_FIELDS.filter((f) => f.group === group).map((f) => (
+                  <label key={f.key} className={`${label} ${f.max > 60 ? "col-span-2" : ""}`}>{f.label}
+                    <input name={f.key} defaultValue={String(t[f.key] ?? "")} maxLength={f.max} inputMode={"year" in f ? "numeric" : undefined}
+                      placeholder={"placeholder" in f ? f.placeholder : undefined} className={`${field} mt-1`} />
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+          <button disabled={busy} className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-forest px-4 text-sm font-bold text-cream disabled:opacity-60">Save changes</button>
+        </Form>
+      </details>
+    </Card>
   );
 }
