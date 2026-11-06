@@ -5,6 +5,7 @@ import { Form, Link, data, useNavigation } from "react-router";
 import { Check, FileText, Flag, KeyRound, Mail, MessageCircle, Phone, UserPlus } from "lucide-react";
 import type { Route } from "./+types/admin.tutors.$code";
 import { Avatar } from "~/components/Avatar";
+import { DocViewer } from "~/components/DocViewer";
 import { LevelSummary } from "~/components/LevelSummary";
 import { StudentTimeline } from "~/components/StudentsCard";
 import { APPLICATION_TONE, Badge, Card, Facts, PageHead, ago, inputClass, num, safeUrl, when } from "~/components/admin";
@@ -79,7 +80,8 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
         </section>
       )}
       {documents.length > 0 && (
-        // Opened only by a tap on View, in a new tab, so the audit log records real views and not page loads.
+        // Opened only by a tap on View, so the audit log records real views and not page loads. It opens inside the app,
+        // with a close button: a new tab made the phone's Back leave the installed app.
         <section className="mb-5 rounded-2xl bg-white p-5 shadow-ring">
           <h2 className="flex items-center gap-2 font-extrabold text-forest"><FileText size={18} aria-hidden />Documents <span className="text-sm font-semibold text-slate-400">private, each view is logged</span></h2>
           <ul className="mt-2 divide-y divide-brand-50">
@@ -89,7 +91,7 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
                   {d.kind === "nid" ? "NID" : DOC_LABELS.find((l) => l.key === d.label)?.label ?? "Document"}
                   <span className="ml-2 text-xs font-normal text-slate-400">{d.kind === "nid" ? "extra security" : "academic"} · {when(d.created_at)}</span>
                 </span>
-                <a href={`/docs/tutor/${t.code}/${d.id}`} target="_blank" rel="noreferrer" className={ghost}>View</a>
+                <DocViewer src={`/docs/tutor/${t.code}/${d.id}`} title={`T-${t.code} · ${d.kind === "nid" ? "NID" : DOC_LABELS.find((l) => l.key === d.label)?.label ?? "Document"}`} className={ghost}>View</DocViewer>
               </li>
             ))}
           </ul>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { data, Link } from "react-router";
 import type { Route } from "./+types/tuitions.$code";
 import { EarningsChart } from "~/components/EarningsChart";
@@ -41,6 +42,35 @@ function Fact({ icon, label, value }: Row) {
         <dd className="break-words text-slate-600">{value}</dd>
       </div>
     </div>
+  );
+}
+
+/**
+ * Where the area is (owner, 2026-11-06: "13 Khadia, where exactly?"). The map opens on a tap and searches the area's
+ * name only, never the house, road or landmark: those stay with the Selected tutor.
+ */
+function AreaMap({ place }: { place: string }) {
+  const [open, setOpen] = useState(false);
+  const q = encodeURIComponent(`${place}, Rajshahi`);
+  return (
+    <section className="overflow-hidden rounded-2xl border border-brand-100 bg-white">
+      <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex min-h-14 w-full items-center gap-3 px-5 text-left">
+        <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700"><Icon name="pin" className="size-5" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold text-forest">{open ? "Hide map" : `Where is ${place}?`}</span>
+          <span className="block text-sm text-slate-500">See the area on a map</span>
+        </span>
+      </button>
+      {open && (
+        <div className="border-t border-brand-50">
+          <iframe title={`Map of ${place}, Rajshahi`} src={`https://maps.google.com/maps?q=${q}&z=15&output=embed`} loading="lazy" referrerPolicy="no-referrer" className="block h-64 w-full sm:h-80" />
+          <p className="px-5 py-3 text-xs text-slate-500">
+            এলাকাটা দেখানো হচ্ছে, বাসার ঠিকানা নয়। ঠিকানা পাবেন Selected হলে।{" "}
+            <a href={`https://www.google.com/maps/search/?api=1&query=${q}`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center font-semibold text-brand-700 underline">Open in Google Maps</a>
+          </p>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -114,6 +144,7 @@ export default function TuitionDetail({ loaderData: { t, now } }: Route.Componen
             {rows.map((r) => <Fact key={r.label} {...r} />)}
           </dl>
           {t.posted_at && <p className="-mt-3 px-1 text-xs text-slate-500">Posted {formatDate(t.posted_at)}</p>}
+          {t.mode !== "online" && t.area !== "other" && <AreaMap place={placeLabel(t)} />}
 
           {/* No similar tuitions here (owner, 2026-11-05): the page is about this one tuition. */}
           <EarningsChart fees={fees} />

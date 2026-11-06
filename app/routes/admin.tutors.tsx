@@ -1,10 +1,11 @@
 // Every tutor (owner, 2026-11-04: "tracking tutors"). Quick filters for who is active, set up, placed, paused or
 // flagged; university, gender, subject, level and area below. Laptop: a table with photos; phone: rows.
-import { Form, Link, useNavigation } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Form, Link, useFetcher, useNavigation, useSearchParams } from "react-router";
 import { Flag, Megaphone, Search } from "lucide-react";
 import type { Route } from "./+types/admin.tutors";
 import { Avatar } from "~/components/Avatar";
-import { Badge, Empty, PageHead, Pager, StageTabs, ago, num } from "~/components/admin";
+import { Badge, Empty, PageHead, StageTabs, ago, num } from "~/components/admin";
 import { ADMIN_PAGE_SIZE } from "~/lib/admin-labels";
 import { type AdminTutorRow, currentNotice, endNotice, listTutors, setNotice } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
@@ -73,7 +74,35 @@ function Marks({ t }: { t: AdminTutorRow }) {
   );
 }
 
+/**
+ * One list with Load more instead of pages (owner, 2026-11-06). Each tap fetches the next 30 rows only, so the page
+ * never loads every tutor at once; photos load lazily as they scroll in. A new search or filter starts again at 30.
+ */
+function useMoreTutors(items: AdminTutorRow[]) {
+  const [sp] = useSearchParams();
+  const fetcher = useFetcher<typeof loader>();
+  const [more, setMore] = useState<AdminTutorRow[]>([]);
+  const [page, setPage] = useState(1);
+  const used = useRef(fetcher.data);
+  useEffect(() => { setMore([]); setPage(1); used.current = fetcher.data; }, [items]);
+  useEffect(() => {
+    const data = fetcher.data;
+    if (fetcher.state !== "idle" || !data || data === used.current) return;
+    used.current = data;
+    const seen = new Set(items.map((t) => t.id));
+    setMore((m) => [...m, ...data.items.filter((t) => !seen.has(t.id) && !m.some((x) => x.id === t.id))]);
+  }, [fetcher.state, fetcher.data, items]);
+  const load = () => {
+    const next = new URLSearchParams(sp);
+    next.set("page", String(page + 1));
+    setPage(page + 1);
+    fetcher.load(`/admin/tutors?${next}`);
+  };
+  return { rows: [...items, ...more], load, busy: fetcher.state !== "idle" };
+}
+
 export default function AdminTutors({ loaderData: { total, items, f, notice }, actionData }: Route.ComponentProps) {
+  const { rows, load, busy } = useMoreTutors(items);
   const tabs = [
     { key: "", label: "All" }, { key: "new", label: "New" }, { key: "active", label: "Applied in 30 days" }, { key: "setup", label: "Signed in" },
     { key: "placed", label: "Placed" }, { key: "paused", label: "Paused" }, { key: "flagged", label: "Flagged" },
@@ -128,7 +157,7 @@ export default function AdminTutors({ loaderData: { total, items, f, notice }, a
               <span>Tutor</span><span>Study</span><span>Applied</span><span>Placed</span><span>Last applied</span><span>Marks</span>
             </div>
             <ul className="divide-y divide-brand-50">
-              {items.map((t) => (
+              {rows.map((t) => (
                 <li key={t.id}>
                   <Link to={`/admin/tutors/${t.code}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-brand-50/50 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_6rem_6rem_7rem_minmax(0,1fr)]">
                     <span className="flex min-w-0 items-center gap-3">
@@ -156,7 +185,16 @@ export default function AdminTutors({ loaderData: { total, items, f, notice }, a
             </ul>
           </div>
         )}
-        <Pager total={total} pageSize={ADMIN_PAGE_SIZE} />
+        {rows.length > 0 && (
+          <div className="flex flex-col items-center gap-2 pt-1">
+            <p className="text-sm text-slate-500 tabular-nums">Showing {num(rows.length)} of {num(total)}</p>
+            {rows.length < total && (
+              <button type="button" onClick={load} disabled={busy} className="min-h-12 w-full max-w-xs rounded-xl bg-white px-5 text-sm font-bold text-forest shadow-ring hover:bg-brand-50 disabled:opacity-60">
+                {busy ? "Loading…" : `Load ${num(Math.min(ADMIN_PAGE_SIZE, total - rows.length))} more`}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </>
   );

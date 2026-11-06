@@ -2,6 +2,7 @@
 // result sheet, certificate), up to 5, and an optional NID as extra security. Photos are shrunk on the phone before sending.
 import { useState } from "react";
 import { FileImage, Plus, Trash2 } from "lucide-react";
+import { DocViewer } from "~/components/DocViewer";
 import { ACADEMIC_DOCS_MAX, DOC_LABELS } from "~/lib/join";
 
 export type ExistingDoc = { id: number; kind: "academic" | "nid"; label: string | null };
@@ -41,9 +42,13 @@ function Picker({ name, preview, onPreview, children }: { name: string; preview:
   }
   return (
     <div className="flex items-center gap-3">
-      <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-50 ring-1 ring-brand-100">
-        {preview ? <img src={preview} alt="" className="size-full object-cover" /> : <FileImage size={24} className="text-brand-600" aria-hidden />}
-      </span>
+      {preview ? (
+        <DocViewer src={preview} title="Your photo" className="size-16 shrink-0 overflow-hidden rounded-xl ring-1 ring-brand-100">
+          <img src={preview} alt="See the photo" className="size-full object-cover" />
+        </DocViewer>
+      ) : (
+        <span className="grid size-16 shrink-0 place-items-center rounded-xl bg-brand-50 ring-1 ring-brand-100"><FileImage size={24} className="text-brand-600" aria-hidden /></span>
+      )}
       <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-forest shadow-ring has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand-600">
         {busy ? "Preparing…" : children}
         <input type="file" name={name} accept="image/*" onChange={pick} className="sr-only" />
@@ -77,7 +82,9 @@ export function JoinDocuments({ code, existing, error, nidError }: { code: numbe
         {kept.map((d) => (
           <li key={d.id} className="flex items-center gap-3 rounded-xl bg-brand-50/60 p-2">
             <input type="hidden" name="keep_doc" value={d.id} />
-            <img src={`/docs/tutor/${code}/${d.id}`} alt="" className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-brand-100" />
+            <DocViewer src={`/docs/tutor/${code}/${d.id}`} title={labelOf(d.label)} className="shrink-0 rounded-xl">
+              <img src={`/docs/tutor/${code}/${d.id}`} alt={`See ${labelOf(d.label)}`} className="size-16 rounded-xl object-cover ring-1 ring-brand-100" />
+            </DocViewer>
             <p className="min-w-0 flex-1 text-sm font-bold text-forest">{labelOf(d.label)}<span className="block text-xs font-normal text-slate-500">Sent already</span></p>
             <button type="button" aria-label={`Remove ${labelOf(d.label)}`} onClick={() => setKept((ks) => ks.filter((k) => k.id !== d.id))} className={removeButton}><Trash2 size={18} aria-hidden /></button>
           </li>
@@ -108,7 +115,9 @@ export function JoinDocuments({ code, existing, error, nidError }: { code: numbe
         <p className="mb-2 text-xs text-slate-500">Extra security only. It does not replace the document above. শুধু HTR দেখবে।</p>
         {nid ? (
           <div className="flex items-center gap-3 rounded-xl bg-brand-50/60 p-2">
-            <img src={`/docs/tutor/${code}/${nid.id}`} alt="" className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-brand-100" />
+            <DocViewer src={`/docs/tutor/${code}/${nid.id}`} title="NID" className="shrink-0 rounded-xl">
+              <img src={`/docs/tutor/${code}/${nid.id}`} alt="See NID" className="size-16 rounded-xl object-cover ring-1 ring-brand-100" />
+            </DocViewer>
             <p className="min-w-0 flex-1 text-sm font-bold text-forest">NID<span className="block text-xs font-normal text-slate-500">Sent already</span></p>
             <button type="button" aria-label="Remove NID" onClick={() => setNid(null)} className={removeButton}><Trash2 size={18} aria-hidden /></button>
           </div>

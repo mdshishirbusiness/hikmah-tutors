@@ -37,15 +37,18 @@ export async function loader({ request }: Route.LoaderArgs) {
   const sp = new URL(request.url).searchParams;
   const filters = readFilters(sp);
   const chip = CHIPS.some((c) => c.key === sp.get("chip")) ? sp.get("chip") ?? "" : "";
-  const tab = sp.get("tab") === "booked" ? "booked" : "open";
+  const tab = sp.get("tab") === "booked" ? "booked" : sp.get("tab") === "processing" ? "processing" : "open";
   const viewer = await getViewer(request);
   const me = viewer?.role === "tutor" ? await tutorForUser(viewer.id) : null;
   if (chip === "for-you" && !viewer) throw redirect(`/login?next=${encodeURIComponent("/?chip=for-you")}`);
   if (chip === "for-you" && me && !me.setup_done_at) throw redirect(`/me/setup?next=${encodeURIComponent("/?chip=for-you")}`);
 
-  // Only open tuitions show (owner, 2026-11-04): a Processing one leaves the board while a tutor is tried, and comes
-  // back if the match falls through. Its own page keeps working for shared links.
-  const all = (await openTuitions()).filter((t) => t.status === "available");
+  // Open now holds only what a tutor can apply to (owner, 2026-11-06). Processing (a tutor is being tried) and paused
+  // ones wait under their own tab, and come back to Open now if the match falls through.
+  const board = await openTuitions();
+  const canApply = (t: (typeof board)[number]) => t.status === "available" && t.accepting_applications;
+  const all = board.filter(canApply);
+  const waiting = board.filter((t) => !canApply(t));
   let items = applyFilters(all, filters);
   if (chip === "for-you") {
     const fits = new Set((me ? await forYou(me) : []).map((t) => t.code));
@@ -54,7 +57,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   else if (chip) items = items.filter((t) => t.tutor_from.includes(chip));
 
   const [booked, badges] = await Promise.all([recentlyBooked(), me?.setup_done_at && viewer ? tutorBadges(viewer, me) : null]);
-  return { items, chip, tab, booked: tab === "booked" ? booked : [], bookedCount: booked.length, openCount: all.length, badges, signedIn: !!viewer, now: Math.floor(Date.now() / 1000) };
+  return {
+    items, chip, tab, booked: tab === "booked" ? booked : [], bookedCount: booked.length, openCount: all.length,
+    processing: tab === "processing" ? waiting : [], processingCount: waiting.length, badges, signedIn: !!viewer, now: Math.floor(Date.now() / 1000),
+  };
 }
 
 export function headers(_: Route.HeadersArgs) {
@@ -65,7 +71,10 @@ const FILTER_PARAMS = ["area", "class", "subject", "medium", "gender", "mode", "
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };
 const fast = (h: number | null) => (h === null ? "" : h < 1 ? "Booked within an hour" : h < 48 ? `Booked in ${h} h` : `Booked in ${Math.round(h / 24)} days`);
 
-export default function Home({ loaderData: { items, chip, tab, booked, bookedCount, openCount, badges, signedIn, now } }: Route.ComponentProps) {
+const tabClass = (on: boolean) => `inline-flex min-h-11 flex-auto items-center justify-center gap-1 rounded-[10px] px-2.5 text-sm font-bold whitespace-nowrap sm:flex-none sm:px-3 ${on ? "bg-forest text-cream" : "text-slate-600"}`;
+const tabCount = (on: boolean, n: number) => n > 0 && <span className={`tabular-nums ${on ? "text-mango" : "text-slate-400"}`}>{n}</span>;
+
+export default function Home({ loaderData: { items, chip, tab, booked, bookedCount, openCount, processing, processingCount, badges, signedIn, now } }: Route.ComponentProps) {
   const [sp, setSp] = useSearchParams();
   const filters = readFilters(sp);
   const navigation = useNavigation();
@@ -159,14 +168,24 @@ export default function Home({ loaderData: { items, chip, tab, booked, bookedCou
 
         <section id="board" aria-labelledby="board-heading" className="mx-auto max-w-6xl scroll-mt-20 px-4 pt-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="board-heading" className="text-2xl font-extrabold tracking-tight text-forest">{tab === "booked" ? "Recently booked" : "Tuition board"}</h2>
-            <div className="flex rounded-xl bg-white p-1 shadow-ring" role="group" aria-label="Board">
-              <Link to="/" preventScrollReset className={`inline-flex min-h-10 items-center rounded-[10px] px-3 text-sm font-bold ${tab === "open" ? "bg-forest text-cream" : "text-slate-600"}`}>Open now</Link>
-              <Link to="/?tab=booked" preventScrollReset className={`inline-flex min-h-10 items-center gap-1.5 rounded-[10px] px-3 text-sm font-bold ${tab === "booked" ? "bg-forest text-cream" : "text-slate-600"}`}>Recently booked{bookedCount > 0 && <span className={`tabular-nums ${tab === "booked" ? "text-mango" : "text-slate-400"}`}>{bookedCount}</span>}</Link>
+            <h2 id="board-heading" className="text-2xl font-extrabold tracking-tight text-forest">{tab === "booked" ? "Recently booked" : tab === "processing" ? "Processing" : "Tuition board"}</h2>
+            <div className="flex w-full rounded-xl bg-white p-1 shadow-ring sm:w-auto" role="group" aria-label="Board">
+              <Link to="/" preventScrollReset aria-current={tab === "open" ? "page" : undefined} className={tabClass(tab === "open")}>Open now</Link>
+              <Link to="/?tab=processing" preventScrollReset aria-current={tab === "processing" ? "page" : undefined} className={tabClass(tab === "processing")}>Processing{tabCount(tab === "processing", processingCount)}</Link>
+              <Link to="/?tab=booked" preventScrollReset aria-current={tab === "booked" ? "page" : undefined} className={tabClass(tab === "booked")}><span className="sm:hidden">Booked</span><span className="hidden sm:inline">Recently booked</span>{tabCount(tab === "booked", bookedCount)}</Link>
             </div>
           </div>
 
-          {tab === "booked" ? (
+          {tab === "processing" ? (
+            <>
+              <p className="mt-2 text-sm text-slate-600">এই টিউশনগুলোতে এখন টিউটর দেখা হচ্ছে, তাই আবেদন বন্ধ। মিলে না গেলে আবার Open now-এ ফিরে আসবে।</p>
+              {processing.length === 0 ? <p className="mt-4 rounded-2xl bg-white px-5 py-12 text-center font-semibold text-forest shadow-ring">Nothing in processing right now.</p> : (
+                <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {processing.map((t, i) => <TuitionCard key={t.code} t={t} now={now} index={i} />)}
+                </div>
+              )}
+            </>
+          ) : tab === "booked" ? (
             <>
               <p className="mt-2 text-sm text-slate-600">গত ৭ দিনে যেসব টিউশন বুক হয়েছে। Tutors are shown by university and department only.</p>
               {booked.length === 0 ? <p className="mt-4 rounded-2xl bg-white px-5 py-12 text-center font-semibold text-forest shadow-ring">Nothing booked in the last 7 days yet.</p> : (

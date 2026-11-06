@@ -4,7 +4,7 @@ import { Form, Link, useNavigation } from "react-router";
 import type { Route } from "./+types/admin.review";
 import { Badge, Card, Empty, PageHead, Pager, num, inputClass, primaryButton, when } from "~/components/admin";
 import { ADMIN_PAGE_SIZE, REVIEW_ISSUE } from "~/lib/admin-labels";
-import { flaggedTutors, resolveFlaggedTutor, reviewCounts, reviewList, tuitionsToReview } from "~/lib/admin.server";
+import { flaggedTutors, resolveFlaggedTutor, reviewCounts, reviewList, setAsideHeld, tuitionsToReview } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { AREAS, CLASS_LEVELS, labelOf } from "~/lib/options";
 
@@ -29,6 +29,10 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   const viewer = await requireAdmin(request);
   const form = await request.formData();
+  if (form.get("intent") === "set_aside_held") {
+    await setAsideHeld(viewer?.id ?? null);
+    return { error: null, id: 0 };
+  }
   const error = await resolveFlaggedTutor(Number(form.get("id")), String(form.get("email") ?? ""), viewer?.id ?? null);
   return { error, id: Number(form.get("id")) };
 }
@@ -104,6 +108,12 @@ export default function AdminReview({ loaderData: d, actionData }: Route.Compone
               <ul className="mt-2 flex flex-wrap gap-1.5">
                 {Object.entries(d.held.issueCounts).sort((a, b) => b[1] - a[1]).map(([k, n]) => <li key={k}><Badge>{REVIEW_ISSUE[k] ?? k}: {num(n)}</Badge></li>)}
               </ul>
+              {d.held.total > 0 && (
+                <Form method="post" className="mt-3 border-t border-brand-50 pt-3" onSubmit={(e) => { if (!confirm(`Set aside all ${d.held!.total} held rows? They leave this list and later top-ups skip them.`)) e.preventDefault(); }}>
+                  <p className="mb-2 text-xs text-slate-500">পুরনো, আর দরকার নেই? সব সরিয়ে দিন। মুছে যাবে না, শুধু এই তালিকা আর পরের টপ-আপ থেকে বাদ যাবে।</p>
+                  <button name="intent" value="set_aside_held" className={primaryButton}>Set all aside</button>
+                </Form>
+              )}
             </Card>
             {d.held.items.length === 0 ? <Empty>Nothing held.</Empty> : (
               <ul className="space-y-2">

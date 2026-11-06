@@ -916,3 +916,17 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
 - **Optional results** (owner, 2026-11-05): SSC/HSC total marks, admission result, and the tutor's own marks in each
   SSC/HSC subject they teach (`tutor_subject_marks`). The owner sees "Own SSC marks: Physics 95" beside an applicant for
   a tuition in that subject. Editable after HTR's check; HTR may ask for the marksheet.
+
+## 2026-11-06
+
+- **Board has three tabs: Open now · Processing · Recently booked** (owner). Open now shows only tuitions a tutor can
+  apply to. Processing holds the ones being tried with a tutor and the paused ones; they return to Open now if the
+  match falls through. Booked ones move to Recently booked as before. On a phone the third tab reads "Booked".
+- **"Where is this area?" map on the tuition page** (owner, chosen over showing house details): a tap opens a Google
+  map of the area's name and Rajshahi only. House, road and landmark stay with the Selected tutor (rule of 2026-11-04).
+- **Registration documents open inside the app** (owner): a full-screen viewer with a close (X) button. The phone's
+  Back closes the viewer instead of leaving the installed app. Used on the admin tutor page and the join form.
+- **Held sheet rows can be set aside** (owner: the 9 held were old tuitions of no use). "Set all aside" on Review → Held
+  marks them rejected (not deleted), with the applications and placements waiting on them, and later top-ups skip them.
+- **Admin Tutors list: Load more instead of pages** (owner): 30 rows at first, 30 more per tap; photos load lazily, so
+  the page never fetches every tutor at once.

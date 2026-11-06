@@ -767,6 +767,23 @@ export async function reviewList(f: { tab: string; page: number }) {
   return { total, items, dependents, issueCounts };
 }
 
+/**
+ * Held sheet rows the owner no longer needs (owner, 2026-11-06: old tuitions, "no use"). They are marked rejected, not
+ * deleted, with the applications and placements waiting on those tuitions; a later top-up does not hold them again.
+ */
+export async function setAsideHeld(actorId: number | null) {
+  const held = `status = 'needs_review' AND tab IN ('registration', 'admin', 'old')`;
+  const n = await count(`SELECT count(*) n FROM import_rows WHERE ${held}`);
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE import_rows SET status = 'rejected' WHERE status = 'needs_review' AND tab IN ('application', 'placement')
+       AND legacy_ref IN (SELECT legacy_ref FROM import_rows WHERE ${held} AND tab IN ('admin', 'old'))`,
+    ),
+    env.DB.prepare(`UPDATE import_rows SET status = 'rejected' WHERE ${held}`),
+    audit(actorId, "held_rows_set_aside", "import_rows", "held", { rows: n }),
+  ]);
+}
+
 // The owner's review list after an import (docs/DECISIONS.md, 2026-11-03): flagged tutors, open tuitions not yet on the
 // board, and sheet rows still held back. Old tuitions and unmatched applications are left as the import guessed.
 

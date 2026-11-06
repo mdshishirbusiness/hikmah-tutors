@@ -152,10 +152,10 @@ export function buildAddOnlySql({ tutors, tuitions, applications, placements, re
   const tutorRef = (code) => (code === null ? null : sqlExpr(`(SELECT id FROM tutors WHERE code = ${q(code)})`));
   sql.push(insert("import_batches", { id: batchId, source: "mastersheet_top_up", status: "committed", report_json: JSON.stringify(report), created_at: now, committed_at: now }));
 
-  // A held row is listed once, however many top-ups see it.
+  // A held row is listed once, however many top-ups see it, and never again once the owner has set it aside (rejected).
   const hold = (tab, rowNo, legacyRef, record, issues, also) => sql.push(insertWhen("import_rows",
     { batch_id: batchId, tab, row_no: rowNo, legacy_ref: String(legacyRef), raw_json: JSON.stringify(record), issues: issues.join(","), status: "needs_review" },
-    `NOT EXISTS (SELECT 1 FROM import_rows WHERE tab = ${q(tab)} AND legacy_ref = ${q(String(legacyRef))} AND status = 'needs_review') AND ${also}`));
+    `NOT EXISTS (SELECT 1 FROM import_rows WHERE tab = ${q(tab)} AND legacy_ref = ${q(String(legacyRef))} AND status IN ('needs_review', 'rejected')) AND ${also}`));
 
   for (const t of tutors) {
     // Codes after the sheet's last one belong to site sign-ups (owner, 2026-11-05): a sheet row there is held, never added.
