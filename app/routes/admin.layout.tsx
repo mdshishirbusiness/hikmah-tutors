@@ -239,7 +239,9 @@ function Sidebar({ counts, onSearch }: { counts: Counts; onSearch: () => void })
 }
 
 function PhoneBars({ counts, onSearch }: { counts: Counts; onSearch: () => void }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  // Pages with their own sticky Save bar: the + button would sit on top of it.
+  const saveBar = pathname === "/admin/tuitions/new" || (/^\/admin\/tuitions\/\d+$/.test(pathname) && new URLSearchParams(search).get("tab") === "details");
   const [more, setMore] = useState(false);
   useEffect(() => setMore(false), [pathname]);
   const moreActive = MORE.some((m) => pathname.startsWith(m.to));
@@ -274,9 +276,9 @@ function PhoneBars({ counts, onSearch }: { counts: Counts; onSearch: () => void 
           </Form>
         </div>
       )}
-      <Link to="/admin/quick" aria-label="New lead" className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 flex size-14 items-center justify-center rounded-2xl bg-mango text-forest shadow-lift transition-transform duration-150 active:scale-95 lg:hidden">
+      {!saveBar && <Link to="/admin/quick" aria-label="New lead" className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 flex size-14 items-center justify-center rounded-2xl bg-mango text-forest shadow-lift transition-transform duration-150 active:scale-95 lg:hidden">
         <Plus size={26} strokeWidth={2.5} aria-hidden />
-      </Link>
+      </Link>}
       <nav aria-label="Admin" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-brand-100 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
         {TABS.map((t) => (
           <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => tab(isActive)}>

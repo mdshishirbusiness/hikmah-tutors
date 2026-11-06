@@ -72,10 +72,19 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     stack = error.stack;
   }
 
+  // A failed page keeps the brand and a way out, so it never reads as a page without its styles.
   return (
-    <main className="mx-auto max-w-lg p-6 pt-16">
-      <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
+    <main className="mx-auto min-h-dvh max-w-lg bg-cream px-4 pt-16 pb-10">
+      <a href="/" className="inline-flex items-center gap-2">
+        <img src="/brand/mark.webp" alt="" width={40} height={40} className="size-10" />
+        <span className="text-lg font-extrabold tracking-tight text-forest">Hikmah Tutors<span className="text-brand-600">.</span></span>
+      </a>
+      <h1 className="mt-8 text-3xl font-extrabold tracking-tight text-forest">{title}</h1>
       <p className="mt-2 text-slate-600">{details}</p>
+      <div className="mt-6 flex flex-wrap gap-2">
+        <button type="button" onClick={() => window.location.reload()} className="inline-flex min-h-11 items-center rounded-xl bg-forest px-5 text-sm font-bold text-cream">Try again</button>
+        <button type="button" onClick={() => window.history.back()} className="inline-flex min-h-11 items-center rounded-xl bg-white px-5 text-sm font-bold text-forest shadow-ring">Go back</button>
+      </div>
       {stack && (
         <pre className="mt-6 overflow-x-auto rounded-xl bg-slate-900 p-4 text-xs text-slate-100">
           <code>{stack}</code>

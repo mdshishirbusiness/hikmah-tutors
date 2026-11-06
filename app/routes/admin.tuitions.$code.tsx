@@ -207,7 +207,7 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
               <FollowUpButton kind="tuition" refId={t.code} />
               {t.is_public === 1 && <Link to={`/tuitions/HTR-${t.code}`} className="inline-flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50">View<ArrowUpRight size={15} aria-hidden /></Link>}
               {t.status !== "closed" && t.status !== "cancelled" && (
-                <details className="relative">
+                <details className="relative" key={`${t.status}-${t.is_public}`}>
                   <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-xl px-3 text-slate-500 hover:bg-slate-100 [&::-webkit-details-marker]:hidden" aria-label="More actions"><MoreHorizontal size={18} aria-hidden /></summary>
                   <div className="absolute right-0 z-20 mt-1 w-52 rounded-2xl bg-white p-1.5 shadow-lift">
                     {t.is_public === 1 && (
@@ -216,8 +216,8 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
                     {t.is_public === 0 && open && gaps.length === 0 && (
                       <Form method="post"><input type="hidden" name="intent" value="state" /><button name="op" value="publish" className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-sm font-semibold text-forest hover:bg-brand-50"><Eye size={16} aria-hidden />Show on board</button></Form>
                     )}
-                    <Form method="post"><input type="hidden" name="intent" value="state" /><button name="op" value="close" className="flex min-h-11 w-full items-center rounded-xl px-3 text-sm font-semibold text-forest hover:bg-brand-50">Close (done or old)</button></Form>
-                    {t.status !== "booked" && <Form method="post"><input type="hidden" name="intent" value="state" /><button name="op" value="cancel" className="flex min-h-11 w-full items-center rounded-xl px-3 text-sm font-semibold text-rose-800 hover:bg-rose-50">Cancel (guardian dropped)</button></Form>}
+                    <Form method="post" onSubmit={(e) => { if (!confirm(`Close HTR-${t.code}? It leaves the board.`)) e.preventDefault(); }}><input type="hidden" name="intent" value="state" /><button name="op" value="close" className="flex min-h-11 w-full items-center rounded-xl px-3 text-sm font-semibold text-forest hover:bg-brand-50">Close (done or old)</button></Form>
+                    {t.status !== "booked" && <Form method="post" onSubmit={(e) => { if (!confirm(`Cancel HTR-${t.code}? The guardian dropped it.`)) e.preventDefault(); }}><input type="hidden" name="intent" value="state" /><button name="op" value="cancel" className="flex min-h-11 w-full items-center rounded-xl px-3 text-sm font-semibold text-rose-800 hover:bg-rose-50">Cancel (guardian dropped)</button></Form>}
                   </div>
                 </details>
               )}

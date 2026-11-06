@@ -266,8 +266,8 @@ export async function getTuition(code: number) {
               (SELECT body FROM tutor_statements st WHERE st.tutor_id = a.tutor_id AND st.kind = ?) experience,
               t.photo_key, t.about, t.demo_willing, t.availability_paused paused, t.flag_reason, a.updated_at, a.called_at, a.met_at, a.demo_done_at,
               a.seen_at, t.free_times, t.ssc_marks, t.hsc_marks, t.admission_result,
-              (SELECT group_concat(m.subject || : || m.marks) FROM tutor_subject_marks m WHERE m.tutor_id = a.tutor_id AND m.exam = ?
-                 AND instr(, || ? || ,, , || m.subject || ,) > 0) own_marks,
+              (SELECT group_concat(m.subject || ':' || m.marks) FROM tutor_subject_marks m WHERE m.tutor_id = a.tutor_id AND m.exam = ?
+                 AND instr(',' || ? || ',', ',' || m.subject || ',') > 0) own_marks,
               (SELECT count(*) FROM applications x WHERE x.tutor_id = a.tutor_id) total_apps,
               (SELECT count(*) FROM placements pl WHERE pl.tutor_id = a.tutor_id AND pl.status IN ('confirmed', 'joined', 'ended')) placed,
               EXISTS (SELECT 1 FROM premium_members pm WHERE pm.tutor_id = a.tutor_id AND pm.status = 'active') premium,
