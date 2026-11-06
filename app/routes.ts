@@ -5,6 +5,7 @@ export default [
   route("tuitions/:code", "routes/tuitions.$code.tsx"),
   route("tuitions/:code/apply", "routes/tuitions.$code.apply.tsx"),
   route("how-it-works", "routes/how-it-works.tsx"),
+  route("install", "routes/install.tsx"),
   route("fees", "routes/fees.tsx"),
   route("request-tutor", "routes/request-tutor.tsx"),
   route("s/:token", "routes/s.$token.tsx"),

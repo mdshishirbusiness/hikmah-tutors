@@ -933,3 +933,8 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
 - **Admin Applications opens on open tuitions** (owner): the page shows only applications on available and processing
   tuitions; "Include closed" shows the old ones for the rare look back. Reading every application cost ~10k D1 rows a
   visit, and indexes on application and tuition status (migration 0024) keep the sidebar counts small.
+- **`/install` page** (owner): one link to send to anyone who cannot install the app. It detects the phone and browser
+  and shows only those steps, with small pictures of the menu row to tap: one-tap Install where Chrome offers it;
+  "Open in Chrome" (Android intent link) or "Open in Safari" when opened inside Facebook or Messenger, which cannot
+  install; Samsung Internet and iPhone steps; Copy link and Share on WhatsApp. Install app buttons now lead there when
+  the browser has no prompt (the iPhone pop-up is replaced by the page). No loader, so it never reads the database.
