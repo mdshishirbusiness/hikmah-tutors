@@ -930,3 +930,6 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
   marks them rejected (not deleted), with the applications and placements waiting on them, and later top-ups skip them.
 - **Admin Tutors list: Load more instead of pages** (owner): 30 rows at first, 30 more per tap; photos load lazily, so
   the page never fetches every tutor at once.
+- **Admin Applications opens on open tuitions** (owner): the page shows only applications on available and processing
+  tuitions; "Include closed" shows the old ones for the rare look back. Reading every application cost ~10k D1 rows a
+  visit, and indexes on application and tuition status (migration 0024) keep the sidebar counts small.

@@ -16,7 +16,8 @@ export function meta(_: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const sp = new URL(request.url).searchParams;
-  const f = { status: sp.get("status") ?? "", open: sp.get("open") === "1", page: Number(sp.get("page")) || 1 };
+  // Open tuitions by default (owner, 2026-11-06): old applications are a rare look, and reading them all costs ~10k D1 rows.
+  const f = { status: sp.get("status") ?? "", open: sp.get("open") !== "0", page: Number(sp.get("page")) || 1 };
   return { ...(await listApplications(f)), f };
 }
 
@@ -27,7 +28,7 @@ export default function AdminApplications({ loaderData: { total, items, f } }: R
   return (
     <>
       <PageHead title="Applications" sub={`${num(total)}${f.open ? " on open tuitions" : ""}`}
-        action={<Link to={f.open ? "?" : `?open=1${f.status ? `&status=${f.status}` : ""}`} className={`inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-bold shadow-ring ${f.open ? "bg-forest text-cream" : "bg-white text-forest"}`}>Open tuitions only</Link>} />
+        action={<Link to={`?${f.open ? "open=0" : ""}${f.status ? `${f.open ? "&" : ""}status=${f.status}` : ""}`} className={`inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-bold shadow-ring ${f.open ? "bg-white text-forest" : "bg-forest text-cream"}`}>Include closed</Link>} />
       <div className="space-y-3">
         <StageTabs tabs={tabs} active={f.status} param="status" />
         {items.length === 0 ? <Empty>No applications.</Empty> : (
