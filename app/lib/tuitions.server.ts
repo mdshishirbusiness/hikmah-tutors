@@ -62,6 +62,7 @@ export type BookedTuition = {
 /**
  * Recently booked (owner, 2026-11-04): the last 7 days, with how many applied, how fast it was booked, and the tutor
  * as university and department only, never by name.
+ * CROSS JOIN keeps SQLite starting from the week's placements (index placements_confirmed), not from every tuition.
  */
 export async function recentlyBooked(): Promise<BookedTuition[]> {
   const { results } = await env.DB.prepare(
@@ -69,7 +70,7 @@ export async function recentlyBooked(): Promise<BookedTuition[]> {
             (SELECT count(*) FROM applications a WHERE a.tuition_code = t.code) applicants,
             CASE WHEN t.posted_at IS NOT NULL AND p.confirmed_at > t.posted_at THEN (p.confirmed_at - t.posted_at) / 3600 END hours,
             u.university, u.department, p.confirmed_at booked_at
-     FROM placements p JOIN tuitions t ON t.code = p.tuition_code LEFT JOIN tutors u ON u.id = p.tutor_id
+     FROM placements p CROSS JOIN tuitions t ON t.code = p.tuition_code LEFT JOIN tutors u ON u.id = p.tutor_id
      WHERE p.status IN ('confirmed', 'joined') AND p.confirmed_at > ? AND t.status = 'booked'
      ORDER BY p.confirmed_at DESC LIMIT 30`,
   ).bind(Math.floor(Date.now() / 1000) - 7 * 86400).all<BookedTuition>();

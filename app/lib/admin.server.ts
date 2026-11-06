@@ -89,7 +89,7 @@ export async function todayList() {
     ),
     // Registrations on the site waiting for the owner's check, oldest first.
     all<{ code: number; full_name: string; photo_key: string | null; university: string | null; department: string | null; created_at: number }>(
-      `SELECT code, full_name, photo_key, university, department, created_at FROM tutors WHERE review_status = 'waiting' AND deleted_at IS NULL ORDER BY created_at LIMIT 20`,
+      `SELECT code, full_name, photo_key, university, department, created_at FROM tutors WHERE review_status = 'waiting' AND review_status <> 'approved' AND deleted_at IS NULL ORDER BY created_at LIMIT 20`,
     ),
   ]);
   return { leads, applications, drafts, selected, tutorConfirmed, checkins, newTutors };
@@ -733,8 +733,10 @@ export async function listApplications(f: { status: string; open: boolean; page:
   if (f.status) { where.push("a.status = ?"); args.push(f.status); }
   if (f.open) where.push(`t.status IN ('available', 'processing')`);
   const from = `FROM applications a JOIN tuitions t ON t.code = a.tuition_code LEFT JOIN tutors u ON u.id = a.tutor_id WHERE ${where.join(" AND ")}`;
+  // Every application has its tuition, so the count needs the join only for the Open filter (fewer D1 rows read).
+  const counted = f.open ? `FROM applications a JOIN tuitions t ON t.code = a.tuition_code WHERE ${where.join(" AND ")}` : `FROM applications a WHERE ${where.join(" AND ")}`;
   const [total, items] = await Promise.all([
-    count(`SELECT count(*) n ${from}`, ...args),
+    count(`SELECT count(*) n ${counted}`, ...args),
     all<{ id: number; tuition_code: number; status: string; created_at: number; name: string | null; tutor_code: number | null; class_level: string; area: string; photo_key: string | null; department: string | null; university: string | null }>(
       `SELECT a.id, a.tuition_code, a.status, a.created_at, COALESCE(u.full_name, a.applicant_name) name, u.code tutor_code, t.class_level, t.area, u.photo_key, u.department, u.university
        ${from} ORDER BY a.created_at DESC LIMIT ? OFFSET ?`,
@@ -874,7 +876,7 @@ export async function navCounts() {
               WHERE a.status = 'submitted' AND t.status IN ('available', 'processing')) applications,
             (SELECT count(*) FROM tuitions WHERE status IN ('available', 'processing')) open,
             (SELECT count(*) FROM applications WHERE status = 'trial_arranged') selected,
-            (SELECT count(*) FROM tutors WHERE review_status = 'waiting' AND deleted_at IS NULL) new_tutors,
+            (SELECT count(*) FROM tutors WHERE review_status = 'waiting' AND review_status <> 'approved' AND deleted_at IS NULL) new_tutors, -- the <> lets SQLite use the partial index tutors_review
             (SELECT count(*) FROM followups WHERE done_at IS NULL AND due_at <= unixepoch()) followups,
             (SELECT count(*) FROM premium_members WHERE status IN ('applied', 'paid')
                OR (refund_due_at IS NOT NULL AND refund_sent_at IS NULL)) premium`,
