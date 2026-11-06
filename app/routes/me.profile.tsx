@@ -28,6 +28,8 @@ import {
 import { ProfileChecklist } from "~/components/ProfileChecklist";
 import { ProfileTabs, panelId, tabId } from "~/components/ProfileTabs";
 import { StudentsCard } from "~/components/StudentsCard";
+import { ProfileUploads } from "~/components/ProfileUploads";
+import { myDocumentList, myUploads, sendUpload, withdrawUpload } from "~/lib/uploads.server";
 import { ExperienceChart, GuidedText, HabitQuestions } from "~/components/ExperienceParts";
 
 export function meta(_: Route.MetaArgs) {
@@ -40,13 +42,23 @@ export function headers(_: Route.HeadersArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { viewer, me } = await requireTutor(request);
-  const [choices, levels, students, badges, marks] = await Promise.all([myChoices(me.id), myLevels(me.id), myStudents(me.id), tutorBadges(viewer, me), mySubjectMarks(me.id)]);
-  return { me, choices, levels, students, badges, marks };
+  const [choices, levels, students, badges, marks, documents, uploads] = await Promise.all([
+    myChoices(me.id), myLevels(me.id), myStudents(me.id), tutorBadges(viewer, me), mySubjectMarks(me.id), myDocumentList(me.id), myUploads(me.id),
+  ]);
+  return { me, choices, levels, students, badges, marks, documents, uploads };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   const { viewer, me } = await requireTutor(request);
   const form = await request.formData();
+  if (form.get("intent") === "send_upload") {
+    const error = await sendUpload(viewer, me, form);
+    return { error: null, saved: null, uploadError: error, uploadSent: !error };
+  }
+  if (form.get("intent") === "withdraw_upload") {
+    await withdrawUpload(viewer, me, Number(form.get("id")) || 0);
+    return { error: null, saved: null };
+  }
   if (form.get("intent") === "add_student") {
     const error = await addStudent(viewer, me, form);
     return { error: null, saved: null, studentSaved: !error, studentError: error };
@@ -170,7 +182,7 @@ const sectionDone = (steps: ProgressStep[], id: string) => steps.some((s) => s.s
 /** "Kazla, Binodpur +3". */
 const firstFew = (labels: string[], n = 2) => labels.length ? `${labels.slice(0, n).join(", ")}${labels.length > n ? ` +${labels.length - n}` : ""}` : undefined;
 
-export default function Profile({ loaderData: { me, choices, levels, students, badges, marks } }: Route.ComponentProps) {
+export default function Profile({ loaderData: { me, choices, levels, students, badges, marks, documents, uploads } }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
   const busy = nav.state !== "idle";
@@ -399,6 +411,8 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
           </div>
         </Form>
         </FoldOnSave.Provider>
+
+        {me.review_status === "approved" && <ProfileUploads code={me.code} name={me.full_name} hasPhoto={!!me.photo_key} documents={documents} uploads={uploads} />}
 
         <section className="mt-6 rounded-2xl bg-white p-4 shadow-ring sm:p-5">
           <h2 className="flex items-center gap-2 font-extrabold text-forest"><Lock size={16} aria-hidden />Details HTR keeps</h2>

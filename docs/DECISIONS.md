@@ -944,3 +944,11 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
   keeps everything (linked at once if that Gmail had already signed in with no tutor record). A phone or Gmail another
   tutor uses is refused with that tutor's code. Each save is in the audit log (field names only) and shows on the
   tutor's Home as "HTR updated your profile". Admin only: staff, when added, get narrower rights.
+- **Tutors send a new photo or document; the admin approves** (owner): Profile → "Photo and documents" lets a checked
+  tutor change their photo or add a student ID card, admission slip, result sheet, certificate or NID. It waits in
+  `tutor_uploads` (migration 0025; triggers make a decision final) and the current photo and documents stay until the
+  admin approves. The admin's tutor page shows a mango "Check this upload" band (old photo → new photo, or View for a
+  document) with Approve, or Decline with a reason the tutor sees for 14 days; declined files are deleted. An approved
+  NID replaces the old one; old documents can be removed with the bin button. The Tutors badge counts tutors with
+  uploads waiting, and the Tutors list has an "Uploads to check" chip. Photos now revalidate (ETag), so an approved
+  photo shows at once.

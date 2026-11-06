@@ -4,23 +4,10 @@ import { useState } from "react";
 import { FileImage, Plus, Trash2 } from "lucide-react";
 import { DocViewer } from "~/components/DocViewer";
 import { ACADEMIC_DOCS_MAX, DOC_LABELS } from "~/lib/join";
+import { shrinkDoc } from "~/lib/images";
 
 export type ExistingDoc = { id: number; kind: "academic" | "nid"; label: string | null };
 
-/** A readable copy no larger than 1600 px on its long side. Not cropped. Drawing it again also drops hidden photo details such as location. */
-async function shrinkDoc(file: File): Promise<File> {
-  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-  const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bmp.width * scale);
-  canvas.height = Math.round(bmp.height * scale);
-  canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  const encode = (type: string, q: number) => new Promise<Blob | null>((r) => canvas.toBlob(r, type, q));
-  let blob = await encode("image/webp", 0.85);
-  if (!blob || blob.type !== "image/webp") blob = await encode("image/jpeg", 0.88); // Safari can't write WebP
-  if (!blob) throw new Error("encode");
-  return new File([blob], blob.type === "image/webp" ? "doc.webp" : "doc.jpg", { type: blob.type });
-}
 
 /** A file picker that shrinks what is chosen and shows it. */
 function Picker({ name, preview, onPreview, children }: { name: string; preview: string | null; onPreview: (url: string) => void; children: React.ReactNode }) {

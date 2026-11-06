@@ -639,6 +639,7 @@ export async function listTutors(f: { q: string; gender: string; subject: string
   if (f.state === "active") where.push("EXISTS (SELECT 1 FROM applications a WHERE a.tutor_id = t.id AND a.created_at > unixepoch() - 30 * 86400)");
   if (f.state === "flagged") where.push("t.flag_reason IS NOT NULL");
   if (f.state === "new") where.push("t.review_status <> 'approved'");
+  if (f.state === "uploads") where.push("EXISTS (SELECT 1 FROM tutor_uploads up WHERE up.tutor_id = t.id AND up.status = 'pending')");
   if (f.area) { where.push("(t.anywhere = 1 OR EXISTS (SELECT 1 FROM tutor_areas ar WHERE ar.tutor_id = t.id AND ar.area = ?))"); args.push(f.area); }
   if (f.subject) {
     where.push(`EXISTS (SELECT 1 FROM tutor_subjects s WHERE s.tutor_id = t.id AND s.subject = ?${f.band ? " AND s.band = ?" : ""})`);
@@ -879,12 +880,13 @@ export async function navCounts() {
             (SELECT count(*) FROM tuitions WHERE status IN ('available', 'processing')) open,
             (SELECT count(*) FROM applications WHERE status = 'trial_arranged') selected,
             (SELECT count(*) FROM tutors WHERE review_status = 'waiting' AND review_status <> 'approved' AND deleted_at IS NULL) new_tutors, -- the <> lets SQLite use the partial index tutors_review
+            (SELECT count(DISTINCT tutor_id) FROM tutor_uploads WHERE status = 'pending') uploads,
             (SELECT count(*) FROM followups WHERE done_at IS NULL AND due_at <= unixepoch()) followups,
             (SELECT count(*) FROM premium_members WHERE status IN ('applied', 'paid')
                OR (refund_due_at IS NOT NULL AND refund_sent_at IS NULL)) premium`,
-  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number; followups: number; premium: number }>();
+  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number; uploads: number; followups: number; premium: number }>();
   const review = await reviewCounts();
-  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0, followups: 0, premium: 0 }), review: review.tutors + review.tuitions + review.held };
+  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0, uploads: 0, followups: 0, premium: 0 }), review: review.tutors + review.tuitions + review.held };
 }
 
 export type SearchHit = { kind: "tuition" | "tutor" | "guardian" | "lead"; to: string; title: string; sub: string; photo?: { code: number; has: boolean } };

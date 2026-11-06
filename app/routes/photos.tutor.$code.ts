@@ -12,13 +12,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     : null;
   const ownPhoto = viewer?.role === "tutor" && tutor?.user_id === viewer.id;
   if (!ownPhoto) await requireAdmin(request);
-  const object = tutor?.photo_key ? await env.PHOTOS.get(tutor.photo_key) : null;
+  // Checked on every view (no-cache + ETag), so a photo the admin approves shows at once; unchanged ones answer 304.
+  const object = tutor?.photo_key ? await env.PHOTOS.get(tutor.photo_key, { onlyIf: request.headers }) : null;
   if (!object) throw new Response("No photo", { status: 404 });
-  return new Response(object.body, {
-    headers: {
-      "Content-Type": object.httpMetadata?.contentType ?? "image/webp",
-      "Cache-Control": "private, max-age=3600",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
+  const headers = { "Cache-Control": "private, no-cache", ETag: object.httpEtag, "X-Content-Type-Options": "nosniff" };
+  if (!("body" in object)) return new Response(null, { status: 304, headers });
+  return new Response((object as R2ObjectBody).body, { headers: { ...headers, "Content-Type": object.httpMetadata?.contentType ?? "image/webp" } });
 }

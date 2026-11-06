@@ -104,7 +104,7 @@ function useMoreTutors(items: AdminTutorRow[]) {
 export default function AdminTutors({ loaderData: { total, items, f, notice }, actionData }: Route.ComponentProps) {
   const { rows, load, busy } = useMoreTutors(items);
   const tabs = [
-    { key: "", label: "All" }, { key: "new", label: "New" }, { key: "active", label: "Applied in 30 days" }, { key: "setup", label: "Signed in" },
+    { key: "", label: "All" }, { key: "new", label: "New" }, { key: "uploads", label: "Uploads to check" }, { key: "active", label: "Applied in 30 days" }, { key: "setup", label: "Signed in" },
     { key: "placed", label: "Placed" }, { key: "paused", label: "Paused" }, { key: "flagged", label: "Flagged" },
   ];
   return (

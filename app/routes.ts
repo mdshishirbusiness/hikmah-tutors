@@ -48,5 +48,6 @@ export default [
   route("api/leads", "routes/api.leads.ts"),
   route("photos/tutor/:code", "routes/photos.tutor.$code.ts"),
   route("docs/tutor/:code/:id", "routes/docs.tutor.$code.$id.ts"),
+  route("uploads/tutor/:code/:id", "routes/uploads.tutor.$code.$id.ts"),
   route("*", "routes/not-found.tsx"),
 ] satisfies RouteConfig;

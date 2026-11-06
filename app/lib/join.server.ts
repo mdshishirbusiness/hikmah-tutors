@@ -25,7 +25,7 @@ export async function myDocuments(tutorId: number): Promise<TutorDocument[]> {
 }
 
 /** An image is kept only if its first bytes say JPEG, PNG or WebP, whatever the browser claims. */
-async function imageOf(file: FormDataEntryValue | null, max = PHOTO_MAX_BYTES): Promise<{ bytes: ArrayBuffer; type: string; ext: string } | "too_big" | "bad" | null> {
+export async function imageOf(file: FormDataEntryValue | null, max = PHOTO_MAX_BYTES): Promise<{ bytes: ArrayBuffer; type: string; ext: string } | "too_big" | "bad" | null> {
   if (!(file instanceof File) || file.size === 0) return null;
   if (file.size > max) return "too_big";
   const bytes = await file.arrayBuffer();

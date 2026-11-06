@@ -17,6 +17,7 @@ import { UNIVERSITIES, sessionYears } from "~/lib/join";
 import { type JoinErrors, myDocuments, saveJoin } from "~/lib/join.server";
 import { myChoices, tutorForUser } from "~/lib/me.server";
 import { TRANSPORTS } from "~/lib/options";
+import { squarePhoto } from "~/lib/images";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Join as a tutor · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
@@ -45,23 +46,6 @@ export async function action({ request }: Route.ActionArgs) {
   const result = await saveJoin(viewer, me, await request.formData());
   if ("errors" in result) return { errors: result.errors };
   throw redirect("/me?joined=1");
-}
-
-/**
- * A square 512 px photo from whatever the phone gives. Drawing it again also drops the photo's hidden details, such as
- * where it was taken. Portraits are cropped a little above the middle, where faces usually are.
- */
-async function squarePhoto(file: File): Promise<File> {
-  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-  const side = Math.min(bmp.width, bmp.height);
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 512;
-  canvas.getContext("2d")!.drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) * 0.3, side, side, 0, 0, 512, 512);
-  const encode = (type: string, q: number) => new Promise<Blob | null>((r) => canvas.toBlob(r, type, q));
-  let blob = await encode("image/webp", 0.85);
-  if (!blob || blob.type !== "image/webp") blob = await encode("image/jpeg", 0.88); // Safari can't write WebP
-  if (!blob) throw new Error("encode");
-  return new File([blob], blob.type === "image/webp" ? "photo.webp" : "photo.jpg", { type: blob.type });
 }
 
 function PhotoField({ existing, error }: { existing: string | null; error?: string }) {

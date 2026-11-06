@@ -320,7 +320,7 @@ const UPDATES_SQL = `
     AND (e.actor_user_id IS NULL OR e.actor_user_id <> ?3)
   UNION ALL
   SELECT l.created_at, 'profile', NULL FROM audit_log l JOIN users u ON u.id = l.actor_user_id
-  WHERE l.entity_type = 'tutor' AND l.entity_id = ?4 AND u.role = 'owner' AND l.created_at > ?2`;
+  WHERE l.entity_type = 'tutor' AND l.entity_id = ?4 AND u.role = 'owner' AND l.created_at > ?2 AND l.action <> 'doc_viewed'`;
 const UPDATE_KIND: Record<string, Update["kind"]> = { shortlisted: "shortlisted", trial_arranged: "selected", not_selected: "not_selected", opportunity_closed: "closed", profile: "profile" };
 
 export type NeedsAction = { application_id: number; tuition_code: number; class_level: string; area: string; next: "call" | "meet" | "demo" | "confirm" };

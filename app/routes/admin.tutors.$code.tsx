@@ -2,7 +2,7 @@
 // numbers, every application as a timeline, what they picked on the site, their education and statements, and a
 // private do-not-place flag (warning only). This page is never public.
 import { Form, Link, data, useNavigation } from "react-router";
-import { Check, FileText, Flag, KeyRound, Mail, MessageCircle, Phone, UserPlus } from "lucide-react";
+import { Camera, Check, FileText, Flag, KeyRound, Mail, MessageCircle, Phone, Trash2, UserPlus } from "lucide-react";
 import type { Route } from "./+types/admin.tutors.$code";
 import { Avatar } from "~/components/Avatar";
 import { DocViewer } from "~/components/DocViewer";
@@ -13,6 +13,7 @@ import { APPLICATION_STATUS, TUTOR_DETAIL_FIELDS } from "~/lib/admin-labels";
 import { NotesPanel } from "~/components/FollowUps";
 import { getTutor, reviewTutor, setFlag, setTutorAccount } from "~/lib/admin.server";
 import { followupsFor } from "~/lib/followups.server";
+import { decideUpload, pendingUploads, removeDocument } from "~/lib/uploads.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
 import { DOC_LABELS, UNIVERSITIES } from "~/lib/join";
@@ -27,7 +28,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAdmin(request);
   const found = await getTutor(Number(params.code) || -1);
   if (!found) throw data("Tutor not found", { status: 404 });
-  return { ...found, follow: await followupsFor("tutor", found.tutor.id) };
+  const [follow, uploads] = await Promise.all([followupsFor("tutor", found.tutor.id), pendingUploads(found.tutor.id)]);
+  return { ...found, follow, uploads };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -38,6 +40,10 @@ export async function action({ request, params }: Route.ActionArgs) {
   const intent = form.get("intent");
   if (intent === "approve" || intent === "fix") return { error: await reviewTutor(found.tutor.id, intent, String(form.get("note") ?? ""), viewer?.id ?? null) };
   if (intent === "account") return await setTutorAccount(found.tutor.id, form, viewer?.id ?? null);
+  if (intent === "approve_upload" || intent === "decline_upload") {
+    return { error: await decideUpload(viewer?.id ?? null, found.tutor.id, Number(form.get("id")) || 0, intent === "approve_upload", String(form.get("note") ?? "")) };
+  }
+  if (intent === "remove_doc") return { error: await removeDocument(viewer?.id ?? null, found.tutor.id, Number(form.get("id")) || 0) };
   return { error: await setFlag("tutor", found.tutor.id, form.get("intent") === "clear" ? "" : String(form.get("reason") ?? ""), viewer?.id ?? null) };
 }
 
@@ -51,7 +57,7 @@ const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical"
 const LEVEL_KINDS = new Set(["junior_strategy", "junior_experience", "ssc_strategy", "ssc_experience", "hsc_strategy", "hsc_experience", "special_skills", "demo_video"]);
 const ghost = "inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring hover:bg-brand-50";
 
-export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, documents, areas, classes, follow }, actionData }: Route.ComponentProps) {
+export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, documents, areas, classes, follow, uploads }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const facebook = safeUrl(t.facebook_url);
   const reached = (s: string[]) => applications.filter((a) => s.includes(a.status)).length;
@@ -79,6 +85,7 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
           </Form>
         </section>
       )}
+      {uploads.length > 0 && <UploadsToCheck code={t.code} name={t.full_name} hasPhoto={!!t.photo_key} uploads={uploads} busy={busy} />}
       {documents.length > 0 && (
         // Opened only by a tap on View, so the audit log records real views and not page loads. It opens inside the app,
         // with a close button: a new tab made the phone's Back leave the installed app.
@@ -91,7 +98,14 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
                   {d.kind === "nid" ? "NID" : DOC_LABELS.find((l) => l.key === d.label)?.label ?? "Document"}
                   <span className="ml-2 text-xs font-normal text-slate-400">{d.kind === "nid" ? "extra security" : "academic"} · {when(d.created_at)}</span>
                 </span>
-                <DocViewer src={`/docs/tutor/${t.code}/${d.id}`} title={`T-${t.code} · ${d.kind === "nid" ? "NID" : DOC_LABELS.find((l) => l.key === d.label)?.label ?? "Document"}`} className={ghost}>View</DocViewer>
+                <span className="flex shrink-0 gap-1.5">
+                  <DocViewer src={`/docs/tutor/${t.code}/${d.id}`} title={`T-${t.code} · ${d.kind === "nid" ? "NID" : DOC_LABELS.find((l) => l.key === d.label)?.label ?? "Document"}`} className={ghost}>View</DocViewer>
+                  <Form method="post" onSubmit={(e) => { if (!confirm("Remove this document? The file is deleted.")) e.preventDefault(); }}>
+                    <input type="hidden" name="intent" value="remove_doc" />
+                    <input type="hidden" name="id" value={d.id} />
+                    <button disabled={busy} aria-label="Remove document" className="grid size-11 place-items-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-60"><Trash2 size={16} aria-hidden /></button>
+                  </Form>
+                </span>
               </li>
             ))}
           </ul>
@@ -310,5 +324,43 @@ function AccountCard({ t, busy }: { t: Route.ComponentProps["loaderData"]["tutor
         </Form>
       </details>
     </Card>
+  );
+}
+
+/** New photo or document from a checked tutor (owner, 2026-11-06): approve to use it, or decline with a reason they see. */
+function UploadsToCheck({ code, name, hasPhoto, uploads, busy }: { code: number; name: string; hasPhoto: boolean; uploads: Route.ComponentProps["loaderData"]["uploads"]; busy: boolean }) {
+  const label = (u: (typeof uploads)[number]) => (u.kind === "photo" ? "New photo" : u.kind === "nid" ? "New NID" : `New ${(DOC_LABELS.find((l) => l.key === u.label)?.label ?? "document").toLowerCase()}`);
+  return (
+    <section className="mb-5 rounded-2xl bg-mango p-5 text-forest">
+      <p className="flex items-center gap-2 text-lg font-extrabold"><Camera size={20} aria-hidden />Check {uploads.length === 1 ? "this upload" : `${uploads.length} uploads`}</p>
+      <p className="mt-0.5 text-sm">Approve to use it. Declined files are deleted, and the tutor sees your reason.</p>
+      <ul className="mt-4 space-y-3">
+        {uploads.map((u) => (
+          <li key={u.id} className="rounded-xl bg-white/80 p-3">
+            <div className="flex items-center gap-3">
+              {u.kind === "photo" ? (
+                <span className="flex items-center gap-2">
+                  <Avatar code={code} name={name} hasPhoto={hasPhoto} size="lg" />
+                  <span aria-hidden className="text-slate-400">→</span>
+                  <img src={`/uploads/tutor/${code}/${u.id}`} alt="New photo" className="size-16 rounded-full object-cover ring-2 ring-white" />
+                </span>
+              ) : (
+                <DocViewer src={`/uploads/tutor/${code}/${u.id}`} title={`T-${code} · ${label(u)}`} className={ghost}><FileText size={16} aria-hidden />View</DocViewer>
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold">{label(u)}</span>
+                <span className="block text-xs text-slate-600">Sent {ago(u.created_at)}{u.kind === "nid" ? " · replaces the old NID" : ""}</span>
+              </span>
+            </div>
+            <Form method="post" className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input type="hidden" name="id" value={u.id} />
+              <button name="intent" value="approve_upload" disabled={busy} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-forest px-5 text-sm font-bold text-cream disabled:opacity-60"><Check size={16} aria-hidden />Approve</button>
+              <input name="note" maxLength={300} placeholder="Or why not, e.g. face not clear" className="min-h-11 min-w-0 flex-1 rounded-xl bg-white px-4 text-sm outline-none ring-1 ring-forest/20 focus:ring-2 focus:ring-forest" />
+              <button name="intent" value="decline_upload" disabled={busy} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-white/70 px-4 text-sm font-bold text-forest disabled:opacity-60">Decline</button>
+            </Form>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
