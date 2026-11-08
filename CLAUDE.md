@@ -29,7 +29,9 @@ enforced with SQLite triggers. Roles: Owner only for now.
 - Handle passwords, OAuth secrets or API keys. `.dev.vars` stays gitignored.
 - Read or paste real tutor, guardian or payment data into this session, except the owner's operations sheet, which
   Claude may read in full to understand the business and plan the import (owner, 2026-11-01). Don't repeat personal
-  details in replies; report counts and patterns.
+  details in replies; report counts and patterns. The owner may paste a tuition's "Copy for AI" pack (tutors by code,
+  contacts cut out; `app/lib/ai-pack.server.ts`) into their own Gemini or Claude.ai chat (owner, 2026-11-08); keep
+  names and contacts out of that pack.
 - Put real data in the repo (code, seeds, tests, docs, commit messages; the repo is public) or in any third-party tool.
   Build and test with synthetic data (PRD Appendix D); the sheet import is a local script the owner runs.
 - Write Bangla with PowerShell `Set-Content`/`Out-File` (corrupts UTF-8); use the Write/Edit tools.
@@ -41,6 +43,9 @@ enforced with SQLite triggers. Roles: Owner only for now.
 - `app/lib/*.server.ts` = server-only (D1). `app/lib/lead.ts` = validation shared by phone and server.
 - Choices (classes, areas, subjects…) are in `app/lib/options.ts`. The database stores the `key`; never change a key
   that is in use, only its label. Areas are Rajshahi, ordered by how often guardians ask.
+- Offline: `public/sw.js` (registered by `app/components/Offline.tsx`) serves saved pages with no net. A new private
+  route must be added to its `NEVER` list if it must not be kept on the phone (documents, lookups, sign-in).
+- Past guardian lookup (phone or HTR code) for Quick Pad and New tuition: `app/components/PastGuardian.tsx`.
 - Quick Pad (`/admin/quick`): saves to `/api/leads`; with no internet the lead waits in localStorage
   (`app/lib/lead-queue.ts`) and is sent when the net is back. `client_id` makes retries safe (no duplicates).
 - Tutor pages call `requireTutor` (`app/lib/me.server.ts`). To try them in `npm run dev`, open `/dev/tutor/<code>` for a

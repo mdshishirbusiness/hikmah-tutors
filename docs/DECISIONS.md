@@ -3,6 +3,34 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-08 (past guardians, offline)
+
+- **Find a past guardian by phone or HTR code** (owner): Quick Pad and New tuition have a "Past guardian? Phone or HTR
+  code" box. It shows the guardian and their last five tuitions; Use fills phone, name, source, class, medium, student,
+  subjects, area and address details, days, time, session, salary, tutor wanted and requirements from that tuition, to
+  change as needed. A phone with no past guardian is copied into the phone field. Admin only
+  (`/admin/guardian-lookup`); with no net it simply finds nothing.
+- **The site opens offline** (owner: on a call with no network the site would not open, while Towfique HSC English
+  does). `public/sw.js` keeps the last copy of every page the phone opened and the page files; with the net, pages
+  always come fresh, and a slow net (over 4 s) shows the saved copy while it keeps trying. Quick Pad is saved as soon as
+  any admin page opens, so it is ready during a call, and its leads already wait on the phone until the net is back. A
+  mango "Offline · last saved copy" pill shows while offline. An unseen page shows a "No internet" screen with Quick Pad.
+  Never saved: documents, photos, sign-in, search, the AI pack and the guardian lookup. Logging out wipes saved pages.
+  Saved admin pages hold guardian phones on the owner's own phone, like the open browser tab does.
+
+- **Copy for AI** (owner): the rule scores read how much a tutor filled in, not the expertise their words show, and
+  opening fifty applicants one by one was slower than the old sheet. A tuition's applicant list now has "Copy for AI":
+  one text with a ready question, the tuition (no guardian details; the guardian's wish about the tutor is in) and every
+  open applicant's application note and whole profile (studies, results, areas, classes, subjects per level, levels,
+  write-ups, students taught, record with HTR). Tutors appear by code only: no name, phone, Gmail, NID, photo,
+  Facebook or documents, and phone numbers, emails and links are cut out of what they typed. The owner pastes it into
+  their own Gemini or Claude.ai chat for a judged top 5. Made on tap (`/admin/tuitions/:code/ai`, admin only).
+  This is an owner-approved exception to "no real data in third-party tools": the owner does the pasting, into their own
+  AI account. Tip for the owner: in Gemini, keep "Gemini Apps Activity" off for these chats.
+- **The same tap marks every open applicant as opened** (owner): the AI pack reads them all, so UNOPENED clears and
+  tutors see "Seen by HTR".
+- **Later, maybe**: an in-app AI review through the paid Gemini API (scores saved per tuition). Not now.
+
 ## 2026-11-05 (tutor's notes, WhatsApp to HTR, Premium payment)
 
 - **A selected tutor keeps their own notes on the tuition** (owner): on the Selected card in Applied, while the status

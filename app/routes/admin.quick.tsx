@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { ArrowLeft, BookOpen, ClipboardPaste, Clock, CloudOff, GraduationCap, type LucideIcon, MapPin, Phone, UserRound, Wallet } from "lucide-react";
+import { PastGuardianFind, draftFrom } from "~/components/PastGuardian";
 import { SectionCard, type SectionTone } from "~/components/SectionCard";
 import type { Route } from "./+types/admin.quick";
 import { AddressDetails, AreaPicker, ClassPicker, MediumPicker, RequirementPicker, SessionPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
@@ -13,6 +14,7 @@ import { requireAdmin } from "~/lib/auth.server";
 import { type LeadErrors, leadFromForm, parseLead } from "~/lib/lead";
 import { flushPending, saveLead, usePendingCount } from "~/lib/lead-queue";
 import { DAYS_PER_WEEK, LEAD_SOURCES, SALARY_PRESETS, STUDENT_GENDERS } from "~/lib/options";
+import { requirementKeys } from "~/lib/request";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Quick Pad · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
@@ -38,6 +40,8 @@ function Card({ id, title, icon, tone, required, error, children }: { id?: strin
 const Sub = ({ children }: { children: React.ReactNode }) => <p className="mt-4 mb-1.5 text-xs font-bold tracking-wide text-slate-500 uppercase first:mt-0">{children}</p>;
 const Chips = ({ children }: { children: React.ReactNode }) => <div className="flex flex-wrap gap-2">{children}</div>;
 
+type Seed = { phone?: string; name?: string | null; source?: string | null; address?: string | null; t?: ReturnType<typeof draftFrom> };
+
 export default function QuickPad() {
   const [formKey, setFormKey] = useState(0); // a new key gives a clean form after each save
   const [errors, setErrors] = useState<LeadErrors>({});
@@ -45,6 +49,10 @@ export default function QuickPad() {
   const [toast, setToast] = useState<Toast>(null);
   const pending = usePendingCount();
   const phoneRef = useRef<HTMLInputElement>(null);
+  // A past guardian's tuition fills the pad (owner, 2026-11-08); a new form key puts the values in.
+  const [seed, setSeed] = useState<Seed>({});
+  const [saves, setSaves] = useState(0); // a save also clears the finder
+  const t:Partial<ReturnType<typeof draftFrom>> = seed.t ?? {};
 
   // send waiting leads when the page opens, when the net comes back, and when the app is brought to the front
   useEffect(() => {
@@ -93,6 +101,8 @@ export default function QuickPad() {
     setSaving(false);
     if (result.kind === "invalid") return showErrors(result.errors);
     setErrors({});
+    setSeed({});
+    setSaves((n) => n + 1);
     setFormKey((k) => k + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (result.kind === "ok") setToast({ tone: "ok", text: "Saved ✓" });
@@ -116,50 +126,57 @@ export default function QuickPad() {
         </div>
       </header>
 
-      <form key={formKey} onSubmit={submit} noValidate className="mx-auto max-w-xl space-y-3 px-4 pt-4">
+      {/* outside the form, so the list stays when a pick refills the form */}
+      <div key={`find-${saves}`} className="mx-auto max-w-xl px-4 pt-4">
+        <PastGuardianFind
+          onUse={(g, past) => { setSeed({ phone: g.phone, name: g.name, source: past?.lead_source, address: past?.exact_address, t: past ? draftFrom(past) : undefined }); setFormKey((k) => k + 1); }}
+          onNewPhone={(phone) => { if (phoneRef.current && !phoneRef.current.value) phoneRef.current.value = phone; }} />
+      </div>
+
+      <form key={formKey} onSubmit={submit} noValidate className="mx-auto max-w-xl space-y-3 px-4 pt-3">
         <Card id="f-phone" icon={Phone} tone="brand" title="Guardian" required error={errors.phone}>
           <div className="flex gap-2">
-            <input ref={phoneRef} name="phone" type="tel" inputMode="tel" autoComplete="off" placeholder="01XXXXXXXXX" aria-label="Phone number" aria-invalid={!!errors.phone}
+            <input ref={phoneRef} name="phone" defaultValue={seed.phone} type="tel" inputMode="tel" autoComplete="off" placeholder="01XXXXXXXXX" aria-label="Phone number" aria-invalid={!!errors.phone}
               className={`${box} h-14 min-w-0 flex-1 text-xl tracking-wide`} />
             <button type="button" onClick={paste} className="inline-flex h-14 shrink-0 items-center gap-1.5 rounded-xl bg-forest px-4 text-sm font-bold text-cream"><ClipboardPaste size={17} aria-hidden />Paste</button>
           </div>
-          <input name="guardian_name" placeholder="Name (optional), e.g. Mrs. Rahman" aria-label="Guardian's name" className={`${box} mt-2`} />
+          <input name="guardian_name" defaultValue={seed.name ?? ""} placeholder="Name (optional), e.g. Mrs. Rahman" aria-label="Guardian's name" className={`${box} mt-2`} />
           <Sub>Came from</Sub>
-          <Chips>{LEAD_SOURCES.map((s) => <ChoiceChip key={s.key} type="radio" name="lead_source" value={s.key} checked={s.key === "call"}>{s.label}</ChoiceChip>)}</Chips>
+          <Chips>{LEAD_SOURCES.map((s) => <ChoiceChip key={s.key} type="radio" name="lead_source" value={s.key} checked={s.key === (seed.source ?? "call")}>{s.label}</ChoiceChip>)}</Chips>
         </Card>
 
         <Card id="f-class_level" icon={UserRound} tone="sky" title="Student" required error={errors.class_level}>
-          <ClassPicker />
+          <ClassPicker value={t.class_level} other={t.class_other} />
           <Sub>Medium</Sub>
-          <MediumPicker />
+          <MediumPicker value={t.medium} />
           <Sub>Student</Sub>
-          <Chips>{STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key}>{g.label}</ChoiceChip>)}</Chips>
+          <Chips>{STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key} checked={t.student_gender === g.key}>{g.label}</ChoiceChip>)}</Chips>
         </Card>
 
-        <Card icon={BookOpen} tone="violet" title="Subjects"><SubjectPicker /></Card>
+        <Card icon={BookOpen} tone="violet" title="Subjects"><SubjectPicker picked={(t.subjects ?? "").split(",").filter(Boolean)} other={t.subject_other} /></Card>
 
         <Card id="f-area" icon={MapPin} tone="amber" title="Area" required error={errors.area}>
-          <AreaPicker allowOther />
-          <AddressDetails name="address" />
+          <AreaPicker allowOther value={t.area} />
+          <AddressDetails name="address" value={seed.address} />
         </Card>
 
         <Card id="f-time" icon={Clock} tone="sky" title="When" error={errors.time}>
           <Sub>Days per week</Sub>
-          <Chips>{DAYS_PER_WEEK.map((d) => <ChoiceChip key={d} type="radio" name="days_per_week" value={String(d)}>{d} days</ChoiceChip>)}</Chips>
+          <Chips>{DAYS_PER_WEEK.map((d) => <ChoiceChip key={d} type="radio" name="days_per_week" value={String(d)} checked={t.days_per_week === d}>{d} days</ChoiceChip>)}</Chips>
           <Sub>Time</Sub>
-          <TimePicker />
+          <TimePicker timeOfDay={t.time_of_day} from={t.time_from} to={t.time_to} />
           <Sub>Each session</Sub>
-          <SessionPicker />
+          <SessionPicker value={t.session_minutes} />
         </Card>
 
         <Card id="f-salary" icon={Wallet} tone="brand" title="Salary per month" error={errors.salary}>
-          <SalaryChips />
+          <SalaryChips initial={t.salary_amount} />
         </Card>
 
         <Card icon={GraduationCap} tone="violet" title="Tutor wanted">
-          <TutorPicker genderName="tutor_gender" />
+          <TutorPicker genderName="tutor_gender" gender={t.tutor_gender_pref} from={(t.tutor_from ?? "").split(",").filter(Boolean)} />
           <Sub>Guardian asks</Sub>
-          <RequirementPicker />
+          <RequirementPicker picked={requirementKeys(t.requirement_keys)} />
           <textarea name="notes" rows={3} maxLength={500} placeholder="Anything else, e.g. মেয়েকে ইংরেজিতে বেশি সময় দিতে হবে" aria-label="Notes" className={`${box} mt-3 py-3`} />
         </Card>
 
@@ -181,9 +198,10 @@ export default function QuickPad() {
 }
 
 /** Common salaries as chips; any other amount in the box (the box wins when both are set). */
-function SalaryChips() {
-  const [preset, setPreset] = useState("");
-  const [typed, setTyped] = useState("");
+function SalaryChips({ initial }: { initial?: number | null }) {
+  const start = initial ? String(initial) : "";
+  const [preset, setPreset] = useState(SALARY_PRESETS.some((s) => String(s) === start) ? start : "");
+  const [typed, setTyped] = useState(preset ? "" : start);
   return (
     <>
       <div className="flex flex-wrap gap-2" onChange={(e) => { const t = e.target as HTMLInputElement; if (t.name === "salary_preset") { setPreset(t.value); setTyped(""); } }}>

@@ -44,6 +44,8 @@ export default [
     route("admin/premium", "routes/admin.premium.tsx"),
   ]),
   route("admin/search", "routes/admin.search.ts"),
+  route("admin/tuitions/:code/ai", "routes/admin.tuitions.$code.ai.ts"),
+  route("admin/guardian-lookup", "routes/admin.guardian-lookup.ts"),
   route("admin/followups", "routes/admin.followups.ts"),
   route("api/leads", "routes/api.leads.ts"),
   route("photos/tutor/:code", "routes/photos.tutor.$code.ts"),

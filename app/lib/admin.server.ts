@@ -522,6 +522,14 @@ export async function markSeen(id: number, code: number) {
   await env.DB.prepare(`UPDATE applications SET seen_at = ? WHERE id = ? AND tuition_code = ? AND seen_at IS NULL`).bind(now(), id, code).run();
 }
 
+/** Copy for AI reads every open application, so all of them count as opened (owner, 2026-11-08). */
+export async function markAllSeen(code: number) {
+  await env.DB.prepare(
+    `UPDATE applications SET seen_at = ? WHERE tuition_code = ? AND seen_at IS NULL AND tutor_id IS NOT NULL
+     AND status IN ('submitted', 'under_review', 'shortlisted', 'trial_arranged', 'confirmed')`,
+  ).bind(now(), code).run();
+}
+
 const sha256 = async (s: string) =>
   [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
@@ -700,6 +708,29 @@ export async function getTutor(code: number) {
 }
 
 // ---------- Guardians ----------
+
+export type PastTuition = TuitionFull & { exact_address: string | null; lead_source: string | null; guardian_label: string | null };
+export type PastGuardian = { phone: string; name: string | null; tuitions: PastTuition[] };
+
+/**
+ * A guardian who came before, found by phone or by one of their HTR codes (owner, 2026-11-08), with their last tuitions
+ * in full, so a new one starts from the old details.
+ */
+export async function findPastGuardian(raw: string): Promise<PastGuardian | null> {
+  const phone = bdPhone(raw);
+  const code = phone ? -1 : Number(raw.replace(/^\s*htr[\s-]*/i, "").trim()) || -1;
+  if (!phone && code < 0) return null;
+  const g = await env.DB.prepare(
+    phone ? `SELECT id, phone, name FROM guardians WHERE phone = ?`
+      : `SELECT g.id, g.phone, g.name FROM tuition_private p JOIN guardians g ON g.id = p.guardian_id WHERE p.tuition_code = ?`,
+  ).bind(phone || code).first<{ id: number; phone: string; name: string | null }>();
+  if (!g) return null;
+  const tuitions = await all<PastTuition>(
+    `SELECT t.*, 0 applications, p.exact_address, p.lead_source, p.guardian_label FROM tuition_private p JOIN tuitions t ON t.code = p.tuition_code
+     WHERE p.guardian_id = ? ORDER BY t.code DESC LIMIT 5`, g.id,
+  );
+  return { phone: g.phone, name: g.name || tuitions.find((t) => t.guardian_label)?.guardian_label || null, tuitions };
+}
 
 export async function listGuardians(f: { q: string; page: number }) {
   const where = f.q ? `WHERE g.phone LIKE ? OR g.name LIKE ?` : "";

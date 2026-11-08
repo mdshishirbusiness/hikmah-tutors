@@ -10,7 +10,7 @@ import { ApplicantWorkspace } from "~/components/Applicants";
 import { Badge, Money, PageHead, ago, num, primaryButton, when, TUITION_TONE } from "~/components/admin";
 import { TuitionFields } from "~/components/TuitionFields";
 import { APPLICATION_STATUS, TUITION_STATUS, publishGaps } from "~/lib/admin-labels";
-import { getTuition, markSeen, moveApplication, newGuardianLink, setTuitionState, updateTuition } from "~/lib/admin.server";
+import { getTuition, markAllSeen, markSeen, moveApplication, newGuardianLink, setTuitionState, updateTuition } from "~/lib/admin.server";
 import { requireAdmin } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
 import { tutorFromLabel } from "~/lib/fit";
@@ -48,6 +48,10 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
   if (intent === "seen") {
     await markSeen(Number(form.get("id")), code);
+    return { error: null, saved: false, note: "" };
+  }
+  if (intent === "seen_all") {
+    await markAllSeen(code);
     return { error: null, saved: false, note: "" };
   }
   if (intent === "status_link") {

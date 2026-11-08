@@ -65,7 +65,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 const dhakaDate = (d = new Date(Date.now() + 6 * 3600 * 1000)) => `${String(d.getUTCDate()).padStart(2, "0")}/${MONTHS[d.getUTCMonth()]}/${d.getUTCFullYear()}`;
 
 /** The facts both posts share, in the owner's order; a line the tuition doesn't have is left out. */
-function postLines(t: Post) {
+export function postLines(t: Post) {
   const subjects = t.subjects.split(",").filter(Boolean).map((s) => subjectLabel(s, t.subject_other)).join(", ");
   const gender = t.tutor_gender_pref === "female" ? "Female" : t.tutor_gender_pref === "male" ? "Male" : "Male/Female";
   const from = tutorFromLabel((t.tutor_from ?? "").split(",").filter(Boolean));

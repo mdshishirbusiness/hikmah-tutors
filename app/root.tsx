@@ -1,6 +1,7 @@
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, type ShouldRevalidateFunctionArgs } from "react-router";
 
 import type { Route } from "./+types/root";
+import { Offline } from "./components/Offline";
 import { PageLoader } from "./components/PageLoader";
 import { headerViewer } from "./lib/me.server";
 import "./app.css";
@@ -47,6 +48,7 @@ export default function App() {
   return (
     <>
       <PageLoader />
+      <Offline />
       <Outlet />
     </>
   );

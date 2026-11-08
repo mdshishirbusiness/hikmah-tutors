@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Link, useFetcher, useSearchParams } from "react-router";
 import {
-  AlertTriangle, Check, ChevronRight, Columns3, Copy, Crown, ExternalLink, LayoutList, MessageCircle, Phone, Search, Send, X,
+  AlertTriangle, Check, ChevronRight, Columns3, Copy, Crown, ExternalLink, LayoutList, MessageCircle, Phone, Search, Send, Sparkles, X,
 } from "lucide-react";
 import { Avatar } from "~/components/Avatar";
 import { FollowUpButton } from "~/components/FollowUps";
@@ -122,6 +122,48 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
     >
       {done ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}{done ? "Copied" : label}
     </button>
+  );
+}
+
+/**
+ * Copy for AI (owner, 2026-11-08): the tuition and every open applicant's own words and profile as one text, to paste
+ * into Gemini or Claude.ai for a judged top 5. Made on tap, so the page stays light; no names or contacts in it.
+ */
+function AiPack({ code }: { code: number }) {
+  const [open, setOpen] = useState(false);
+  const fetcher = useFetcher<{ text?: string; count?: number; error?: string }>();
+  const seen = useFetcher();
+  const pack = fetcher.data?.text;
+  return (
+    <>
+      <button type="button" onClick={() => {
+        setOpen(true);
+        fetcher.load(`/admin/tuitions/${code}/ai`);
+        seen.submit({ intent: "seen_all" }, { method: "post", action: `/admin/tuitions/${code}` });
+      }}
+        className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl bg-forest px-3 text-sm font-bold text-cream hover:bg-brand-700">
+        <Sparkles size={15} aria-hidden />Copy for AI
+      </button>
+      <Sheet open={open} title="Copy for AI" onClose={() => setOpen(false)}>
+        <p className="text-sm text-slate-600">টিউশনের তথ্য আর প্রত্যেক আবেদনকারীর লেখা ও পুরো প্রোফাইল একসাথে। নাম, ফোন, Gmail, NID বা ছবি নেই; কোড দিয়ে চেনা যাবে। Copy করে Gemini বা Claude-এ paste করুন, সাথে প্রশ্নও দেওয়া আছে।</p>
+        {fetcher.state !== "idle" || !fetcher.data ? (
+          <p className="mt-4 rounded-xl bg-cream px-4 py-6 text-center text-sm font-semibold text-slate-500">Preparing…</p>
+        ) : !pack ? (
+          <p role="alert" className="mt-4 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{fetcher.data.error ?? "Couldn't prepare it."}</p>
+        ) : (
+          <>
+            <p className="mt-3 text-xs font-semibold text-slate-500 tabular-nums">{fetcher.data.count} open applicants · {num(pack.length)} characters</p>
+            <textarea readOnly value={pack} rows={9} aria-label="Text for AI" onFocus={(e) => e.currentTarget.select()}
+              className="mt-1.5 w-full rounded-xl bg-slate-50 p-3 font-mono text-xs leading-relaxed text-slate-700 ring-1 ring-slate-200 outline-none focus:ring-2 focus:ring-brand-200" />
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <span className="col-span-2 [&>button]:w-full [&>button]:bg-mango [&>button]:font-bold [&>button]:hover:bg-mango-deep"><CopyButton text={pack} label="Copy all" /></span>
+              <a href="https://gemini.google.com/app" target="_blank" rel="noreferrer" className={ghost}>Open Gemini<ExternalLink size={14} aria-hidden /></a>
+              <a href="https://claude.ai/new" target="_blank" rel="noreferrer" className={ghost}>Open Claude<ExternalLink size={14} aria-hidden /></a>
+            </div>
+          </>
+        )}
+      </Sheet>
+    </>
   );
 }
 
@@ -460,7 +502,8 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
           ))}
         </nav>
       )}
-      <div className="ml-auto flex w-full items-center gap-2 sm:w-auto">
+      <div className="ml-auto flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+        {counts.live > 1 && <AiPack code={t.code} />}
         <label className="relative min-w-0 flex-1 sm:w-48 sm:flex-none">
           <Search size={15} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" aria-hidden />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find applicant" aria-label="Find applicant" className="min-h-10 w-full rounded-xl bg-white pr-3 pl-8 text-sm shadow-ring outline-none focus:ring-2 focus:ring-brand-200" />
