@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Link, useFetcher, useSearchParams } from "react-router";
 import {
-  AlertTriangle, Check, ChevronRight, Columns3, Copy, Crown, ExternalLink, LayoutList, MessageCircle, Phone, Search, Send, Sparkles, X,
+  AlertTriangle, Check, ChevronRight, Columns3, Copy, Crown, Download, ExternalLink, LayoutList, MessageCircle, Phone, Search, Send, Sparkles, X,
 } from "lucide-react";
 import { Avatar } from "~/components/Avatar";
 import { FollowUpButton } from "~/components/FollowUps";
@@ -104,24 +104,43 @@ function ExpMarks({ a, fit, strength }: { a: Applicant; fit: Fit; strength: Stre
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };
 const who = (a: Applicant) => [a.tutor_code && `T-${a.tutor_code}`, (a.university && UNI[a.university]) || a.institution || a.shortcode, a.department].filter(Boolean).join(" · ");
 
-function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
-  const [done, setDone] = useState(false);
+/**
+ * Puts the whole text on the clipboard: the Clipboard API, else a hidden textarea and execCommand (owner, 2026-11-08:
+ * the old prompt() fallback cut long texts on a phone). False when neither worked.
+ */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const t = Object.assign(document.createElement("textarea"), { value: text, readOnly: true });
+    t.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+    document.body.appendChild(t);
+    t.select();
+    t.setSelectionRange(0, text.length);
+    const ok = document.execCommand("copy");
+    t.remove();
+    return ok;
+  }
+}
+
+function CopyButton({ text, label = "Copy", count = false }: { text: string; label?: string; count?: boolean }) {
+  const [state, setState] = useState<"idle" | "done" | "failed">("idle");
   return (
-    <button
-      type="button"
-      className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring transition-colors hover:bg-brand-50"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-          setDone(true);
-          setTimeout(() => setDone(false), 2000);
-        } catch {
-          window.prompt("Copy this:", text);
-        }
-      }}
-    >
-      {done ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}{done ? "Copied" : label}
-    </button>
+    <>
+      <button
+        type="button"
+        className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring transition-colors hover:bg-brand-50"
+        onClick={async () => {
+          setState((await copyText(text)) ? "done" : "failed");
+          setTimeout(() => setState("idle"), count ? 4000 : 2000);
+        }}
+      >
+        {state === "done" ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
+        {state === "done" ? (count ? `Copied ${num(text.length)} characters` : "Copied") : label}
+      </button>
+      {state === "failed" && <span role="alert" className="text-xs font-semibold text-rose-700">Couldn't copy.{count ? " Use Send file." : ""}</span>}
+    </>
   );
 }
 
@@ -145,7 +164,7 @@ function AiPack({ code }: { code: number }) {
         <Sparkles size={15} aria-hidden />Copy for AI
       </button>
       <Sheet open={open} title="Copy for AI" onClose={() => setOpen(false)}>
-        <p className="text-sm text-slate-600">টিউশনের তথ্য আর প্রত্যেক আবেদনকারীর লেখা ও পুরো প্রোফাইল একসাথে। নাম, ফোন, Gmail, NID বা ছবি নেই; কোড দিয়ে চেনা যাবে। Copy করে Gemini বা Claude-এ paste করুন, সাথে প্রশ্নও দেওয়া আছে।</p>
+        <p className="text-sm text-slate-600">টিউশনের তথ্য আর প্রত্যেক আবেদনকারীর লেখা ও পুরো প্রোফাইল একসাথে, সাথে প্রশ্নও দেওয়া আছে। নাম, ফোন, Gmail, NID বা ছবি নেই; কোড দিয়ে চেনা যাবে। ফোনে <b>Send file</b> চেপে Gemini বা Claude বেছে নিন, পুরোটা ফাইল হয়ে যাবে। Copy ল্যাপটপের জন্য; ফোনে লম্বা লেখা paste করলে কেটে যেতে পারে।</p>
         {fetcher.state !== "idle" || !fetcher.data ? (
           <p className="mt-4 rounded-xl bg-cream px-4 py-6 text-center text-sm font-semibold text-slate-500">Preparing…</p>
         ) : !pack ? (
@@ -155,8 +174,9 @@ function AiPack({ code }: { code: number }) {
             <p className="mt-3 text-xs font-semibold text-slate-500 tabular-nums">{fetcher.data.count} open applicants · {num(pack.length)} characters</p>
             <textarea readOnly value={pack} rows={9} aria-label="Text for AI" onFocus={(e) => e.currentTarget.select()}
               className="mt-1.5 w-full rounded-xl bg-slate-50 p-3 font-mono text-xs leading-relaxed text-slate-700 ring-1 ring-slate-200 outline-none focus:ring-2 focus:ring-brand-200" />
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <span className="col-span-2 [&>button]:w-full [&>button]:bg-mango [&>button]:font-bold [&>button]:hover:bg-mango-deep"><CopyButton text={pack} label="Copy all" /></span>
+            <PackFile code={code} pack={pack} />
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <span className="col-span-2 flex flex-col gap-1 [&>button]:w-full"><CopyButton text={pack} label="Copy all" count /></span>
               <a href="https://gemini.google.com/app" target="_blank" rel="noreferrer" className={ghost}>Open Gemini<ExternalLink size={14} aria-hidden /></a>
               <a href="https://claude.ai/new" target="_blank" rel="noreferrer" className={ghost}>Open Claude<ExternalLink size={14} aria-hidden /></a>
             </div>
@@ -164,6 +184,41 @@ function AiPack({ code }: { code: number }) {
         )}
       </Sheet>
     </>
+  );
+}
+
+/**
+ * The pack as a .txt file (owner, 2026-11-08): on a phone the share sheet hands it whole to the Gemini or Claude app,
+ * where a long paste gets cut; elsewhere, or if sharing fails, it is saved. Same pattern as ShareCard.
+ */
+function PackFile({ code, pack }: { code: number; pack: string }) {
+  const filename = `HTR-${code}-applicants.txt`;
+  const file = new File([pack], filename, { type: "text/plain" });
+  const canShare = typeof navigator !== "undefined" && !!navigator.canShare?.({ files: [file] });
+  const save = () => {
+    const url = URL.createObjectURL(file);
+    const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const send = async () => {
+    try {
+      await navigator.share({ files: [file], text: "Read the file and answer as it asks." });
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") save();
+    }
+  };
+  return (
+    <div className="mt-3 flex gap-2">
+      {canShare && (
+        <button type="button" onClick={send} className="inline-flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-xl bg-mango text-sm font-extrabold text-forest hover:bg-mango-deep">
+          <Send size={16} aria-hidden />Send file
+        </button>
+      )}
+      <button type="button" onClick={save} className={`inline-flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-extrabold ${canShare ? "bg-white text-forest shadow-ring hover:bg-brand-50" : "bg-mango text-forest hover:bg-mango-deep"}`}>
+        <Download size={16} aria-hidden />Save file
+      </button>
+    </div>
   );
 }
 

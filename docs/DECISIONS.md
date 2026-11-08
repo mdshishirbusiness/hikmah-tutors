@@ -29,6 +29,10 @@ Newest first. Each entry: what was decided, by whom, and why.
   AI account. Tip for the owner: in Gemini, keep "Gemini Apps Activity" off for these chats.
 - **The same tap marks every open applicant as opened** (owner): the AI pack reads them all, so UNOPENED clears and
   tutors see "Seen by HTR".
+- **Send it as a file on a phone** (owner: a long copy was cut on the phone): the sheet has Send file (the share sheet
+  hands `HTR-<code>-applicants.txt` whole to the Gemini or Claude app) and Save file; Copy all stays for a laptop,
+  never cuts (no more prompt() fallback) and says how many characters it copied. The pack is shorter: no empty lines,
+  wanted classes at this level only, one line each for study, results and practicalities.
 - **Later, maybe**: an in-app AI review through the paid Gemini API (scores saved per tuition). Not now.
 
 ## 2026-11-05 (tutor's notes, WhatsApp to HTR, Premium payment)

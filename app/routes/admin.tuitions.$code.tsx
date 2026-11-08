@@ -6,7 +6,7 @@ import {
   ArrowUpRight, CircleAlert, Copy, Check, Eye, EyeOff, Link2, MessageCircle, MoreHorizontal, Pause, Phone, Play, Rocket, RotateCcw,
 } from "lucide-react";
 import type { Route } from "./+types/admin.tuitions.$code";
-import { ApplicantWorkspace } from "~/components/Applicants";
+import { ApplicantWorkspace, copyText } from "~/components/Applicants";
 import { Badge, Money, PageHead, ago, num, primaryButton, when, TUITION_TONE } from "~/components/admin";
 import { TuitionFields } from "~/components/TuitionFields";
 import { APPLICATION_STATUS, TUITION_STATUS, publishGaps } from "~/lib/admin-labels";
@@ -123,7 +123,7 @@ function CopyPost({ text, label, title }: { text: string; label: string; title: 
   return (
     <button type="button" title={title}
       onClick={async () => {
-        try { await navigator.clipboard.writeText(text); setDone(true); setTimeout(() => setDone(false), 2000); } catch { window.prompt("Copy this:", text); }
+        if (await copyText(text)) { setDone(true); setTimeout(() => setDone(false), 2000); }
       }}
       className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-4 text-sm font-bold text-forest shadow-ring hover:bg-brand-50">
       {done ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}{done ? "Copied" : label}

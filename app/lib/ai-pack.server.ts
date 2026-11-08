@@ -20,29 +20,28 @@ const STATEMENTS: [string, string][] = [
   ["english_experience", "English medium experience"], ["special_skills", "Special skills"], ["skills_detail", "Skills in detail"],
 ];
 
-const PROMPT = `You are helping Hikmah Tutors, a home-tutor media in Rajshahi, choose a tutor for one tuition.
-Below is the tuition, then every open applicant. Names and contacts are removed on purpose; refer to each by code.
-
-Judge the real expertise each tutor shows in their own words, not how much they wrote. Long but generic text is not
-expertise; short, specific, believable detail is (classes taught, results before and after, how they teach a topic).
-
-For every applicant give:
-- Level expertise 0-10 each for Junior, SSC and HSC, from evidence only (write "no evidence" where there is none)
-- Expertise 0-10 for each subject this tuition needs
-- Writing 0-10: clear, specific, believable
-- Fit with this tuition: gender, area, time, salary and the guardian's wishes
-- One line on why, quoting their own words
-- Doubts or red flags
-
-Then give the top 5 for this tuition, best first, each with the reason, and say whom to call first.
-Say plainly when evidence is thin. Do not invent anything that is not in the text.
-Answer in Bangla (চলিত); keep tutor codes, subject names and numbers in English.`;
+const PROMPT = `Help Hikmah Tutors (home tutors, Rajshahi) choose a tutor for the tuition below. Applicants are by code;
+names and contacts are removed on purpose.
+Judge the expertise each tutor shows in their own words, not how much they wrote: specific, believable detail
+(classes taught, results before and after, how they teach) beats long generic text.
+For every applicant: expertise 0-10 for Junior, SSC and HSC and for each subject this tuition needs ("no evidence"
+where none); writing 0-10 (clear, specific, believable); fit (gender, area, time, salary, guardian's wishes); one
+line why, quoting their words; doubts.
+Then the top 5, best first, with reasons, and whom to call first. Say when evidence is thin; invent nothing.
+Answer in Bangla (চলিত); keep codes, subject names and numbers in English.`;
 
 /** Cuts phone numbers, emails and links out of what a tutor typed. */
 const scrub = (s: string | null | undefined) =>
   (s ?? "").replace(/https?:\/\/\S+|www\.\S+/gi, "[link]").replace(/\S+@\S+\.\S+/g, "[email]")
     .replace(/(\+?88[\s-]?)?01[3-9](?:[\s-]?\d){8}/g, "[phone]").trim();
 const list = (keys: string | null | undefined, options = SUBJECTS) => (keys ?? "").split(",").filter(Boolean).map((k) => labelOf(options, k) || k).join(", ");
+
+/** The classes a tutor wants at this tuition's level only; the rest as a count. */
+function wantedClasses(keys: string, band: Band | null) {
+  const all = keys.split(",").filter(Boolean);
+  const here = all.filter((k) => !band || bandOf(k) === band);
+  return `Classes they want at this level: ${here.map((k) => labelOf(CLASS_LEVELS, k) || k).join(", ") || "none"}${all.length > here.length ? ` (+${all.length - here.length} other)` : ""}`;
+}
 
 async function all<T>(sql: string, ...args: unknown[]): Promise<T[]> {
   return (await env.DB.prepare(sql).bind(...args).all<T>()).results;
@@ -65,10 +64,11 @@ export async function aiPack(code: number): Promise<{ text: string; count: numbe
   const of = <T extends { tutor_id: number }>(rows: T[], id: number | null) => rows.filter((r) => r.tutor_id === id);
 
   const l = postLines(t);
+  const band = bandOf(t.class_level);
   const tuition = [
     "## The tuition",
     ...l.facts,
-    `Level: ${bandShort(bandOf(t.class_level) ?? "ssc")}`,
+    `Level: ${bandShort(band ?? "ssc")}`,
     t.medium && `Medium: ${labelOf(MEDIUMS, t.medium)}`,
     l.asks.length ? `Requirements: ${l.asks.join("; ")}` : "",
     priv?.tutor_qualification && `Guardian's wish about the tutor: ${scrub(priv.tutor_qualification)}`,
@@ -81,26 +81,25 @@ export async function aiPack(code: number): Promise<{ text: string; count: numbe
     const own = of(statements, id);
     const lines: (string | number | false | null | undefined)[] = [
       `## Applicant ${i + 1}: ${a.tutor_code ? `T-${a.tutor_code}` : `A-${a.id}`}`,
-      `Status: ${a.status.replace("_", " ")}`,
-      a.gender && `Gender: ${a.gender === "female" ? "Female" : "Male"}`,
-      `Studies: ${[a.institution || a.shortcode, a.department, a.session_year && `session ${a.session_year}`].filter(Boolean).join(", ") || "not given"}`,
-      (a.ssc_result || a.ssc_group) && `SSC: ${[a.ssc_group, a.ssc_result && `GPA ${a.ssc_result}`, a.ssc_marks && `${a.ssc_marks} marks`].filter(Boolean).join(", ")}`,
-      (a.hsc_result || a.hsc_group) && `HSC: ${[a.hsc_group, a.hsc_result && `GPA ${a.hsc_result}`, a.hsc_marks && `${a.hsc_marks} marks`].filter(Boolean).join(", ")}`,
+      a.status !== "submitted" && `Status: ${a.status.replace("_", " ")}`,
+      [a.gender && (a.gender === "female" ? "Female" : "Male"),
+        [a.institution || a.shortcode, a.department, a.session_year && `session ${a.session_year}`].filter(Boolean).join(", ") || "studies not given"].filter(Boolean).join(" · "),
+      [(a.ssc_result || a.ssc_group) && `SSC ${[a.ssc_group, a.ssc_result && `GPA ${a.ssc_result}`, a.ssc_marks && `${a.ssc_marks} marks`].filter(Boolean).join(" ")}`,
+        (a.hsc_result || a.hsc_group) && `HSC ${[a.hsc_group, a.hsc_result && `GPA ${a.hsc_result}`, a.hsc_marks && `${a.hsc_marks} marks`].filter(Boolean).join(" ")}`].filter(Boolean).join(" · "),
       a.own_marks && `Own marks in this tuition's subjects: ${a.own_marks.split(",").map((m) => { const [k, n] = m.split(":"); return `${labelOf(SUBJECTS, k)} ${n}`; }).join(", ")}`,
       a.admission_result && `Admission test: ${scrub(a.admission_result)}`,
       a.location && `Lives in: ${scrub(a.location)}`,
       a.areas && `Areas they teach in: ${list(a.areas, AREAS)}`,
-      a.classes && `Classes they want: ${list(a.classes, CLASS_LEVELS)}`,
-      id && `Free: ${freeLabel(a.free_times)}`,
-      a.min_salary ? `Lowest salary: ${taka(a.min_salary)}` : null,
-      a.transport && `Transport: ${labelOf(TRANSPORTS, a.transport)}`,
-      a.demo_willing != null && `Demo class: ${a.demo_willing ? "willing" : "not willing"}`,
-      x?.mediums && `Mediums: ${list(x.mediums, MEDIUMS)}`,
+      a.classes && wantedClasses(a.classes, band),
+      a.free_times && `Free: ${freeLabel(a.free_times)}`,
+      [a.min_salary && `lowest salary ${taka(a.min_salary)}`, a.transport && labelOf(TRANSPORTS, a.transport).toLowerCase(),
+        a.demo_willing != null && (a.demo_willing ? "demo class willing" : "no demo class"), x?.mediums && list(x.mediums, MEDIUMS)]
+        .filter(Boolean).join(" · ").replace(/^./, (c) => c.toUpperCase()) || null,
       id ? `With Hikmah: ${a.total_apps} applications, ${a.placed} placed, ${a.demos} demos${a.dropped ? `, ${a.dropped} didn't work out` : ""}` : "Applied without a tutor profile",
-      ...BANDS.map((b) => {
+      BANDS.map((b) => {
         const s = of(subjects, id).filter((r) => r.band === b).map((r) => labelOf(SUBJECTS, r.subject) || r.subject);
-        return s.length ? `Subjects at ${bandShort(b)}: ${s.join(", ")}` : null;
-      }),
+        return s.length ? `${bandShort(b)} ${s.join(", ")}` : null;
+      }).filter(Boolean).join("; ").replace(/^(?=.)/, "Subjects: "),
       a.note && `\nWhat they wrote when applying:\n${scrub(a.note)}`,
       a.about && `\nAbout them:\n${scrub(a.about)}`,
       x?.skills && `\nSkills:\n${scrub(x.skills)}`,
