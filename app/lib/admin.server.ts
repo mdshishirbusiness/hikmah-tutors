@@ -7,6 +7,7 @@ import { bdPhone } from "./lead";
 import { AREAS, CLASS_CHOICES, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM } from "./options";
 import { parseWindow, requirementKeys } from "./request";
 import type { Level, Student } from "./profile";
+import { areaKeyFromForm, newAreaProblem } from "./areas.server";
 import { latestChecks } from "./calls.server";
 import { chargeOnConfirm, reverseChargeOnUndo } from "./fee.server";
 import { feeTermsFromForm } from "./fee";
@@ -159,7 +160,7 @@ export async function postLeadAsTuition(id: number, actorId: number | null): Pro
       `INSERT INTO tuitions (code, status, is_public, class_level, medium, subjects, area, salary_kind, salary_amount, days_per_week,
                              student_gender, tutor_gender_pref, class_other, subject_other, time_of_day, time_from, time_to, session_minutes, tutor_from, requirement_keys)
        SELECT COALESCE(MAX(code), 0) + 1, 'draft', 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM tuitions`,
-    ).bind(l.class_level, l.medium ?? "", l.subjects ?? "", areaKnown ? l.area : "", l.salary ? "fixed" : "unspecified", l.salary || null,
+    ).bind(l.class_level, l.medium ?? "", l.subjects ?? "", l.area ?? "", l.salary ? "fixed" : "unspecified", l.salary || null,
       l.days_per_week && l.days_per_week >= 1 && l.days_per_week <= 7 ? l.days_per_week : 3, l.student_gender, l.tutor_gender || "any",
       // Everything the Quick Pad took down carries over (review step 3), so the admin only checks the wording.
       l.class_other, l.subject_other, l.time_of_day, l.time_from, l.time_to, l.session_minutes, l.tutor_from ?? "", l.requirement_keys ?? ""),
@@ -360,7 +361,10 @@ export function tuitionFieldsProblem(form: FormData): string | null {
   if (!CLASS_LEVELS.some((c) => c.key === classLevel)) return "Pick a class.";
   if (sessionMinutes !== null && !(SESSION_MINUTES as readonly number[]).includes(sessionMinutes)) return "Session length not valid.";
   if (timeOfDay !== null && !TIMES_OF_DAY.some((o) => o.key === timeOfDay)) return "Time of day not valid.";
-  if (!AREAS.some((a) => a.key === area)) return "Pick an area.";
+  if (area === "__other") {
+    const problem = newAreaProblem(form);
+    if (problem) return problem;
+  } else if (!AREAS.some((a) => a.key === area)) return "Pick an area.";
   if (!Number.isInteger(days) || days < 1 || days > 7) return "Days per week must be 1 to 7.";
   if (!["fixed", "negotiable", "unspecified"].includes(salaryKind)) return "Salary type not valid.";
   if (salaryKind === "fixed" && (!Number.isInteger(amount) || amount <= 0)) return "Enter the salary.";
@@ -385,7 +389,8 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   const feeChanged = fee.terms.kind !== current.fee_kind || (fee.terms.value ?? null) !== current.fee_value;
 
   const text = (name: string) => String(form.get(name) ?? "").trim();
-  const status = text("status"), medium = text("medium"), classLevel = text("class_level"), area = text("area");
+  const status = text("status"), medium = text("medium"), classLevel = text("class_level");
+  let area = text("area");
   const subjects = form.getAll("subjects").map(String).filter((s) => SUBJECTS.some((o) => o.key === s));
   const requirements = text("requirements_public"), startNote = text("start_note");
   const days = Number(text("days_per_week")), salaryKind = text("salary_kind"), amount = Number(text("salary_amount"));
@@ -407,6 +412,8 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   // Old range classes (Class 9–10) can stay on hidden rows, but the board shows one class or one batch only.
   if (publish && !CLASS_CHOICES.some((c) => c.key === classLevel)) return "Pick one class or batch from the new list before showing it on the board.";
 
+  // "New area" joins the list now, after every other check passed, so a failed save adds nothing.
+  if (area === "__other") area = await areaKeyFromForm(form, actorId);
   const t = now();
   const postedAt = publish ? current.posted_at ?? t : current.posted_at;
   const closedAt = open || status === "draft" ? null : t;

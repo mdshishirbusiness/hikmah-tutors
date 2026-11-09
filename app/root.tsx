@@ -3,12 +3,17 @@ import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, 
 import type { Route } from "./+types/root";
 import { Offline } from "./components/Offline";
 import { PageLoader } from "./components/PageLoader";
+import { addedAreas, loadAreas } from "./lib/areas.server";
 import { headerViewer } from "./lib/me.server";
+import { addAreas } from "./lib/options";
 import "./app.css";
+
+// Areas the owner added join the built-in list before any loader or action reads it.
+export const middleware: Route.MiddlewareFunction[] = [async (_, next) => { await loadAreas(); return next(); }];
 
 // The header shows who is signed in (a tutor's photo, Admin for the owner, Log in otherwise).
 export async function loader({ request }: Route.LoaderArgs) {
-  return { viewer: await headerViewer(request) };
+  return { viewer: await headerViewer(request), areas: addedAreas() };
 }
 
 // Sign-in state only changes on a form post (log out) or a full page load (Google's return), not on filters.
@@ -44,7 +49,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
+export default function App({ loaderData }: Route.ComponentProps) {
+  addAreas(loaderData.areas);
   return (
     <>
       <PageLoader />

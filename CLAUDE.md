@@ -44,7 +44,8 @@ enforced with SQLite triggers. Roles: Owner only for now.
   `/docs/tutor/:code/:id`, each admin view logged; the form part is `app/components/JoinDocuments.tsx`.
 - `app/lib/*.server.ts` = server-only (D1). `app/lib/lead.ts` = validation shared by phone and server.
 - Choices (classes, areas, subjects…) are in `app/lib/options.ts`. The database stores the `key`; never change a key
-  that is in use, only its label. Areas are Rajshahi, ordered by how often guardians ask.
+  that is in use, only its label. Areas are Rajshahi, ordered by how often guardians ask. Areas the owner adds from
+  the tuition form live in the `areas` table and join `AREAS` per request (root middleware, `app/lib/areas.server.ts`).
 - Offline: `public/sw.js` (registered by `app/components/Offline.tsx`) serves saved pages with no net. A new private
   route must be added to its `NEVER` list if it must not be kept on the phone (documents, lookups, sign-in).
 - Past guardian lookup (phone or HTR code) for Quick Pad and New tuition: `app/components/PastGuardian.tsx`.

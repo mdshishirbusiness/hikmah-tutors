@@ -79,9 +79,11 @@ export function SubjectPicker({ picked = [], other }: { picked?: string[]; other
 
 /**
  * The most-asked areas as chips, the rest by search in English or Bangla. With allowOther, "Other area" opens a box
- * (a lead may name a place not on the list; a tuition on the board may not).
+ * (a lead may name a place not on the list). With addNew (the tuition form), "New area" saves the place to the list
+ * for every later tuition (owner, 2026-11-09; app/lib/areas.server.ts).
  */
-export function AreaPicker({ value, other, allowOther = false }: { value?: string | null; other?: string | null; allowOther?: boolean }) {
+export function AreaPicker({ value, other, allowOther = false, addNew = false }: { value?: string | null; other?: string | null; allowOther?: boolean; addNew?: boolean }) {
+  if (addNew) allowOther = true;
   const known = AREAS.some((a) => a.key === value);
   const [v, setV] = useState(value ? (known ? value : allowOther ? "__other" : "") : "");
   const [query, setQuery] = useState("");
@@ -98,11 +100,18 @@ export function AreaPicker({ value, other, allowOther = false }: { value?: strin
       </label>
       <div className="mt-3 flex flex-wrap gap-2">
         {AREAS.map((a, i) => <ChoiceChip key={a.key} type="radio" name="area" value={a.key} checked={v === a.key} hidden={!matches(i, a.key, a.label, a.alt)}>{a.label}</ChoiceChip>)}
-        {allowOther && <ChoiceChip type="radio" name="area" value="__other" checked={v === "__other"}>Other area…</ChoiceChip>}
+        {allowOther && <ChoiceChip type="radio" name="area" value="__other" checked={v === "__other"}>{addNew ? "+ New area" : "Other area…"}</ChoiceChip>}
       </div>
-      {q && found === 0 && <p className="mt-2 text-sm text-slate-500">{allowOther ? "Not on the list. Tap Other area and type it." : "Not on the list."}</p>}
+      {q && found === 0 && <p className="mt-2 text-sm text-slate-500">{allowOther ? `Not on the list. Tap ${addNew ? "New area" : "Other area"} and type it.` : "Not on the list."}</p>}
       {!q && <button type="button" onClick={() => setShowAll((s) => !s)} className="mt-1 min-h-11 text-sm font-bold text-brand-700">{showAll ? "Show fewer" : `Show all ${AREAS.length} areas`}</button>}
-      {v === "__other" && <input name="area_other" defaultValue={known ? "" : other ?? value ?? ""} maxLength={60} autoFocus placeholder="Area name" aria-label="Area name" className={`${box} mt-1`} />}
+      {v === "__other" && !addNew && <input name="area_other" defaultValue={known ? "" : other ?? value ?? ""} maxLength={60} autoFocus placeholder="Area name" aria-label="Area name" className={`${box} mt-1`} />}
+      {v === "__other" && addNew && (
+        <div className="mt-1 space-y-2 rounded-2xl bg-brand-50 p-3 ring-1 ring-brand-100">
+          <input name="area_other" defaultValue={known ? "" : other ?? value ?? ""} maxLength={40} autoFocus required placeholder="Area name in English, e.g. Mohonpur" aria-label="New area name" className={box} />
+          <input name="area_alt" maxLength={80} placeholder="বাংলা নাম (optional), e.g. মোহনপুর" aria-label="Bangla name" className={box} />
+          <p className="text-sm text-forest">সেভ করলে এলাকাটি লিস্টে যোগ হবে, পরের টিউশন আর টিউটরদের এলাকা বাছাইয়েও দেখাবে।</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -249,5 +249,11 @@ export const STATUSES: Option[] = [
   { key: "not_now", label: "Not now" },
 ];
 
+/** Areas the owner added (table `areas`) join the end of AREAS, on the server per request and in the browser from the
+ * root loader, so every list, label and search sees them. Keys already present are skipped. */
+export function addAreas(extra: Option[]) {
+  for (const a of extra) if (!AREAS.some((b) => b.key === a.key)) AREAS.push(a);
+}
+
 export const labelOf = (list: Option[], key: string | null | undefined) =>
   list.find((o) => o.key === key)?.label ?? key ?? "";

@@ -90,7 +90,7 @@ export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?:
       <Group icon={MapPin} tone="mango" title="Place and time">
         <div>
           <Sub>Area</Sub>
-          <AreaPicker value={t.area} />
+          <AreaPicker addNew value={t.area} />
           <AddressDetails name="exact_address" value={address} />
         </div>
         <div>

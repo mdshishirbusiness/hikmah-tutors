@@ -1149,3 +1149,9 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
   NID replaces the old one; old documents can be removed with the bin button. The Tutors badge counts tutors with
   uploads waiting, and the Tutors list has an "Uploads to check" chip. Photos now revalidate (ETag), so an approved
   photo shows at once.
+- **The owner adds a new area while posting a tuition** (owner, 2026-11-09): the tuition form's area list ends with
+  "+ New area" (English name, optional Bangla name). On save it joins the list for good (`areas` table, migration
+  0030; `app/lib/areas.server.ts`), so the next tuition, the board filter and tutors' area choices all show it, found by
+  either spelling. A name already on the list (label or any spelling) reuses that area instead of making a twin; a save
+  that fails another check adds nothing. Guardian and Quick Pad leads keep a free-text "Other area"; when a lead
+  becomes a tuition, that text opens in the New area box to confirm.
