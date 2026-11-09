@@ -3,6 +3,14 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-09 (apply note when the profile has gaps)
+
+- **Apply first brings the note into view when the Profile lacks something for this tuition** (owner): the tutor can
+  write a line or two, or tap "Apply without a note". With nothing missing, the note stays Optional and Apply sends at
+  once. Gaps (Claude, from the Profile's own steps, for the tuition's level only): the tuition's subjects not listed at
+  that level, students and years, how you teach, a student you helped. The note then shows "Recommended" and names
+  them. Classes with no level (Hifz, Other) never ask.
+
 ## 2026-11-09 (Premium reminder, built)
 
 - **A Premium reminder now and then** (owner, after seeing a competitor's full-screen pop-up): many tutors don't know

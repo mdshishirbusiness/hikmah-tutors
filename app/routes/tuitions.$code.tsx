@@ -2,7 +2,7 @@
 // ticket card as the board on top, the details the card leaves out as plain rows (with the fee), how the tutor fits, an
 // optional note for HTR, and a fixed Apply button. Only a gender mismatch blocks; the rest warn. No limit on how many
 // tuitions a tutor applies to. Visitors see the tuition and sign in to apply; `/tuitions/:code/apply` lands here too.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Form, Link, data, redirect, useNavigate, useNavigation } from "react-router";
 import { AlertTriangle, ArrowLeft, Check, Share2, X } from "lucide-react";
 import type { Route } from "./+types/tuitions.$code";
@@ -14,9 +14,10 @@ import { Toast, useShare } from "~/components/site";
 import { SiteTutorBar, useTutorSignedIn } from "~/components/tutor";
 import { TuitionCard, placeLabel, subjectList } from "~/components/TuitionCard";
 import type { Fit } from "~/lib/fit";
-import { atTime, timeOfDay, tutorFromLabel } from "~/lib/fit";
+import { atTime, bandOf, timeOfDay, tutorFromLabel } from "~/lib/fit";
 import { PremiumNudge } from "~/components/PremiumNudge";
-import { applyTo, applyView, optionalTutor, requireTutor } from "~/lib/me.server";
+import { applyTo, applyView, myLevels, optionalTutor, requireTutor } from "~/lib/me.server";
+import { type Band, type Level, bandShort, written } from "~/lib/profile";
 import { premiumNudgeOk } from "~/lib/premium.server";
 import { MEDIUMS, MODES, STUDENT_GENDERS, SUBJECTS, labelOf } from "~/lib/options";
 import { classLabel, requirementLabels } from "~/lib/request";
@@ -48,13 +49,30 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const t = view?.t ?? (code > 0 ? await visibleTuition(code) : null);
   if (!t) throw data("Tuition not found", { status: 404 });
   const who = !viewer ? "visitor" : viewer.role === "owner" ? "owner" : !me ? "join" : !ready ? "setup" : "tutor";
+  const band = bandOf(t.class_level);
+  const level = ready && view && band ? (await myLevels(ready.id)).find((l) => l.band === band) : undefined;
   // The Premium reminder: checked tutors with no Premium term (the 3-day gap is kept on the phone).
   const nudge = who === "tutor" && ready?.review_status === "approved" ? await premiumNudgeOk(ready.id) : false;
   return {
     nudge,
     t, who, now: Math.floor(Date.now() / 1000), fit: view?.fit ?? null, applied: view?.applied ?? false,
     minSalary: ready?.min_salary ?? null, paused: ready?.availability_paused === 1, review: ready?.review_status ?? null,
+    gaps: view && band ? noteGaps(t, view.fit, band, level) : [],
   } as const;
+}
+
+/**
+ * What the tutor's Profile doesn't yet say for this tuition (owner, 2026-11-09). With gaps, Apply first takes the tutor
+ * to the note ("Recommended"); with none, the note stays optional and Apply sends at once.
+ */
+function noteGaps(t: PublicTuition, fit: Fit, band: Band, l: Level | undefined): string[] {
+  const gaps: string[] = [];
+  const missing = t.subjects.filter((s) => !fit.subjects.includes(s));
+  if (missing.length) gaps.push(`${bandShort(band)} ${missing.map((s) => labelOf(SUBJECTS, s)).join(", ")}`);
+  if (!l || !(l.students ?? 0) || l.years === null) gaps.push(`${bandShort(band)} students and years`);
+  if (!written(l?.approach)) gaps.push(`How you teach ${bandShort(band)}`);
+  if (!written(l?.story)) gaps.push("A student you helped");
+  return gaps;
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -147,11 +165,23 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 const sectionTitle = "mb-2 px-1 text-sm font-bold tracking-wide text-slate-500 uppercase";
 
-export default function TuitionWindow({ loaderData: { t, who, now, fit, applied, minSalary, paused, review, nudge }, actionData }: Route.ComponentProps) {
+export default function TuitionWindow({ loaderData: { t, who, now, fit, applied, minSalary, paused, review, nudge, gaps }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const navigate = useNavigate();
   const { share, toast } = useShare();
   const [note, setNote] = useState("");
+  // With gaps, the first Apply only brings the note into view; the second sends, with or without a note.
+  const [asked, setAsked] = useState(false);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+  const askFirst = gaps.length > 0 && !asked && !note.trim();
+  const toNote = (e: React.MouseEvent) => {
+    if (!askFirst) return;
+    e.preventDefault();
+    setAsked(true);
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    noteRef.current?.closest("label")?.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
+    noteRef.current?.focus({ preventScroll: true });
+  };
   const withBar = useTutorSignedIn();
   const open = t.is_available && t.accepting_applications;
   const rows = fit ? fitRows(t, fit, minSalary) : [];
@@ -173,7 +203,11 @@ export default function TuitionWindow({ loaderData: { t, who, now, fit, applied,
   else if (review !== "approved") action = <Link to={review === "needs_fix" ? "/me/join" : "/me"} className={`${primaryButton} w-full`}>{review === "needs_fix" ? "Fix my profile" : "Go to My home"}</Link>;
   else if (!open) action = <Link to="/" className={`${primaryButton} w-full`}>See open tuitions</Link>;
   else if (blocked) action = <Link to="/" className={`${primaryButton} w-full`}>See other tuitions</Link>;
-  else action = <button form="apply" disabled={busy} className={`${primaryButton} w-full`}>{busy ? "Applying…" : "Apply"}</button>;
+  else action = (
+    <button form="apply" disabled={busy} onClick={toNote} className={`${primaryButton} w-full`}>
+      {busy ? "Applying…" : asked && !note.trim() ? "Apply without a note" : "Apply"}
+    </button>
+  );
 
   return (
     <>
@@ -260,10 +294,21 @@ export default function TuitionWindow({ loaderData: { t, who, now, fit, applied,
                 <span><span className="font-semibold">You're paused.</span> Applying turns pause off, so HTR can send you tuitions again.</span>
               </p>
             )}
-            <label className="block rounded-2xl bg-white p-4 ring-1 ring-brand-100">
-              <span className="block text-lg leading-snug font-bold text-forest">Anything for HTR about this tuition? <span className="text-sm font-normal text-slate-500">Optional</span></span>
-              <span className="mt-1 block text-sm leading-relaxed text-slate-600">যেমন: এই ক্লাসে আগে কাদের পড়িয়েছেন, কাছেই থাকেন, কবে থেকে শুরু করতে পারবেন।</span>
-              <textarea name="note" rows={4} maxLength={APPLY_NOTE_MAX} value={note} onChange={(e) => setNote(e.target.value)}
+            <label className={`block scroll-mt-20 rounded-2xl bg-white p-4 ring-1 transition-shadow ${asked && !note.trim() ? "ring-2 ring-brand-500" : "ring-brand-100"}`}>
+              <span className="block text-lg leading-snug font-bold text-forest">
+                Anything for HTR about this tuition?{" "}
+                {gaps.length > 0
+                  ? <span className="ml-1 inline-block rounded-full bg-mango px-2 py-0.5 align-middle text-xs font-bold text-forest">Recommended</span>
+                  : <span className="text-sm font-normal text-slate-500">Optional</span>}
+              </span>
+              {gaps.length > 0 ? (
+                <span className="mt-2 block rounded-xl bg-mango-50 px-3 py-2.5 text-sm leading-relaxed text-slate-700">
+                  আপনার প্রোফাইলে এই টিউশনের জন্য এগুলো নেই: <span className="font-semibold text-forest">{gaps.join(" · ")}</span>। দু-এক লাইনে লিখে দিলে HTR আপনাকে ভালোভাবে বিবেচনা করতে পারবে।
+                </span>
+              ) : (
+                <span className="mt-1 block text-sm leading-relaxed text-slate-600">আপনার প্রোফাইলে এই টিউশনের দরকারি তথ্য আছে, নোট না দিলেও চলবে। চাইলে লিখুন: কাছেই থাকেন, কবে থেকে শুরু করতে পারবেন।</span>
+              )}
+              <textarea ref={noteRef} name="note" rows={4} maxLength={APPLY_NOTE_MAX} value={note} onChange={(e) => setNote(e.target.value)}
                 placeholder="নিজের মতো লিখুন…" className={`${inputClass} mt-3 py-3`} />
               <span className="mt-1 flex justify-between gap-3 text-sm text-slate-500">
                 <span>ফোন নম্বর লিখবেন না; লিখলে কেটে দেওয়া হয়।</span>

@@ -52,7 +52,7 @@ export const bandShort = (b: Band) => BAND_SHORT[b];
 export const bandLabel = (b: Band) => labelOf(BANDS, b);
 
 /** Real sentences, not "ok": a few words at least. */
-const written = (s: string | null | undefined, min = 40) => (s ?? "").trim().length >= min;
+export const written = (s: string | null | undefined, min = 40) => (s ?? "").trim().length >= min;
 /**
  * The tutor's own marks, shown under the subjects they teach (owner, 2026-11-05: many wrote "Physics 95" in the sheet):
  * SSC marks beside SSC subjects, HSC marks beside HSC ones. "All subjects" picks and Quran have no exam mark.
