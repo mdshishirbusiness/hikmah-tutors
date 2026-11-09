@@ -7,6 +7,8 @@ import { bdPhone } from "./lead";
 import { AREAS, CLASS_CHOICES, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, SESSION_MINUTES, SUBJECTS, TIMES_OF_DAY, TUTOR_FROM } from "./options";
 import { parseWindow, requirementKeys } from "./request";
 import type { Level, Student } from "./profile";
+import { latestChecks } from "./calls.server";
+import type { Check } from "./rating";
 
 const PAGE_SIZE = ADMIN_PAGE_SIZE;
 const pageOffset = (page: number) => (Math.max(page, 1) - 1) * PAGE_SIZE;
@@ -245,6 +247,7 @@ export type Applicant = {
   dropped: number; // tuitions that didn't work out for the tutor's own reasons
   premium: number; // 1 while the tutor has an active Premium term (part E): first within their Strength level
   tutor_notes: string; // the selected tutor's own notes on this tuition, JSON [{ body, at }] newest first (owner, 2026-11-05)
+  check: Check | null; // the owner's newest phone check (owner, 2026-11-09), private
 };
 
 export async function getTuition(code: number) {
@@ -299,7 +302,7 @@ export async function getTuition(code: number) {
   ]);
   // Each applicant's experience at this level, students taught and record: three queries for the whole list.
   const ids = `SELECT tutor_id FROM applications WHERE tuition_code = ? AND tutor_id IS NOT NULL`;
-  const [levels, students, records] = await Promise.all([
+  const [levels, students, records, checks] = await Promise.all([
     band ? all<Level & { tutor_id: number }>(
       `SELECT tutor_id, band, students, years, approach, story, makes_notes, takes_tests, gives_homework, reports_guardian, tests_how, homework_how, notes_how, report_how
        FROM tutor_levels WHERE band = ? AND tutor_id IN (${ids})`, band, code,
@@ -314,6 +317,8 @@ export async function getTuition(code: number) {
                WHERE y.tutor_id = x.tutor_id AND e.reason LIKE 'didn''t work out:%' AND e.reason NOT LIKE '%guardian_chose_other%') dropped
        FROM applications x WHERE x.tutor_id IN (${ids}) GROUP BY x.tutor_id`, code,
     ),
+    // The owner's newest phone check of each applicant (owner, 2026-11-09): rated tutors lead the list.
+    latestChecks(ids, code),
   ]);
   const full: Applicant[] = applicants.map((a) => {
     const level = levels.find((l) => l.tutor_id === a.tutor_id) ?? null;
@@ -327,6 +332,7 @@ export async function getTuition(code: number) {
       demos: rec?.demos ?? 0,
       dropped: rec?.dropped ?? 0,
       experience: level?.story ?? level?.approach ?? a.experience,
+      check: (a.tutor_id && checks.get(a.tutor_id)) || null,
     };
   });
   return { tuition, priv, applicants: full, placements, history };

@@ -10,9 +10,9 @@ import { Avatar } from "~/components/Avatar";
 import { ago, num } from "~/components/admin";
 import { SitePage } from "~/components/site";
 import { GenderChip, SalaryText, placeLabel } from "~/components/TuitionCard";
-import { TutorBar } from "~/components/tutor";
+import { HtrChecked, TutorBar } from "~/components/tutor";
 import { requireUser } from "~/lib/auth.server";
-import { homeView, liveNotice, markUpdatesSeen, myApplications, tutorBadges, tutorForUser } from "~/lib/me.server";
+import { homeView, htrChecked, liveNotice, markUpdatesSeen, myApplications, tutorBadges, tutorForUser } from "~/lib/me.server";
 import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
 import { timeAgo } from "~/lib/tuition";
 import { profilePercent } from "~/lib/profile";
@@ -34,10 +34,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const me = await tutorForUser(viewer.id);
   if (!me) throw redirect("/me/join"); // a Google account with no tutor record registers first
   if (!me.setup_done_at) throw redirect("/me/setup?next=/me");
-  const [view, notice, apps, badges, premium] = await Promise.all([homeView(viewer, me), liveNotice(), myApplications(me.id), tutorBadges(viewer, me), premiumStatus(me.id)]);
+  const [view, notice, apps, badges, premium, checked] = await Promise.all([
+    homeView(viewer, me), liveNotice(), myApplications(me.id), tutorBadges(viewer, me), premiumStatus(me.id), htrChecked(me.id),
+  ]);
   // Drawn once with the dots, then marked seen, so the next visit starts clean.
   await markUpdatesSeen(me);
-  return { me, view, notice, apps, badges, premium, now: Math.floor(Date.now() / 1000) };
+  return { me, view, notice, apps, badges, premium, checked, now: Math.floor(Date.now() / 1000) };
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };
@@ -91,6 +93,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <p className="text-sm text-slate-500">{greeting(now)},</p>
             <h1 className="truncate text-[28px] leading-tight font-extrabold tracking-tight text-forest">{firstName(me.full_name)}</h1>
             <p className="truncate text-xs text-slate-500">T-{me.code} · {[me.university && UNI[me.university], me.department].filter(Boolean).join(" · ")}</p>
+            {loaderData.checked && <p className="mt-1"><HtrChecked /></p>}
           </div>
           <Link to="/me/profile#availability" className={`hidden shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold sm:inline-flex ${view.paused ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"}`}>
             {view.paused ? <PauseCircle size={14} aria-hidden /> : <span aria-hidden className="size-2 rounded-full bg-emerald-600" />}

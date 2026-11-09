@@ -1,7 +1,7 @@
 // Shared pieces of the signed-in tutor's pages: the bottom bar, a bottom sheet and choice chips.
 import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router";
-import { ClipboardCheck, House, LayoutList, type LucideIcon, UserRound } from "lucide-react";
+import { BadgeCheck, ClipboardCheck, House, LayoutList, type LucideIcon, UserRound } from "lucide-react";
 import { SectionCard, type SectionTone } from "~/components/SectionCard";
 import { useViewer } from "~/components/SiteHeader";
 
@@ -76,6 +76,13 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     </>
   );
 }
+
+/** "HTR checked": HTR has talked to this tutor by phone (owner, 2026-11-09). The rating itself stays private. */
+export const HtrChecked = () => (
+  <span title="HTR has talked to you and checked your experience" className="inline-flex items-center gap-1 rounded-full bg-mango px-2 py-0.5 text-xs font-extrabold text-forest">
+    <BadgeCheck size={13} aria-hidden />HTR checked
+  </span>
+);
 
 /** A tap-chip that is really a checkbox or radio, so the form works without JavaScript. */
 export function ChoiceChip({ type = "checkbox", name, value, checked, onChange, hidden, children }: {

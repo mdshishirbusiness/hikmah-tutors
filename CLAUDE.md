@@ -26,6 +26,8 @@ enforced with SQLite triggers. Roles: Owner only for now.
   the status lasts, each view logged (owner, 2026-11-04).
 - Show a tutor's phone number, NID or verification document to guardians or the public. One exception: the Selected
   tutor's phone may go into the admin's WhatsApp summary for that guardian; shortlist summaries carry no phone.
+  Voice clips: a guardian may hear one only when the owner shares that tutor's profile and the tutor agreed to share
+  that clip with guardians (owner, 2026-11-09).
 - Handle passwords, OAuth secrets or API keys. `.dev.vars` stays gitignored.
 - Read or paste real tutor, guardian or payment data into this session, except the owner's operations sheet, which
   Claude may read in full to understand the business and plan the import (owner, 2026-11-01). Don't repeat personal
@@ -64,6 +66,9 @@ enforced with SQLite triggers. Roles: Owner only for now.
 - Premium (migration 0019): rules, terms and WhatsApp texts in `app/lib/premium.ts`, steps in `premium.server.ts`
   (triggers hold the status order and fix a verified receipt). Pages `/me/premium` and `/admin/premium`. Cards are
   drawn on a canvas in `app/lib/cards.ts` and shared or saved by `ShareCard.tsx`.
+- Call list (`/admin/calls`, migration 0026): the owner phones tutors and rates them per level and per subject at each
+  level, with notes; `app/lib/calls.server.ts`, shared rules in `app/lib/rating.ts`, "Ask to update" texts in
+  `app/lib/ask.ts`. Ratings are private (audited as 'tutor_check'); tutors see only "HTR checked".
 - Admin pieces: `app/components/Applicants.tsx` (applicant table/board/detail), `charts.tsx` (no chart library),
   `TuitionFields.tsx` (new and edit tuition), `Avatar.tsx` (private photos via `/photos/tutor/:code`).
 - Database changes: a new numbered file in `migrations/`, then `npm run db:migrate:local` (and `db:migrate` for the

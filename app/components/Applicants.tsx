@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Link, useFetcher, useSearchParams } from "react-router";
 import {
-  AlertTriangle, Check, ChevronRight, Columns3, Copy, Crown, Download, ExternalLink, LayoutList, MessageCircle, Phone, Search, Send, Sparkles, X,
+  AlertTriangle, Check, ChevronRight, Columns3, Copy, Crown, Download, ExternalLink, LayoutList, MessageCircle, Phone, PhoneCall, Search, Send, Sparkles, Star, X,
 } from "lucide-react";
 import { Avatar } from "~/components/Avatar";
 import { FollowUpButton } from "~/components/FollowUps";
@@ -20,6 +20,7 @@ import { waLink } from "~/lib/contact";
 import { type Fit, atTime, bandOf, fitOf, freeLabel, timeOfDay, tutorFromLabel } from "~/lib/fit";
 import { SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
 import { bandShort } from "~/lib/profile";
+import { TRAITS, isStale, ratingFor, subjectKey } from "~/lib/rating";
 import { type Strength, levelOf, strengthOf, strengthWord } from "~/lib/strength";
 import { taka } from "~/lib/tuition";
 import { guardianSummary, tutorMessage } from "~/lib/whatsapp";
@@ -40,7 +41,11 @@ export const STAGES = [
 ] as const;
 const COLUMNS = STAGES.slice(1, 5);
 
-type Row = { a: Applicant; fit: Fit; match: number; strength: Strength };
+type Row = { a: Applicant; fit: Fit; match: number; strength: Strength; rating: number | null };
+
+/** The owner's rating for this tuition (owner, 2026-11-09), as a small mango chip. */
+const RatingChip = ({ value }: { value: number | null }) =>
+  value === null ? null : <span title="HTR rating from the phone check, out of 5" className="inline-flex shrink-0 items-center gap-0.5 rounded bg-mango px-1.5 text-xs font-extrabold text-forest tabular-nums"><Star size={11} aria-hidden />{value.toFixed(1)}</span>;
 
 /** A 0–100 match from the fit (owner's order: gender, subjects, area, university, then class and salary). */
 export function matchOf(fit: Fit, wantsUniversity: boolean): number {
@@ -226,6 +231,33 @@ const ghost = "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-
 
 // ---------- the detail pane ----------
 
+/** The owner's phone check for this tuition's level and subjects, or a link to make one (owner, 2026-11-09). */
+function CheckSummary({ row, band, code, subjects }: { row: Row; band: string | null; code: number | null; subjects: string[] }) {
+  const c = row.a.check;
+  if (!code) return null;
+  const call = <Link to={`/admin/calls/${code}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-bold text-forest shadow-ring hover:bg-brand-50"><PhoneCall size={15} aria-hidden />{c ? "Re-check" : "Call and rate"}</Link>;
+  if (!c) return <section aria-label="HTR check" className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Not checked by phone yet.{call}</section>;
+  const parts = [
+    ...(band && c.bands[band] ? [`${bandShort(band as "junior" | "ssc" | "hsc")} ${c.bands[band]}`] : []),
+    ...(band ? subjects.filter((s) => c.subjects[subjectKey(band, s)]).map((s) => `${labelOf(SUBJECTS, s)} ${c.subjects[subjectKey(band, s)]}`) : []),
+    ...TRAITS.filter((tr) => c[tr.key]).map((tr) => `${tr.label} ${c[tr.key]}`),
+  ];
+  const notes = [band && c.notes[band], c.notes.traits, c.note].filter(Boolean);
+  return (
+    <section aria-label="HTR check" className="rounded-2xl bg-mango/90 p-4 text-forest">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold tracking-wide uppercase">HTR check · {isStale(c, Math.floor(Date.now() / 1000)) ? "over a year old" : ago(c.at)}</p>
+          <p className="mt-0.5 text-sm font-semibold">{parts.join(" · ") || "Not rated for this level or subjects"}</p>
+        </div>
+        {row.rating !== null && <p className="text-3xl leading-none font-extrabold tabular-nums">{row.rating.toFixed(1)}</p>}
+      </div>
+      {notes.map((n) => <p key={n as string} className="mt-2 text-sm">“{n}”</p>)}
+      <div className="mt-3">{call}</div>
+    </section>
+  );
+}
+
 function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; guardianPhone: string | null; onMoved: (to: string) => void }) {
   const { a, fit, strength } = row;
   const [allStudents, setAllStudents] = useState(false);
@@ -287,6 +319,8 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
 
         {a.flag_reason && <p role="alert" className="rounded-xl bg-rose-100 px-3 py-2 text-sm text-rose-900"><b>Flagged:</b> {a.flag_reason}</p>}
         {a.paused === 1 && <p className="rounded-xl bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-900">This tutor has paused new tuitions.</p>}
+
+        <CheckSummary row={row} band={band} code={a.tutor_code} subjects={t.subjects.split(",").filter(Boolean)} />
 
         <section aria-label="Strength" className="rounded-2xl bg-cream p-4 ring-1 ring-brand-100">
           <div className="flex items-end justify-between gap-3">
@@ -441,6 +475,7 @@ function RowButton({ row, active, onPick, compact }: { row: Row; active: boolean
       <span className="min-w-0">
         <span className="flex items-center gap-1.5">
           <span className="truncate font-bold text-forest">{a.name || "No name"}</span>
+          <RatingChip value={row.rating} />
           {a.premium ? <span title="Premium: first within its Strength level" className="inline-flex shrink-0 items-center gap-0.5 rounded bg-mango px-1 text-[10px] font-extrabold text-forest"><Crown size={10} aria-hidden />PREMIUM</span> : null}
           {a.priority === "urgent" && <span className="shrink-0 rounded bg-forest px-1 text-[10px] font-bold text-mango">URGENT</span>}
           {a.flag_reason && <span title={`Flagged: ${a.flag_reason}`} className="shrink-0 rounded bg-rose-600 px-1 text-[10px] font-bold text-white">FLAG</span>}
@@ -481,7 +516,7 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
   const rows: Row[] = useMemo(() => applicants.map((a) => {
     const fit = fitOf({ ...t, subjects, tutor_from: tutorFrom }, a);
     const strength = strengthOf({ level: a.level, students: a.students, about: a.about, placed: a.placed, demos: a.demos, dropped: a.dropped }, bandOf(t.class_level));
-    return { a, fit, match: matchOf(fit, tutorFrom.length > 0), strength };
+    return { a, fit, match: matchOf(fit, tutorFrom.length > 0), strength, rating: ratingFor(a.check, bandOf(t.class_level), subjects) };
     // t and applicants change together with the loader
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [applicants, t]);
@@ -489,15 +524,19 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
   const counts = Object.fromEntries(STAGES.map((s) => [s.key, rows.filter((r) => s.test(r.a.status)).length]));
   const test = STAGES.find((s) => s.key === stage)?.test ?? STAGES[0].test;
   const needle = q.trim().toLowerCase();
+  const checkedOnly = sp.get("checked") === "1";
   const list = rows
     .filter((r) => (view === "board" ? STAGE[r.a.status] > 0 : test(r.a.status)))
+    .filter((r) => !checkedOnly || r.rating !== null)
     .filter((r) => !needle || `${r.a.name} ${r.a.tutor_code} ${r.a.department} ${r.a.institution} ${r.a.location}`.toLowerCase().includes(needle))
     .sort((x, y) =>
       sort === "new" ? y.a.created_at - x.a.created_at
         : sort === "old" ? x.a.created_at - y.a.created_at
           : sort === "fit" ? STAGE[y.a.status] - STAGE[x.a.status] || y.match - x.match || x.a.created_at - y.a.created_at
-            // Premium moves a tutor to the top of their own Strength level only, never above a stronger one (part E).
-            : STAGE[y.a.status] - STAGE[x.a.status] || levelOf(y.strength.score) - levelOf(x.strength.score) || y.a.premium - x.a.premium
+            // Tutors the owner checked by phone lead, by their rating for this tuition (owner, 2026-11-09); the rest
+            // follow by Strength. Premium moves a tutor to the top of their own Strength level only (part E).
+            : STAGE[y.a.status] - STAGE[x.a.status] || (y.rating ?? -1) - (x.rating ?? -1)
+              || levelOf(y.strength.score) - levelOf(x.strength.score) || y.a.premium - x.a.premium
               || y.strength.score - x.strength.score || y.match - x.match || x.a.created_at - y.a.created_at);
 
   const current = rows.find((r) => r.a.id === picked) ?? (desktop && view === "table" ? list[0] : undefined);
@@ -559,6 +598,10 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
       )}
       <div className="ml-auto flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
         {counts.live > 1 && <AiPack code={t.code} />}
+        <button type="button" onClick={() => set({ checked: checkedOnly ? null : "1", a: null })} aria-pressed={checkedOnly}
+          className={`inline-flex min-h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold transition-colors ${checkedOnly ? "bg-forest text-cream" : "bg-white text-forest shadow-ring hover:bg-brand-50"}`}>
+          <Star size={15} aria-hidden />Checked only
+        </button>
         <label className="relative min-w-0 flex-1 sm:w-48 sm:flex-none">
           <Search size={15} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" aria-hidden />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find applicant" aria-label="Find applicant" className="min-h-10 w-full rounded-xl bg-white pr-3 pl-8 text-sm shadow-ring outline-none focus:ring-2 focus:ring-brand-200" />
@@ -604,7 +647,7 @@ export function ApplicantWorkspace({ t, applicants, guardianPhone }: { t: Tuitio
                         <span className="flex items-center gap-2.5">
                           <Avatar code={r.a.tutor_code} name={r.a.name} hasPhoto={!!r.a.photo_key} size="sm" />
                           <span className="min-w-0">
-                            <span className="flex items-center gap-1"><span className="truncate text-sm font-bold text-forest">{r.a.name}</span>{r.a.premium ? <span title="Premium" className="grid size-4 shrink-0 place-items-center rounded bg-mango text-forest"><Crown size={10} aria-label="Premium" /></span> : null}</span>
+                            <span className="flex items-center gap-1"><span className="truncate text-sm font-bold text-forest">{r.a.name}</span><RatingChip value={r.rating} />{r.a.premium ? <span title="Premium" className="grid size-4 shrink-0 place-items-center rounded bg-mango text-forest"><Crown size={10} aria-label="Premium" /></span> : null}</span>
                             <span className="block truncate text-xs text-slate-500">{who(r.a)}</span>
                           </span>
                         </span>

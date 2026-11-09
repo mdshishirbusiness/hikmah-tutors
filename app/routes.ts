@@ -34,6 +34,8 @@ export default [
     route("admin/tuitions/:code", "routes/admin.tuitions.$code.tsx"),
     route("admin/tutors", "routes/admin.tutors.tsx"),
     route("admin/tutors/:code", "routes/admin.tutors.$code.tsx"),
+    route("admin/calls", "routes/admin.calls.tsx"),
+    route("admin/calls/:code", "routes/admin.calls.$code.tsx"),
     route("admin/guardians", "routes/admin.guardians.tsx"),
     route("admin/guardians/:id", "routes/admin.guardians.$id.tsx"),
     route("admin/applications", "routes/admin.applications.tsx"),

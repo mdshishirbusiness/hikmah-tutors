@@ -325,6 +325,19 @@ const UPDATE_KIND: Record<string, Update["kind"]> = { shortlisted: "shortlisted"
 
 export type NeedsAction = { application_id: number; tuition_code: number; class_level: string; area: string; next: "call" | "meet" | "demo" | "confirm" };
 
+/** Whether HTR has checked this tutor by phone (owner, 2026-11-09). Only the fact; the rating stays with the admin. */
+export async function htrChecked(tutorId: number) {
+  return !!(await env.DB.prepare(`SELECT 1 FROM tutor_checks WHERE tutor_id = ? LIMIT 1`).bind(tutorId).first());
+}
+
+/** HTR's open "Ask to update" for this tutor (owner, 2026-11-09): what to add, until they next save their profile. */
+export async function myAsk(tutorId: number) {
+  const row = await env.DB.prepare(
+    `SELECT items, created_at FROM tutor_update_asks WHERE tutor_id = ? AND done_at IS NULL AND created_at > unixepoch() - 30 * 86400 ORDER BY created_at DESC LIMIT 1`,
+  ).bind(tutorId).first<{ items: string; created_at: number }>();
+  return row ? { items: row.items.split(","), at: row.created_at } : null;
+}
+
 /** Students the tutor has taught, newest first (owner, 2026-11-05). */
 export async function myStudents(tutorId: number): Promise<Student[]> {
   const r = await env.DB.prepare(
@@ -534,6 +547,8 @@ export async function saveProfile(viewer: Viewer, me: MyTutor, form: FormData): 
     ...marks.map((m) => env.DB.prepare(`INSERT INTO tutor_subject_marks (tutor_id, exam, subject, marks) VALUES (?, ?, ?, ?)`).bind(me.id, m.exam, m.subject, m.marks)),
     ...(academic ? [env.DB.prepare(`UPDATE tutors SET ssc_group = ?, ssc_result = ?, hsc_group = ?, hsc_result = ? WHERE id = ?`).bind(...academic, me.id)] : []),
     audit(viewer.id, "tutor_profile_saved", "tutor", String(me.code), { areas: areas.length, anywhere, classes: classes.length, subjects: subjects.length, levels: levels.length }),
+    // A save answers HTR's "Ask to update"; the owner sees the tutor under Re-check.
+    env.DB.prepare(`UPDATE tutor_update_asks SET done_at = ? WHERE tutor_id = ? AND done_at IS NULL`).bind(t, me.id),
   ]);
   return null;
 }

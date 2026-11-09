@@ -3,6 +3,65 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-09 (ready tutors plan)
+
+Owner, after a grilling session. Counts from the data: tutors overall are plenty (about 15 applicants per SSC/HSC
+tuition); the gaps are female tutors (5.5 applicants when a female tutor is wanted) and commerce, and the real problem
+is telling the expert, dedicated tutors apart. The completeness score only measures how much was filled in.
+
+- **A ready tutor is one the owner has checked by phone** and found expert and dedicated; registration, a full profile
+  and an NID are ordinary. Most wanted: Junior, SSC and HSC Physics, Math, ICT, English and Chemistry. A tutor from the
+  subject's department (RU Math for math) is a hint, not proof.
+- **Build order**: (1) UX and colour audit, report only; (2) owner rating and Call list; (3) media fee ledger;
+  (4) UX fixes and profile refresh; (5) wallet and referral; (6) voice. Money features come forward on the owner's say.
+- **Owner rating**: per level (Junior, SSC, HSC with Admission) 1–5, and each subject rated per level (owner: many are
+  expert in Junior English but not HSC English); personal qualities rated apart (explains clearly, dedicated, polite and
+  humble); a note under each level, one under personal qualities, and an overall note; with the date. Private; the tutor's profile shows only "HTR checked". Re-check after 12 months or when the
+  tutor adds new experience. Rated tutors lead the applicant list by their rating for that tuition's level and subjects,
+  unrated ones follow by the completeness score; a "Checked only" filter.
+- **Call list** (admin, phone first): filter by every subject, level, gender, university, department and checked or
+  not; one tap to WhatsApp call; the owner's editable question bank and the rating form on the same screen; Done, No
+  answer, Call later (into the existing follow-ups). During a call the owner may fill in the tutor's subject-wise
+  experience; the tutor sees "HTR updated your profile" and can change it.
+- **Ask to update instead of typing it in** (owner: writing every tutor's experience during 200–300 calls takes too
+  long). The call screen lists what is missing per level (numbers, how they teach, a student they helped, subjects),
+  rated levels first; the owner ticks items and sends a personal WhatsApp message (editable, no emoji) with a link to
+  that level of their Profile. The tutor sees "HTR asked you to add" on Profile until they next save; Call list has an
+  "Asked to update" tab, and a save after a check puts the tutor under Re-check.
+- **Media fee ledger**: the fee is worked out when a tutor confirms; each tuition has Standard or Custom fee (a percent
+  of the first month's salary or a fixed amount), shown before applying. Until someone confirms the fee may change and
+  applicants see "Media fee changed"; after that only a manual reduction with a reason, logged. The owner records
+  payments (bKash, Nagad, cash, partial allowed); entries are never deleted, only reversed. Tutors see their due on
+  Home; admin sees total, due, collected and income by month. Starts fresh: nothing imported from the sheet.
+- **One apply window**: tapping a tuition card or Apply opens one full-screen view (also from shared links): the same
+  tuition card at the top (no separate green band), the other details below it, how the tutor fits, an optional note
+  of up to 500 characters ("Anything for HTR about this tuition?", Bangla examples) and a fixed Apply button. Phone
+  numbers are cut from the note; the note goes to the owner and into the Copy for AI pack.
+- **Wallet**: one balance per tutor from the Premium deposit and referral credit, taken off media fees; referral credit
+  is never cash. Shows each entry and a "Refer a tutor" button.
+- **Referral**: by link or by the referrer's code without the T, entered once at registration and never edited by the
+  tutor; no self-referral; the owner can fix a wrong referrer until credit is given (logged). Credit is given when the
+  referred tutor's profile reaches 80% and the owner has checked them: RU, RUET or Medical ৳20 male, ৳30 female; other
+  institutions ৳10 male, ৳20 female; fixed at the time of credit.
+- **Voice** (entry below) plugs into the same rating screen; the call screen can send the "record your demo" link.
+- **UX audit fixes, all approved for step 4** (owner): Profile opens one level at a time with a next-step button, and
+  habits are asked once (changeable per level); Home's missing-step chips name the level ("SSC · Your habits"); Join is
+  split into 3 short screens with a progress bar, and the fixed button never covers a field; subject chips on the board
+  share one calm colour (colour only where it tells something, like Female Tutor); section tints only from the brand
+  (emerald, cream, mango), red and pink only for errors; no text under 13 px, Bangla helper text 14 px; Bangla examples
+  in the apply note; the offline screen's logo is kept on the phone.
+
+## 2026-11-09 (tutor voice, planned)
+
+- **Tutors send short voice clips; the owner rates them** (owner: how a tutor explains and speaks matters to guardians
+  and no profile field shows it). Planned, not built yet. Up to three clips of 60–90 s on set prompts (intro and
+  experience, a short demo lesson in their subject and level, handling a student who won't study), recorded in the app
+  or uploaded from the phone. Optional at first; a clip adds to profile completeness. The owner rates each clip on a few
+  fixed points (clarity, subject grasp, patience, language); ratings are private and feed the applicant order.
+- **Guardians may hear a tutor's voice when the owner shares that tutor's profile** (owner), only for clips the tutor
+  has agreed to share with guardians. Otherwise clips are seen by the admin and the tutor only, each admin listen
+  logged, never in the Copy for AI pack, never saved offline.
+
 ## 2026-11-08 (past guardians, offline)
 
 - **Find a past guardian by phone or HTR code** (owner): Quick Pad and New tuition have a "Past guardian? Phone or HTR

@@ -6,7 +6,7 @@ import { Form, Link, NavLink, Outlet, type ShouldRevalidateFunctionArgs, useFetc
 import { InstallButton } from "~/components/InstallApp";
 import { ScrollRide } from "~/components/ScrollRide";
 import {
-  ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, Plus, Search, UserRound, Users, X, Zap,
+  ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, PhoneCall, Plus, Search, UserRound, Users, X, Zap,
 } from "lucide-react";
 import type { Route } from "./+types/admin.layout";
 import { Avatar } from "~/components/Avatar";
@@ -47,6 +47,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: "People",
     items: [
       { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors + c.uploads, hot: true },
+      { to: "/admin/calls", label: "Call list", icon: PhoneCall },
       { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true },
       { to: "/admin/guardians", label: "Guardians", icon: UserRound },
     ],
@@ -68,6 +69,7 @@ const TABS: Item[] = [
   { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors + c.uploads, hot: true },
 ];
 const MORE: Item[] = [
+  { to: "/admin/calls", label: "Call list", icon: PhoneCall },
   { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications },
   { to: "/admin/placements", label: "Placements", icon: Handshake, count: (c) => c.selected },
   { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true },

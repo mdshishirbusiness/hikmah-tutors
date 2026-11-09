@@ -16,11 +16,12 @@ import { inputClass } from "~/components/admin";
 import { FoldOnSave, SectionCard, type SectionTone } from "~/components/SectionCard";
 import { SitePage } from "~/components/site";
 import { AreaField, ClassField, SalaryField, SubjectField, useClasses } from "~/components/TeachingFields";
-import { ChoiceChip, Sheet, TutorBar } from "~/components/tutor";
+import { ChoiceChip, HtrChecked, Sheet, TutorBar } from "~/components/tutor";
+import { askLabel } from "~/lib/ask";
 import { CONTACT, waLink } from "~/lib/contact";
 import { FREE_TIMES, freeLabel } from "~/lib/fit";
 import { guardianSummary } from "~/lib/whatsapp";
-import { addStudent, deleteStudent, myChoices, myLevels, myStudents, mySubjectMarks, requireTutor, saveProfile, setPaused, tutorBadges } from "~/lib/me.server";
+import { addStudent, deleteStudent, htrChecked, myAsk, myChoices, myLevels, myStudents, mySubjectMarks, requireTutor, saveProfile, setPaused, tutorBadges } from "~/lib/me.server";
 import { AREAS, MEDIUMS, TRANSPORTS, classNames, labelOf } from "~/lib/options";
 import {
   type Band, type Level, PROFILE_TABS, type ProfileTab, type ProgressStep, TAB_OF, bandLabel, bandShort, habitsDone, hasHabits, profilePercent, profileSteps, taughtBands,
@@ -42,10 +43,11 @@ export function headers(_: Route.HeadersArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { viewer, me } = await requireTutor(request);
-  const [choices, levels, students, badges, marks, documents, uploads] = await Promise.all([
-    myChoices(me.id), myLevels(me.id), myStudents(me.id), tutorBadges(viewer, me), mySubjectMarks(me.id), myDocumentList(me.id), myUploads(me.id),
+  const [choices, levels, students, badges, marks, documents, uploads, checked, ask] = await Promise.all([
+    myChoices(me.id), myLevels(me.id), myStudents(me.id), tutorBadges(viewer, me), mySubjectMarks(me.id), myDocumentList(me.id), myUploads(me.id), htrChecked(me.id),
+    myAsk(me.id),
   ]);
-  return { me, choices, levels, students, badges, marks, documents, uploads };
+  return { me, choices, levels, students, badges, marks, documents, uploads, checked, ask };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -182,7 +184,7 @@ const sectionDone = (steps: ProgressStep[], id: string) => steps.some((s) => s.s
 /** "Kazla, Binodpur +3". */
 const firstFew = (labels: string[], n = 2) => labels.length ? `${labels.slice(0, n).join(", ")}${labels.length > n ? ` +${labels.length - n}` : ""}` : undefined;
 
-export default function Profile({ loaderData: { me, choices, levels, students, badges, marks, documents, uploads } }: Route.ComponentProps) {
+export default function Profile({ loaderData: { me, choices, levels, students, badges, marks, documents, uploads, checked, ask } }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
   const busy = nav.state !== "idle";
@@ -263,9 +265,21 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
             <p className="text-xs font-bold tracking-[0.12em] text-brand-700 uppercase">T-{me.code}</p>
             <h1 className="text-[26px] leading-tight font-extrabold tracking-tight break-words text-forest">{me.full_name}</h1>
             <p className="text-sm text-slate-600">{[me.university && UNI[me.university], me.department, me.session_year && `Session ${me.session_year}`].filter(Boolean).join(" · ")}</p>
+            {checked && <p className="mt-1.5"><HtrChecked /></p>}
           </div>
         </header>
 
+        {ask && (
+          <section aria-label="HTR asked" className="mt-4 rounded-2xl bg-mango p-4 text-forest">
+            <p className="font-extrabold">HTR asked you to add</p>
+            <ul className="mt-2 space-y-1.5">
+              {ask.items.map((it) => (
+                <li key={it}><a href={`#exp-${it.split(":")[0]}`} className="flex min-h-11 items-center gap-2 rounded-xl bg-white/70 px-3 text-[15px] font-semibold"><ArrowRight size={16} className="shrink-0" aria-hidden />{askLabel(it)}</a></li>
+              ))}
+            </ul>
+            <p className="mt-2 text-sm">লিখে নিচের Save চাপুন। HTR দেখে নেবে।</p>
+          </section>
+        )}
         <ProfileChecklist steps={steps} code={me.code} />
         <GuardianPreview me={me} choices={choices} levels={levels} bands={bands} />
 
