@@ -156,8 +156,8 @@ export function StageTabs({ tabs, active, param = "stage" }: { tabs: { key: stri
 }
 
 /** "৳4,500" in the big confident style of the board (owner, 2026-10-16). */
-export const Money = ({ amount, kind, className = "" }: { amount: number | null; kind: string; className?: string }) => (
+export const Money = ({ amount, max, kind, className = "" }: { amount: number | null; max?: number | null; kind: string; className?: string }) => (
   <span className={`font-extrabold tracking-tight text-forest ${className}`}>
-    {kind === "fixed" && amount ? `৳${num(amount)}` : kind === "negotiable" ? "Negotiable" : "No salary"}
+    {kind === "fixed" && amount ? `৳${num(amount)}${max && max > amount ? `–${num(max)}` : ""}` : kind === "negotiable" ? "Negotiable" : "No salary"}
   </span>
 );

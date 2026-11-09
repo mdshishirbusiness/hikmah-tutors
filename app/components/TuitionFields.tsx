@@ -13,7 +13,7 @@ import { useState } from "react";
 
 export type TuitionDraft = {
   class_level?: string; medium?: string; subjects?: string; area?: string; days_per_week?: number; session_minutes?: number | null; time_of_day?: string | null;
-  tutor_gender_pref?: string; salary_kind?: string; salary_amount?: number | null; tutor_from?: string; requirements_public?: string; start_note?: string;
+  tutor_gender_pref?: string; salary_kind?: string; salary_amount?: number | null; salary_amount_max?: number | null; tutor_from?: string; requirements_public?: string; start_note?: string;
   student_gender?: string | null; class_other?: string | null; subject_other?: string | null; time_from?: number | null; time_to?: number | null;
   requirement_keys?: string | null; fee_kind?: string; fee_value?: number | null;
 };
@@ -118,6 +118,9 @@ export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?:
         <Label text="Amount per month (৳)">
           <input name="salary_amount" type="number" min={0} step={100} inputMode="numeric" list="salary-presets" defaultValue={t.salary_amount ?? ""} placeholder="e.g. 5000" className={`${inputClass} text-lg font-bold`} />
           <datalist id="salary-presets">{SALARY_PRESETS.map((s) => <option key={s} value={s} />)}</datalist>
+        </Label>
+        <Label text="Up to (৳), optional" hint="fill to show a range like ৳4,000–5,000; the amount above is then the lowest">
+          <input name="salary_amount_max" type="number" min={0} step={100} inputMode="numeric" list="salary-presets" defaultValue={t.salary_amount_max ?? ""} placeholder="e.g. 6000" className={inputClass} />
         </Label>
         <MediaFee kind={t.fee_kind} value={t.fee_value} />
       </Group>

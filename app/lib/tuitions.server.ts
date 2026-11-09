@@ -5,7 +5,7 @@ import type { PublicTuition } from "./tuition";
 // Anyone can read these pages, so columns are named one by one (PRD T-SEC-01), never SELECT *.
 // The applicant count is a number only: who applied never leaves the admin pages.
 const PUBLIC_COLUMNS = `code, status, accepting_applications, class_level, medium, subjects, area, mode, salary_kind,
-  salary_amount, salary_period, days_per_week, session_minutes, time_of_day, student_gender, tutor_gender_pref, tutor_from,
+  salary_amount, salary_amount_max, salary_period, days_per_week, session_minutes, time_of_day, student_gender, tutor_gender_pref, tutor_from,
   requirements_public, requirement_keys, class_other, subject_other, time_from, time_to, start_note, posted_at, is_public, closed_at,
   fee_kind, fee_value,
   (SELECT count(*) FROM applications a WHERE a.tuition_code = tuitions.code
@@ -32,6 +32,7 @@ function toPublic({ is_public, closed_at: _closed, ...r }: Row): PublicTuition {
     requirement_keys: requirementKeys(r.requirement_keys),
     accepting_applications: r.accepting_applications === 1,
     salary_amount: r.salary_kind === "fixed" ? r.salary_amount : null,
+    salary_amount_max: r.salary_kind === "fixed" ? r.salary_amount_max : null,
     is_available: is_public === 1 && (r.status === "available" || r.status === "processing"),
   };
 }

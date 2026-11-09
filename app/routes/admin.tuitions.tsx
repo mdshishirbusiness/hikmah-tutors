@@ -86,7 +86,7 @@ export default function AdminTuitions({ loaderData: { total, items, f, statuses 
                         <span className="block font-semibold text-slate-900">{labelOf(CLASS_LEVELS, t.class_level)} · {labelOf(AREAS, t.area) || "No area"}</span>
                         {t.guardian && <span className="block text-xs text-slate-500">{t.guardian}</span>}
                       </td>
-                      <td className="px-2 py-3"><Money amount={t.salary_amount} kind={t.salary_kind} className="text-base" /></td>
+                      <td className="px-2 py-3"><Money amount={t.salary_amount} max={t.salary_amount_max} kind={t.salary_kind} className="text-base" /></td>
                       <td className="max-w-56 truncate px-2 py-3 text-slate-600">{subjectsOf(t)}</td>
                       <td className="px-2 py-3"><span className="flex items-center gap-2"><Pipeline t={t} /><span className="text-xs text-slate-400 tabular-nums">{num(t.applications)}</span></span></td>
                       <td className="px-2 py-3 text-xs whitespace-nowrap text-slate-500">{t.posted_at ? ago(t.posted_at) : "—"}</td>
@@ -113,7 +113,7 @@ export default function AdminTuitions({ loaderData: { total, items, f, statuses 
                         <Badge tone={TUITION_TONE[t.status]}>{TUITION_STATUS[t.status]}</Badge>
                       </span>
                     </div>
-                    <p className="mt-1 flex items-baseline gap-2"><Money amount={t.salary_amount} kind={t.salary_kind} className="text-2xl" /><span className="truncate font-semibold text-forest">{labelOf(AREAS, t.area)}</span></p>
+                    <p className="mt-1 flex items-baseline gap-2"><Money amount={t.salary_amount} max={t.salary_amount_max} kind={t.salary_kind} className="text-2xl" /><span className="truncate font-semibold text-forest">{labelOf(AREAS, t.area)}</span></p>
                     <p className="mt-0.5 truncate text-sm text-slate-600">{labelOf(CLASS_LEVELS, t.class_level)} · {subjectsOf(t)}</p>
                     <div className="mt-2.5 flex items-center justify-between gap-2"><Pipeline t={t} /><span className="text-xs text-slate-400">{t.posted_at ? ago(t.posted_at) : "not posted"}</span></div>
                   </Link>

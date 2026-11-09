@@ -180,7 +180,7 @@ export async function postLeadAsTuition(id: number, actorId: number | null): Pro
 
 export type AdminTuitionRow = {
   code: number; status: string; is_public: number; class_level: string; subjects: string; area: string; salary_kind: string;
-  salary_amount: number | null; tutor_gender_pref: string; posted_at: number | null; applications: number;
+  salary_amount: number | null; salary_amount_max?: number | null; tutor_gender_pref: string; posted_at: number | null; applications: number;
   fresh?: number; review?: number; short?: number; selected?: number; accepting_applications?: number; guardian?: string | null;
 };
 
@@ -203,7 +203,7 @@ export async function listTuitions(f: { q: string; status: string; visibility: s
   const [total, items, statuses] = await Promise.all([
     count(`SELECT count(*) n ${from}`, ...args),
     all<AdminTuitionRow>(
-      `SELECT t.code, t.status, t.is_public, t.accepting_applications, t.class_level, t.subjects, t.area, t.salary_kind, t.salary_amount, t.tutor_gender_pref, t.posted_at,
+      `SELECT t.code, t.status, t.is_public, t.accepting_applications, t.class_level, t.subjects, t.area, t.salary_kind, t.salary_amount, t.salary_amount_max, t.tutor_gender_pref, t.posted_at,
               COALESCE(p.guardian_label, g.name) guardian,
               (SELECT count(*) FROM applications a WHERE a.tuition_code = t.code) applications,
               (SELECT count(*) FROM applications a WHERE a.tuition_code = t.code AND a.status = 'submitted') fresh,
@@ -368,6 +368,8 @@ export function tuitionFieldsProblem(form: FormData): string | null {
   if (!Number.isInteger(days) || days < 1 || days > 7) return "Days per week must be 1 to 7.";
   if (!["fixed", "negotiable", "unspecified"].includes(salaryKind)) return "Salary type not valid.";
   if (salaryKind === "fixed" && (!Number.isInteger(amount) || amount <= 0)) return "Enter the salary.";
+  const amountMax = Number(text("salary_amount_max"));
+  if (salaryKind === "fixed" && text("salary_amount_max") && (!Number.isInteger(amountMax) || amountMax <= amount)) return "The top of the range must be more than the lowest salary.";
   if (!["any", "male", "female"].includes(genderPref)) return "Tutor choice not valid.";
   if (requirements.length > 500 || startNote.length > 100) return "Text is too long.";
   const classOther = text("class_other"), subjectOther = text("subject_other");
@@ -394,6 +396,7 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   const subjects = form.getAll("subjects").map(String).filter((s) => SUBJECTS.some((o) => o.key === s));
   const requirements = text("requirements_public"), startNote = text("start_note");
   const days = Number(text("days_per_week")), salaryKind = text("salary_kind"), amount = Number(text("salary_amount"));
+  const amountMax = Number(text("salary_amount_max")) || null;
   const genderPref = text("tutor_gender_pref"), publish = form.get("is_public") === "1";
   const sessionMinutes = Number(text("session_minutes")) || null, timeOfDay = text("time_of_day") || null;
   const tutorFrom = form.getAll("tutor_from").map(String).filter((k) => TUTOR_FROM.some((o) => o.key === k));
@@ -420,11 +423,11 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE tuitions SET status = ?, is_public = ?, accepting_applications = ?, medium = ?, class_level = ?, subjects = ?, area = ?, days_per_week = ?,
-              session_minutes = ?, time_of_day = ?, salary_kind = ?, salary_amount = ?, tutor_gender_pref = ?, tutor_from = ?, requirements_public = ?, start_note = ?, posted_at = ?,
+              session_minutes = ?, time_of_day = ?, salary_kind = ?, salary_amount = ?, salary_amount_max = ?, tutor_gender_pref = ?, tutor_from = ?, requirements_public = ?, start_note = ?, posted_at = ?,
               student_gender = COALESCE(?, student_gender), closed_at = CASE WHEN ? IS NULL THEN NULL ELSE COALESCE(closed_at, ?) END,
               class_other = ?, subject_other = ?, time_from = ?, time_to = ?, requirement_keys = ?
        WHERE code = ?`,
-    ).bind(status, publish ? 1 : 0, publish && form.get("accepting") === "1" ? 1 : 0, medium, classLevel, subjects.join(","), area, days, sessionMinutes, timeOfDay, salaryKind, salaryKind === "fixed" ? amount : null,
+    ).bind(status, publish ? 1 : 0, publish && form.get("accepting") === "1" ? 1 : 0, medium, classLevel, subjects.join(","), area, days, sessionMinutes, timeOfDay, salaryKind, salaryKind === "fixed" ? amount : null, salaryKind === "fixed" ? amountMax : null,
       genderPref, tutorFrom.join(","), requirements, startNote, postedAt, studentGender, closedAt, closedAt,
       classLevel === "other" ? text("class_other") || null : null, subjects.includes("other") ? text("subject_other") || null : null,
       window.time_from, window.time_to, asks.join(","), code),

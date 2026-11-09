@@ -15,6 +15,7 @@ export type PublicTuition = {
   mode: "home" | "online";
   salary_kind: "fixed" | "negotiable" | "unspecified";
   salary_amount: number | null;
+  salary_amount_max?: number | null; // top of a range; salary_amount is then the lowest
   salary_period: "per_month" | "per_course";
   days_per_week: number;
   session_minutes: number | null;
@@ -161,6 +162,10 @@ export function feeDisplay(t: Pick<PublicTuition, "salary_kind" | "salary_amount
 
 // English digits everywhere (owner, 2026-11-04).
 export const taka = (n: number) => `৳${new Intl.NumberFormat("en-IN").format(n)}`;
+
+/** "৳4,000–5,000" for a range, "৳4,000" for one figure. */
+export const takaRange = (min: number, max?: number | null) =>
+  max && max > min ? `${taka(min)}–${new Intl.NumberFormat("en-IN").format(max)}` : taka(min);
 
 const NEW_FOR_SECONDS = 48 * 3600;
 

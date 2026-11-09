@@ -5,7 +5,7 @@ import { tutorFromLabel } from "~/lib/fit";
 import { AREAS, MEDIUMS, STUDENT_GENDERS, labelOf } from "~/lib/options";
 import { classLabel, subjectLabel } from "~/lib/request";
 import {
-  GENDER_CHIP, SUBJECT_CHIP, isNew, needText, perClass, scheduleNote, taka, timeAgo,
+  GENDER_CHIP, SUBJECT_CHIP, isNew, needText, perClass, scheduleNote, taka, takaRange, timeAgo,
   type PublicTuition,
 } from "~/lib/tuition";
 
@@ -13,7 +13,7 @@ export function SalaryText({ t, unitClass }: { t: PublicTuition; unitClass: stri
   if (t.salary_kind === "fixed" && t.salary_amount) {
     return (
       <>
-        {taka(t.salary_amount)}
+        {takaRange(t.salary_amount, t.salary_amount_max)}
         <span className={`ml-1.5 font-normal ${unitClass}`}>/ {t.salary_period === "per_month" ? "month" : "course"}</span>
       </>
     );
@@ -108,14 +108,15 @@ function Applicants({ t, now }: { t: PublicTuition; now: number }) {
 function StubPay({ t }: { t: PublicTuition }) {
   if (t.salary_kind === "fixed" && t.salary_amount) {
     const rate = perClass(t);
+    const range = !!t.salary_amount_max && t.salary_amount_max > t.salary_amount;
     return (
       <>
         <p className="mt-2.5 text-[13px] font-semibold">Salary / {t.salary_period === "per_month" ? "month" : "course"}</p>
         <p className="mt-0.5 leading-none font-semibold">
           <span className="text-base">৳</span>
-          <span className="ml-0.5 text-[24px] tracking-tight">{taka(t.salary_amount).replace("৳", "")}</span>
+          <span className={`ml-0.5 tracking-tight ${range ? "text-[20px]" : "text-[24px]"}`}>{takaRange(t.salary_amount, t.salary_amount_max).replace("৳", "")}</span>
         </p>
-        {rate && <p className="mt-1 text-[13px]">≈ {taka(rate)} / class</p>}
+        {rate && !range && <p className="mt-1 text-[13px]">≈ {taka(rate)} / class</p>}
       </>
     );
   }

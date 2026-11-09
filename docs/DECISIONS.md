@@ -3,6 +3,13 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-09 (salary range)
+
+- **A tuition's salary can be a range** (owner): the tuition form has an optional "Up to" box under the amount
+  (migration 0031, `salary_amount_max`). The amount stays the lowest figure; with "Up to" filled the board card, admin
+  lists, and the Facebook/WhatsApp posts show "৳4,000–5,000". The media fee (percent), the board's minimum-salary
+  filter, sorting and the per-class line keep using the lowest figure (a range shows no per-class line).
+
 ## 2026-11-09 (admission batches, idea stage)
 
 - **Hikmah may run its own admission batches** (owner): university admission exams moved to February and HSC results

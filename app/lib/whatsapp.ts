@@ -3,7 +3,7 @@
 import { AREAS, SUBJECTS, labelOf } from "./options";
 import { classLabel, requirementLabels, subjectLabel, windowLabel } from "./request";
 import { bandOf, tutorFromLabel } from "./fit";
-import { taka } from "./tuition";
+import { taka, takaRange } from "./tuition";
 
 const PREFIX = /^(md\.?|mohammad|mohammed|muhammad|mohd\.?|mst\.?|most\.?|mosammat|sk\.?|sheikh)$/i;
 
@@ -13,7 +13,7 @@ export function firstName(full: string | null): string {
   return words.find((w) => !PREFIX.test(w)) ?? words[0] ?? "";
 }
 
-type Tuition = { code: number; class_level: string; class_other?: string | null; area: string; salary_kind: string; salary_amount: number | null };
+type Tuition = { code: number; class_level: string; class_other?: string | null; area: string; salary_kind: string; salary_amount: number | null; salary_amount_max?: number | null };
 type Tutor = {
   tutor_code: number | null; name: string | null; phone: string | null; institution: string | null; department: string | null;
   session_year: string | null; ssc_group: string | null; ssc_result: string | null; hsc_group: string | null; hsc_result: string | null;
@@ -84,7 +84,7 @@ export function postLines(t: Post) {
       `Class: ${classLabel(t.class_level, t.class_other)}`,
       subjects && `Subject: ${subjects}`,
       `Weekly: ${t.days_per_week} দিন`,
-      `Salary: ${t.salary_kind === "fixed" && t.salary_amount ? taka(t.salary_amount) : "৳ আলোচনা সাপেক্ষে"}`,
+      `Salary: ${t.salary_kind === "fixed" && t.salary_amount ? takaRange(t.salary_amount, t.salary_amount_max) : "৳ আলোচনা সাপেক্ষে"}`,
       windowLabel(t.time_from, t.time_to) && `Time: ${windowLabel(t.time_from, t.time_to)}`,
       `Location: ${labelOf(AREAS, t.area)}, Rajshahi`,
       t.student_gender && `Student: ${t.student_gender === "girl" ? "Female" : "Male"}`,

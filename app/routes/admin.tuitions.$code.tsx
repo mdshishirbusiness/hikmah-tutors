@@ -176,7 +176,7 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 rounded-2xl bg-white p-5 shadow-ring sm:p-6">
             <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
-              <Money amount={t.salary_amount} kind={t.salary_kind} className="text-4xl" />
+              <Money amount={t.salary_amount} max={t.salary_amount_max} kind={t.salary_kind} className="text-4xl" />
               {t.salary_kind === "fixed" && t.salary_amount ? <span className="pb-1 text-sm font-semibold text-slate-500">/month</span> : null}
               <span className="pb-1 text-sm text-slate-600">· {t.days_per_week} days/week{scheduleNote(t) && ` · ${scheduleNote(t)}`}</span>
             </div>
