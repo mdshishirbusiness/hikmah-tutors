@@ -8,6 +8,8 @@ import { AREAS, CLASS_CHOICES, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, SESSION_MINU
 import { parseWindow, requirementKeys } from "./request";
 import type { Level, Student } from "./profile";
 import { latestChecks } from "./calls.server";
+import { chargeOnConfirm, reverseChargeOnUndo } from "./fee.server";
+import { feeTermsFromForm } from "./fee";
 import type { Check } from "./rating";
 
 const PAGE_SIZE = ADMIN_PAGE_SIZE;
@@ -219,6 +221,7 @@ export type TuitionFull = AdminTuitionRow & {
   medium: string; mode: string; salary_period: string; days_per_week: number; student_gender: string | null; accepting_applications: number;
   requirements_public: string; start_note: string; closed_at: number | null; session_minutes: number | null; time_of_day: string | null;
   tutor_from: string; class_other: string | null; subject_other: string | null; time_from: number | null; time_to: number | null; requirement_keys: string;
+  fee_kind: "standard" | "percent" | "fixed"; fee_value: number | null;
 };
 export type TuitionPrivate = {
   guardian_id: number | null; guardian_label: string | null; guardian_phone: string | null; exact_address: string | null; lead_source: string | null;
@@ -373,8 +376,13 @@ export function tuitionFieldsProblem(form: FormData): string | null {
 }
 
 export async function updateTuition(code: number, form: FormData, actorId: number | null): Promise<string | null> {
-  const current = await env.DB.prepare(`SELECT status, posted_at FROM tuitions WHERE code = ?`).bind(code).first<{ status: string; posted_at: number | null }>();
+  const current = await env.DB.prepare(`SELECT status, posted_at, fee_kind, fee_value FROM tuitions WHERE code = ?`).bind(code)
+    .first<{ status: string; posted_at: number | null; fee_kind: string; fee_value: number | null }>();
   if (!current) return "Tuition not found.";
+  // The media fee may change until a tutor confirms; a confirmed placement keeps the fee it was charged.
+  const fee = form.has("fee_kind") ? feeTermsFromForm(form) : { terms: { kind: current.fee_kind, value: current.fee_value } };
+  if ("error" in fee && fee.error) return fee.error;
+  const feeChanged = fee.terms.kind !== current.fee_kind || (fee.terms.value ?? null) !== current.fee_value;
 
   const text = (name: string) => String(form.get(name) ?? "").trim();
   const status = text("status"), medium = text("medium"), classLevel = text("class_level"), area = text("area");
@@ -416,6 +424,12 @@ export async function updateTuition(code: number, form: FormData, actorId: numbe
     // The private address details sit with the guardian's row, never on the public tuition.
     ...(form.has("exact_address") ? [env.DB.prepare(`UPDATE tuition_private SET exact_address = ?, updated_at = ? WHERE tuition_code = ?`).bind(text("exact_address").slice(0, 200) || null, t, code)] : []),
     audit(actorId, "tuition_updated", "tuition", String(code), { status, is_public: publish }),
+    ...(feeChanged
+      ? [
+          env.DB.prepare(`UPDATE tuitions SET fee_kind = ?, fee_value = ?, fee_changed_at = ? WHERE code = ?`).bind(fee.terms.kind, fee.terms.value, t, code),
+          audit(actorId, "tuition_fee_changed", "tuition", String(code), { from: { kind: current.fee_kind, value: current.fee_value }, to: fee.terms }),
+        ]
+      : []),
   ]);
   return null;
 }
@@ -599,6 +613,7 @@ export async function moveApplication(id: number, to: string, reason: string, ac
     steps.push(
       env.DB.prepare(`UPDATE placements SET status = 'cancelled', updated_at = ? WHERE application_id = ? AND status IN ('selected', 'confirmed')`).bind(t, id),
       env.DB.prepare(`UPDATE tuitions SET status = 'processing', closed_at = NULL WHERE code = ? AND status = 'booked'`).bind(app.tuition_code),
+      ...reverseChargeOnUndo(id, reason || "Didn't work out", actorId),
     );
   }
   // Undoing a Confirmed (a tutor's tick the admin does not accept): back to Selected and the tuition to Processing.
@@ -607,6 +622,7 @@ export async function moveApplication(id: number, to: string, reason: string, ac
     steps.push(
       env.DB.prepare(`UPDATE placements SET status = 'cancelled', updated_at = ? WHERE application_id = ? AND status = 'confirmed'`).bind(t, id),
       env.DB.prepare(`UPDATE tuitions SET status = 'processing', closed_at = NULL WHERE code = ? AND status = 'booked'`).bind(app.tuition_code),
+      ...reverseChargeOnUndo(id, reason || "Confirm undone", actorId),
     );
   }
   if (to === "confirmed") {
@@ -622,6 +638,8 @@ export async function moveApplication(id: number, to: string, reason: string, ac
         `INSERT INTO placements (tuition_code, application_id, tutor_id, status, confirmed_at, created_at, updated_at) VALUES (?, ?, ?, 'confirmed', ?, ?, ?)
          ON CONFLICT (application_id) DO UPDATE SET status = 'confirmed', confirmed_at = excluded.confirmed_at, updated_at = excluded.updated_at`,
       ).bind(app.tuition_code, id, app.tutor_id, t, t, t),
+      // The media fee is fixed here, from the tuition's terms as they stand now (owner, 2026-11-09).
+      ...(await chargeOnConfirm(id, actorId)),
       env.DB.prepare(`UPDATE tuitions SET status = 'booked', is_public = 0, accepting_applications = 0, closed_at = ? WHERE code = ? AND status IN ('available', 'processing')`).bind(t, app.tuition_code),
     );
   }

@@ -40,6 +40,7 @@ export default [
     route("admin/guardians/:id", "routes/admin.guardians.$id.tsx"),
     route("admin/applications", "routes/admin.applications.tsx"),
     route("admin/placements", "routes/admin.placements.tsx"),
+    route("admin/money", "routes/admin.money.tsx"),
     route("admin/insights", "routes/admin.insights.tsx"),
     route("admin/review", "routes/admin.review.tsx"),
     route("admin/leads", "routes/admin.leads.tsx"),

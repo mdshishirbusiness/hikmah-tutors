@@ -17,6 +17,8 @@ import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
 import { timeAgo } from "~/lib/tuition";
 import { profilePercent } from "~/lib/profile";
 import { premiumStatus } from "~/lib/premium.server";
+import { myFees } from "~/lib/fee.server";
+import { FeeDue } from "~/components/FeeDue";
 import { taka } from "~/lib/tuition";
 import { firstName } from "~/lib/whatsapp";
 
@@ -34,12 +36,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const me = await tutorForUser(viewer.id);
   if (!me) throw redirect("/me/join"); // a Google account with no tutor record registers first
   if (!me.setup_done_at) throw redirect("/me/setup?next=/me");
-  const [view, notice, apps, badges, premium, checked] = await Promise.all([
-    homeView(viewer, me), liveNotice(), myApplications(me.id), tutorBadges(viewer, me), premiumStatus(me.id), htrChecked(me.id),
+  const [view, notice, apps, badges, premium, checked, fees] = await Promise.all([
+    homeView(viewer, me), liveNotice(), myApplications(me.id), tutorBadges(viewer, me), premiumStatus(me.id), htrChecked(me.id), myFees(me.id),
   ]);
   // Drawn once with the dots, then marked seen, so the next visit starts clean.
   await markUpdatesSeen(me);
-  return { me, view, notice, apps, badges, premium, checked, now: Math.floor(Date.now() / 1000) };
+  return { me, view, notice, apps, badges, premium, checked, fees, now: Math.floor(Date.now() / 1000) };
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };
@@ -137,6 +139,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 </Link>
               );
             })}
+
+            <FeeDue fees={loaderData.fees} code={me.code} />
 
             {notice && (
               <div className="flex gap-3 rounded-2xl bg-mango px-4 py-3.5 text-forest">

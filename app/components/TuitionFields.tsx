@@ -8,12 +8,14 @@ import { AddressDetails, AreaPicker, ClassPicker, MediumPicker, RequirementPicke
 import { ChoiceChip } from "~/components/tutor";
 import { CLASS_LEVELS, DAYS_PER_WEEK, SALARY_PRESETS, STUDENT_GENDERS } from "~/lib/options";
 import { requirementKeys } from "~/lib/request";
+import { FEE_KINDS } from "~/lib/fee";
+import { useState } from "react";
 
 export type TuitionDraft = {
   class_level?: string; medium?: string; subjects?: string; area?: string; days_per_week?: number; session_minutes?: number | null; time_of_day?: string | null;
   tutor_gender_pref?: string; salary_kind?: string; salary_amount?: number | null; tutor_from?: string; requirements_public?: string; start_note?: string;
   student_gender?: string | null; class_other?: string | null; subject_other?: string | null; time_from?: number | null; time_to?: number | null;
-  requirement_keys?: string | null;
+  requirement_keys?: string | null; fee_kind?: string; fee_value?: number | null;
 };
 
 export function Group({ title, hint, icon = ListChecks, tone, children }: { title: string; hint?: string; icon?: LucideIcon; tone?: SectionTone; children: React.ReactNode }) {
@@ -37,6 +39,30 @@ export function Label({ text, children, hint }: { text: string; children: React.
 
 const Chips = ({ children }: { children: React.ReactNode }) => <div className="flex flex-wrap gap-1.5">{children}</div>;
 const Sub = ({ children }: { children: React.ReactNode }) => <p className="mb-1 text-xs font-semibold text-slate-600">{children}</p>;
+
+/** Standard, or a Custom fee for this tuition (owner, 2026-11-09: short-term tuitions). Tutors see it before applying. */
+function MediaFee({ kind: initial, value }: { kind?: string; value?: number | null }) {
+  const [kind, setKind] = useState(initial ?? "standard");
+  return (
+    <div className="border-t border-brand-50 pt-3">
+      <Sub>Media fee</Sub>
+      <Chips>
+        {FEE_KINDS.map((k) => <ChoiceChip key={k.key} type="radio" name="fee_kind" value={k.key} checked={kind === k.key} onChange={(on) => on && setKind(k.key)}>{k.label}</ChoiceChip>)}
+      </Chips>
+      {kind === "percent" && (
+        <Label text="Percent of the first month's salary">
+          <input name="fee_percent" type="number" min={1} max={100} step={1} inputMode="numeric" required defaultValue={initial === "percent" ? value ?? "" : ""} placeholder="e.g. 30" className={`${inputClass} mt-2 text-lg font-bold`} />
+        </Label>
+      )}
+      {kind === "fixed" && (
+        <Label text="Fixed amount (৳)">
+          <input name="fee_fixed" type="number" min={1} step={50} inputMode="numeric" required defaultValue={initial === "fixed" ? value ?? "" : ""} placeholder="e.g. 1500" className={`${inputClass} mt-2 text-lg font-bold`} />
+        </Label>
+      )}
+      <p className="mt-2 text-xs text-slate-500">{kind === "standard" ? "60% of the first month (30% on confirm, 30% after the first salary), or 50% paid early." : "Due in full when the tutor confirms. Tutors see it before applying; it can change until someone confirms."}</p>
+    </div>
+  );
+}
 
 export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?: string | null }) {
   const legacy = CLASS_LEVELS.find((c) => c.key === t.class_level && c.legacy);
@@ -93,6 +119,7 @@ export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?:
           <input name="salary_amount" type="number" min={0} step={100} inputMode="numeric" list="salary-presets" defaultValue={t.salary_amount ?? ""} placeholder="e.g. 5000" className={`${inputClass} text-lg font-bold`} />
           <datalist id="salary-presets">{SALARY_PRESETS.map((s) => <option key={s} value={s} />)}</datalist>
         </Label>
+        <MediaFee kind={t.fee_kind} value={t.fee_value} />
       </Group>
 
       <Group icon={GraduationCap} tone="violet" title="Tutor wanted">

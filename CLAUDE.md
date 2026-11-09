@@ -66,6 +66,10 @@ enforced with SQLite triggers. Roles: Owner only for now.
 - Premium (migration 0019): rules, terms and WhatsApp texts in `app/lib/premium.ts`, steps in `premium.server.ts`
   (triggers hold the status order and fix a verified receipt). Pages `/me/premium` and `/admin/premium`. Cards are
   drawn on a canvas in `app/lib/cards.ts` and shared or saved by `ShareCard.tsx`.
+- Media fee ledger (migration 0027): each tuition's fee terms (`fee_kind`, `fee_value`) and the append-only
+  `fee_entries` (charge, payment, reduction, credit, reversal; balance = sum of `delta`). Rules in `app/lib/fee.ts`, ledger
+  in `fee.server.ts`; the charge is written inside `moveApplication` on confirm and reversed on undo. Admin `/admin/money`,
+  tutor card `app/components/FeeDue.tsx` on Home.
 - Call list (`/admin/calls`, migration 0026): the owner phones tutors and rates them per level and per subject at each
   level, with notes; `app/lib/calls.server.ts`, shared rules in `app/lib/rating.ts`, "Ask to update" texts in
   `app/lib/ask.ts`. Ratings are private (audited as 'tutor_check'); tutors see only "HTR checked".

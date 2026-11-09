@@ -173,6 +173,7 @@ export type MyApplication = {
   called_at: number | null; met_at: number | null; demo_done_at: number | null; selected_at: number | null; seen_at: number | null;
   class_level: string; area: string; mode: string; subjects: string; salary_kind: string; salary_amount: number | null; salary_period: string;
   days_per_week: number; session_minutes: number | null; time_of_day: string | null; tuition_status: string;
+  fee_kind: "standard" | "percent" | "fixed"; fee_value: number | null; fee_changed_at: number | null;
 };
 
 export async function myApplications(tutorId: number): Promise<MyApplication[]> {
@@ -180,7 +181,7 @@ export async function myApplications(tutorId: number): Promise<MyApplication[]> 
     `SELECT a.id, a.tuition_code, a.status, a.created_at, a.updated_at, a.note, a.called_at, a.met_at, a.demo_done_at, a.seen_at,
             (SELECT max(e.created_at) FROM application_events e WHERE e.application_id = a.id AND e.to_status = 'trial_arranged') selected_at,
             t.class_level, t.area, t.mode, t.subjects, t.salary_kind, t.salary_amount, t.salary_period, t.days_per_week, t.session_minutes, t.time_of_day,
-            t.status tuition_status
+            t.status tuition_status, t.fee_kind, t.fee_value, t.fee_changed_at
      FROM applications a JOIN tuitions t ON t.code = a.tuition_code WHERE a.tutor_id = ? ORDER BY a.updated_at DESC LIMIT 200`,
   ).bind(tutorId).all<MyApplication>();
   return results;
