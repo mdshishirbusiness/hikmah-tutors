@@ -164,8 +164,8 @@ export const taka = (n: number) => `৳${new Intl.NumberFormat("en-IN").format(n
 
 const NEW_FOR_SECONDS = 48 * 3600;
 
-/** The note a tutor may add when applying (owner, 2026-11-09: 500 characters, phone numbers cut out on save). */
-export const APPLY_NOTE_MAX = 500;
+/** The note a tutor may add when applying (owner, 2026-11-09: 1000 characters, phone numbers cut out on save). */
+export const APPLY_NOTE_MAX = 1000;
 
 export const isNew = (postedAt: number | null, now: number) => postedAt !== null && now - postedAt < NEW_FOR_SECONDS;
 

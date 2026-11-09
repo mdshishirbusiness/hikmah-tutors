@@ -3,6 +3,21 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-09 (admission batches, idea stage)
+
+- **Hikmah may run its own admission batches** (owner): university admission exams moved to February and HSC results
+  were weak, so many students are changing plans (science to another unit, medical to university). Hikmah would find
+  the students and guardians and keep full control; teachers are paid by Hikmah (50-50 share or salary still open;
+  Claude suggested pay per class).
+- **Few expert teachers, each can run several batches** (owner): HTR already has teachers for every subject (about 350
+  from RUET and many from RU's science departments), so the aim is a small, strong panel, not many teachers.
+- **Mainly online; offline too** (owner): an applicant says whether they teach online, offline in Rajshahi, or both.
+- **Applications first, then filter** (owner): take applications, then filter, call (phone viva), shortlist and
+  finalise. Online teachers are shortlisted on their setup and skill as well: laptop, pen tablet, recorded classes and
+  similar.
+- Not decided yet: which tracks the first batches cover (Claude suggested starting with the humanities unit for
+  students changing group, then science and engineering), fees, the pay rule, and the student side (sign-up, payment).
+
 ## 2026-11-09 (apply note when the profile has gaps)
 
 - **Apply first brings the note into view when the Profile lacks something for this tuition** (owner): the tutor can
@@ -10,6 +25,8 @@ Newest first. Each entry: what was decided, by whom, and why.
   once. Gaps (Claude, from the Profile's own steps, for the tuition's level only): the tuition's subjects not listed at
   that level, students and years, how you teach, a student you helped. The note then shows "Recommended" and names
   them. Classes with no level (Hifz, Other) never ask.
+- **The apply note is 1000 characters, and invites detail** (owner): the line under the box says "write as much as you
+  like" instead of warning about phone numbers. Phone numbers are still cut out on save, silently (`app/lib/redact.ts`).
 
 ## 2026-11-09 (Premium reminder, built)
 

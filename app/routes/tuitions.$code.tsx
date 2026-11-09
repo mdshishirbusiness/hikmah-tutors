@@ -311,7 +311,7 @@ export default function TuitionWindow({ loaderData: { t, who, now, fit, applied,
               <textarea ref={noteRef} name="note" rows={4} maxLength={APPLY_NOTE_MAX} value={note} onChange={(e) => setNote(e.target.value)}
                 placeholder="নিজের মতো লিখুন…" className={`${inputClass} mt-3 py-3`} />
               <span className="mt-1 flex justify-between gap-3 text-sm text-slate-500">
-                <span>ফোন নম্বর লিখবেন না; লিখলে কেটে দেওয়া হয়।</span>
+                <span>যতটা বিস্তারিত লিখতে চান লিখুন, কোনো সমস্যা নেই।</span>
                 <span className={`shrink-0 tabular-nums ${note.length > APPLY_NOTE_MAX * 0.9 ? "font-semibold text-forest" : ""}`}>{note.length}/{APPLY_NOTE_MAX}</span>
               </span>
             </label>
