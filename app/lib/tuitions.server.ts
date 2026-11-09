@@ -7,6 +7,7 @@ import type { PublicTuition } from "./tuition";
 const PUBLIC_COLUMNS = `code, status, accepting_applications, class_level, medium, subjects, area, mode, salary_kind,
   salary_amount, salary_period, days_per_week, session_minutes, time_of_day, student_gender, tutor_gender_pref, tutor_from,
   requirements_public, requirement_keys, class_other, subject_other, time_from, time_to, start_note, posted_at, is_public, closed_at,
+  fee_kind, fee_value,
   (SELECT count(*) FROM applications a WHERE a.tuition_code = tuitions.code
      AND a.status IN ('submitted', 'under_review', 'shortlisted', 'trial_arranged', 'confirmed')) AS applicants`;
 

@@ -6,7 +6,7 @@ import { Form, Link, NavLink, Outlet, type ShouldRevalidateFunctionArgs, useFetc
 import { InstallButton } from "~/components/InstallApp";
 import { ScrollRide } from "~/components/ScrollRide";
 import {
-  ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, PhoneCall, Plus, Search, UserRound, Users, X, Zap,
+  ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, PhoneCall, Plus, Search, UserRound, Users, Wallet, X, Zap,
 } from "lucide-react";
 import type { Route } from "./+types/admin.layout";
 import { Avatar } from "~/components/Avatar";
@@ -41,6 +41,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { to: "/admin/tuitions", label: "Tuitions", icon: ClipboardList, count: (c) => c.open },
       { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications, hot: true },
       { to: "/admin/placements", label: "Placements", icon: Handshake, count: (c) => c.selected },
+      { to: "/admin/money", label: "Money", icon: Wallet },
     ],
   },
   {
@@ -72,6 +73,7 @@ const MORE: Item[] = [
   { to: "/admin/calls", label: "Call list", icon: PhoneCall },
   { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications },
   { to: "/admin/placements", label: "Placements", icon: Handshake, count: (c) => c.selected },
+  { to: "/admin/money", label: "Money", icon: Wallet },
   { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true },
   { to: "/admin/guardians", label: "Guardians", icon: UserRound },
   { to: "/admin/insights", label: "Insights", icon: BarChart3 },

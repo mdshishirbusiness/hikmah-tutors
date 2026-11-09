@@ -3,6 +3,37 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-09 (media fee ledger, built)
+
+Step 3 of the ready tutors plan, as built (migration 0027, `app/lib/fee.ts`, `fee.server.ts`, `/admin/money`). Details
+settled while building; the ones marked *default* wait for the owner's word.
+
+- **Each tuition's fee** is Standard or Custom, picked under Salary in New tuition and Edit tuition. Custom is a percent
+  of the first month's salary or a fixed taka amount. The tutor sees it in the fee box and the pay chart before
+  applying, and in the Confirm sheet. A change after someone applied shows "Media fee changed" on their Applied page.
+- **The fee is fixed when the tutor confirms** (or the owner confirms for them), from the tuition's terms at that
+  moment, and written as a charge in the ledger. Basis: the placement's agreed salary, else the tuition's fixed salary.
+  With no salary to work from (negotiable, not given), the placement shows "Needs salary" on Money until the owner
+  enters the agreed salary. Undoing a confirm (back to Selected, or Didn't work out) reverses the charge.
+- **Standard** stays PRD §7.5: 60%, half due on confirm and half after the first salary is reported (day-30 call);
+  **Early** is 50%, all due at once: the owner taps "Paid early" and the 60% charge is swapped for a 50% one (both
+  entries kept). *Default*: a **Custom fee is due in full on confirm**, with no Early option. *Default*: the Early
+  deadline (7 days after joining) is not enforced by the app; the owner switches back by hand if it lapses.
+- **After confirm the fee only goes down**: "Reduce fee" with a written reason, at most what is still owed, logged in
+  the audit log. Payments: bKash, Nagad, Rocket or cash, partial allowed, with date and optional transaction ID; never
+  more than is owed (*default*: overpaying waits for the wallet). Entries are never edited or deleted (triggers); a
+  payment or reduction is undone by a reversal with a reason.
+- *Default*: **money already paid on a confirm that is later undone** stays and shows as "Overpaid" on Money; refund or
+  keep for the wallet is the owner's call (PRD §7.7 is still open).
+- **Wallet later**: the ledger has a `credit` kind for wallet credit taken off a fee (step 5), so wallet credit and
+  payments add up to the same balance.
+- **Tutors** see their fee on Home: due now, what waits for the first salary, each payment, how to pay (Send Money to
+  HTR's pay number) and a "Tell HTR I paid" WhatsApp. The owner records the payment; the tutor never marks money as
+  received. **Admin Money** (nav, Work group): total fees, collected, due now, after first salary; fees and collections
+  by month; Owing, After 1st salary, Paid up and All lists; each opens with its entries, Record payment, Reduce fee,
+  Paid early, Reverse and a WhatsApp reminder. Starts empty: nothing from the sheet, and placements confirmed before
+  the ledger stay out of it.
+
 ## 2026-11-09 (ready tutors plan)
 
 Owner, after a grilling session. Counts from the data: tutors overall are plenty (about 15 applicants per SSC/HSC

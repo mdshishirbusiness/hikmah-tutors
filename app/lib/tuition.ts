@@ -32,6 +32,8 @@ export type PublicTuition = {
   posted_at: number | null;
   is_available: boolean; // on the board
   applicants: number; // live applications; the count is public (owner, 2026-11-02), never who applied
+  fee_kind?: "standard" | "percent" | "fixed"; // the media fee for this tuition (app/lib/fee.ts)
+  fee_value?: number | null;
 };
 
 export type TuitionFilters = {
@@ -134,17 +136,27 @@ export function applyFilters(items: PublicTuition[], f: TuitionFilters): PublicT
   return kept;
 }
 
-export type Fees = { basis: number; first: number; second: number; standard_total: number; early_total: number; saving: number; is_example: boolean };
+/** `custom` is set when the tuition has its own fee (app/lib/fee.ts): one amount, due in full on confirm. Its total is
+ * null for a percent with no fixed salary to take it from. */
+export type Fees = {
+  basis: number; first: number; second: number; standard_total: number; early_total: number; saving: number; is_example: boolean;
+  custom?: { label: string; total: number | null } | null;
+};
 
 const EXAMPLE_BASIS = 4000;
 
-export function feeDisplay(t: Pick<PublicTuition, "salary_kind" | "salary_amount" | "salary_period">): Fees {
+export function feeDisplay(t: Pick<PublicTuition, "salary_kind" | "salary_amount" | "salary_period"> & Partial<Pick<PublicTuition, "fee_kind" | "fee_value">>): Fees {
   const real = t.salary_kind === "fixed" && t.salary_period === "per_month" && !!t.salary_amount && t.salary_amount > 0;
   const basis = real ? t.salary_amount! : EXAMPLE_BASIS;
   const standard_total = Math.floor((basis * 60 + 50) / 100);
   const early_total = Math.floor((basis * 50 + 50) / 100);
   const first = Math.floor(standard_total / 2);
-  return { basis, first, second: standard_total - first, standard_total, early_total, saving: standard_total - early_total, is_example: !real };
+  const v = t.fee_value ?? 0;
+  const custom =
+    t.fee_kind === "fixed" && v ? { label: "Fixed amount for this tuition", total: v }
+    : t.fee_kind === "percent" && v ? { label: `${v}% of the first month's salary`, total: t.salary_kind === "fixed" && t.salary_amount ? Math.floor((t.salary_amount * v + 50) / 100) : null }
+    : null;
+  return { basis, first, second: standard_total - first, standard_total, early_total, saving: standard_total - early_total, is_example: !real, custom };
 }
 
 // English digits everywhere (owner, 2026-11-04).

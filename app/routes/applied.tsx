@@ -61,6 +61,10 @@ const NEXT: Record<string, string> = {
 
 const what = (a: MyApplication) => [labelOf(CLASS_LEVELS, a.class_level), a.mode === "online" ? "Online" : labelOf(AREAS, a.area)].join(" · ");
 const pay = (a: MyApplication) => (a.salary_kind === "fixed" && a.salary_amount ? `${taka(a.salary_amount)}/month` : a.salary_kind === "negotiable" ? "Negotiable" : "Salary not given");
+const feeLine = (a: MyApplication) => {
+  const f = feeDisplay({ salary_kind: a.salary_kind as "fixed", salary_amount: a.salary_amount, salary_period: a.salary_period as "per_month", fee_kind: a.fee_kind, fee_value: a.fee_value });
+  return f.custom ? (f.custom.total === null ? f.custom.label : taka(f.custom.total)) : "Standard 60%";
+};
 const subjects = (a: MyApplication) => a.subjects.split(",").filter(Boolean).map((s) => labelOf(SUBJECTS, s)).join(", ");
 
 function GuardianNumber({ a }: { a: MyApplication }) {
@@ -195,7 +199,7 @@ function Checklist({ a, onConfirm, busy }: { a: MyApplication; onConfirm: () => 
 
 function SelectedCard({ a, busy, error, notes, tutor }: { a: MyApplication; busy: boolean; error: string | null; notes: TutorNote[]; tutor: number }) {
   const [sheet, setSheet] = useState<"confirm" | "didnt" | null>(null);
-  const fees = feeDisplay({ salary_kind: a.salary_kind as "fixed", salary_amount: a.salary_amount, salary_period: a.salary_period as "per_month" });
+  const fees = feeDisplay({ salary_kind: a.salary_kind as "fixed", salary_amount: a.salary_amount, salary_period: a.salary_period as "per_month", fee_kind: a.fee_kind, fee_value: a.fee_value });
   const confirmed = a.status === "confirmed";
   return (
     <li className="overflow-hidden rounded-3xl bg-forest text-cream shadow-card">
@@ -218,7 +222,14 @@ function SelectedCard({ a, busy, error, notes, tutor }: { a: MyApplication; busy
 
       <Sheet open={sheet === "confirm"} onClose={() => setSheet(null)} title="Confirm this tuition?">
         <p className="text-slate-700">Confirm only once the guardian has said yes. Confirming books HTR-{a.tuition_code} for you, and the media fee becomes due under the terms:</p>
-        <dl className="mt-3 space-y-2 text-sm text-slate-800">
+        {fees.custom ? (
+          <dl className="mt-3 space-y-2 text-sm text-slate-800">
+            <div className="rounded-xl border border-brand-100 p-3">
+              <dt className="font-semibold text-forest">Media fee for this tuition: {fees.custom.label}</dt>
+              <dd>{fees.custom.total === null ? "Worked out on the agreed salary, " : <><b>{taka(fees.custom.total)}</b>, </>}due in full once you confirm</dd>
+            </div>
+          </dl>
+        ) : <dl className="mt-3 space-y-2 text-sm text-slate-800">
           <div className="rounded-xl border border-brand-100 p-3">
             <dt className="font-semibold text-forest">Standard: 60%{fees.is_example && " (example on ৳4,000)"}</dt>
             <dd>{taka(fees.first)} after confirming + {taka(fees.second)} after the first salary = <b>{taka(fees.standard_total)}</b></dd>
@@ -227,7 +238,7 @@ function SelectedCard({ a, busy, error, notes, tutor }: { a: MyApplication; busy
             <dt className="font-semibold text-forest">Early: 50% within 7 days of joining</dt>
             <dd><b>{taka(fees.early_total)}</b> · you save {taka(fees.saving)}</dd>
           </div>
-        </dl>
+        </dl>}
         <Form method="post" className="mt-4 space-y-3" onSubmit={() => setSheet(null)}>
           <input type="hidden" name="intent" value="confirm" />
           <input type="hidden" name="id" value={a.id} />
@@ -277,6 +288,13 @@ function ActiveCard({ a, busy }: { a: MyApplication; busy: boolean }) {
       </div>
       <Ladder status={a.status} />
       <p className="mt-2 text-sm text-slate-700">{NEXT[a.status]}</p>
+      {/* The fee may change until someone confirms (owner, 2026-11-09); say so to everyone who applied before. */}
+      {a.fee_changed_at && a.fee_changed_at > a.created_at && (
+        <Link to={`/tuitions/HTR-${a.tuition_code}`} className="mt-2 flex min-h-11 items-center justify-between gap-2 rounded-xl bg-mango px-3 py-2 text-sm font-bold text-forest">
+          <span>Media fee changed {ago(a.fee_changed_at)}</span>
+          <span className="text-right font-semibold">{feeLine(a)}</span>
+        </Link>
+      )}
       <div className="mt-2 flex items-center justify-between gap-2">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
           Applied {when(a.created_at)}
