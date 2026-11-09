@@ -3,7 +3,7 @@
 // Private: only this tutor sees it.
 import { Link, redirect } from "react-router";
 import {
-  ArrowRight, BadgeCheck, Bell, CircleSlash, ClipboardCheck, Crown, Hourglass, Megaphone, PartyPopper, PauseCircle, PhoneCall, Sparkles, Star, UserPen, XCircle,
+  ArrowRight, BadgeCheck, Bell, CircleSlash, ClipboardCheck, Crown, Hourglass, Megaphone, PartyPopper, PauseCircle, PhoneCall, Sparkles, Star, UserPen, UserPlus, XCircle,
 } from "lucide-react";
 import type { Route } from "./+types/me";
 import { Avatar } from "~/components/Avatar";
@@ -18,6 +18,7 @@ import { timeAgo } from "~/lib/tuition";
 import { profilePercent } from "~/lib/profile";
 import { premiumStatus } from "~/lib/premium.server";
 import { myFees } from "~/lib/fee.server";
+import { walletBalance } from "~/lib/referral.server";
 import { FeeDue } from "~/components/FeeDue";
 import { taka } from "~/lib/tuition";
 import { firstName } from "~/lib/whatsapp";
@@ -36,12 +37,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const me = await tutorForUser(viewer.id);
   if (!me) throw redirect("/me/join"); // a Google account with no tutor record registers first
   if (!me.setup_done_at) throw redirect("/me/setup?next=/me");
-  const [view, notice, apps, badges, premium, checked, fees] = await Promise.all([
-    homeView(viewer, me), liveNotice(), myApplications(me.id), tutorBadges(viewer, me), premiumStatus(me.id), htrChecked(me.id), myFees(me.id),
+  const [view, notice, apps, badges, premium, checked, fees, wallet] = await Promise.all([
+    homeView(viewer, me), liveNotice(), myApplications(me.id), tutorBadges(viewer, me), premiumStatus(me.id), htrChecked(me.id), myFees(me.id), walletBalance(me.id),
   ]);
   // Drawn once with the dots, then marked seen, so the next visit starts clean.
   await markUpdatesSeen(me);
-  return { me, view, notice, apps, badges, premium, checked, fees, now: Math.floor(Date.now() / 1000) };
+  return { me, view, notice, apps, badges, premium, checked, fees, wallet, now: Math.floor(Date.now() / 1000) };
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };
@@ -77,7 +78,7 @@ function Ring({ percent }: { percent: number }) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { me, view, notice, apps, badges, premium, now } = loaderData;
+  const { me, view, notice, apps, badges, premium, wallet, now } = loaderData;
   const open = apps.filter((a) => ["submitted", "under_review", "shortlisted", "trial_arranged"].includes(a.status));
   const stats = [
     ["Open", open.length], ["Shortlisted", apps.filter((a) => a.status === "shortlisted").length],
@@ -246,6 +247,15 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 </span>
                 <ArrowRight size={18} className="shrink-0 text-mango transition-transform group-hover:translate-x-0.5" aria-hidden />
               </span>
+            </Link>
+
+            <Link to="/me/wallet" className="group flex min-h-16 items-center gap-3 rounded-2xl bg-white p-4 shadow-ring transition-shadow hover:shadow-lift">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-mango text-forest"><UserPlus size={20} aria-hidden /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-extrabold text-forest">Refer a tutor · Wallet {taka(wallet)}</span>
+                <span className="block text-sm text-slate-600">বন্ধুকে আনুন, মিডিয়া ফি-তে টাকা কমান।</span>
+              </span>
+              <ArrowRight size={18} className="shrink-0 text-brand-600 transition-transform group-hover:translate-x-0.5" aria-hidden />
             </Link>
 
             <section className="grid grid-cols-2 gap-3">

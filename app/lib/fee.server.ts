@@ -223,18 +223,50 @@ export async function switchToEarly(placementId: number, actorId: number | null)
   return null;
 }
 
-/** Undoes a payment or a reduction by adding its opposite. A charge is undone only by undoing the confirm. */
+/** The wallet balance of the tutor on a placement, for the Money sheet. */
+export async function placementWallet(placementId: number) {
+  return (await env.DB.prepare(`SELECT COALESCE(sum(w.delta), 0) n FROM wallet_entries w JOIN placements p ON p.tutor_id = w.tutor_id WHERE p.id = ?`)
+    .bind(placementId).first<{ n: number }>())?.n ?? 0;
+}
+
+/** Takes the tutor's wallet credit (step 5: referrals) off what this placement owes, up to the balance. */
+export async function useWalletCredit(placementId: number, actorId: number | null): Promise<string | null> {
+  const p = await placementBalance(placementId);
+  if (!p) return "Placement not found.";
+  if (!p.charged) return "This placement has no fee yet.";
+  const wallet = (await env.DB.prepare(`SELECT COALESCE(sum(delta), 0) n FROM wallet_entries WHERE tutor_id = ?`).bind(p.tutor_id).first<{ n: number }>())?.n ?? 0;
+  const amount = Math.min(wallet, p.balance.owed);
+  if (amount <= 0) return wallet <= 0 ? "The tutor has no wallet credit." : "Nothing is owed on this placement.";
+  const t = now();
+  // One transaction: the fee credit and the wallet spend that pays for it land together (the wallet trigger checks the balance).
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO fee_entries (placement_id, tutor_id, kind, delta, note, created_by, created_at) VALUES (?, ?, 'credit', ?, 'Wallet credit', ?, ?)`)
+      .bind(p.id, p.tutor_id, -amount, actorId, t),
+    env.DB.prepare(
+      `INSERT INTO wallet_entries (tutor_id, kind, delta, fee_entry_id, note, created_by, created_at)
+       VALUES (?, 'spend', ?, (SELECT max(id) FROM fee_entries WHERE placement_id = ? AND kind = 'credit'), ?, ?, ?)`,
+    ).bind(p.tutor_id, -amount, p.id, `Media fee HTR-${p.tuition_code}`, actorId, t),
+    audit(actorId, "fee_wallet_credit", p.id, null, { amount }),
+  ]);
+  return null;
+}
+
+/** Undoes a payment, a reduction or a wallet credit by adding its opposite (a wallet credit goes back to the wallet). */
 export async function reverseEntry(entryId: number, reason: string, actorId: number | null): Promise<string | null> {
   const why = reason.trim().slice(0, 300);
   if (!why) return "Write why it is reversed.";
   const e = await env.DB.prepare(`SELECT id, placement_id, tutor_id, kind, delta FROM fee_entries WHERE id = ?`)
     .bind(entryId).first<{ id: number; placement_id: number; tutor_id: number; kind: string; delta: number }>();
   if (!e) return "Entry not found.";
-  if (e.kind !== "payment" && e.kind !== "reduction") return "Only a payment or a reduction can be reversed here.";
+  if (e.kind !== "payment" && e.kind !== "reduction" && e.kind !== "credit") return "Only a payment, a reduction or a wallet credit can be reversed here.";
   try {
     await env.DB.batch([
       env.DB.prepare(`INSERT INTO fee_entries (placement_id, tutor_id, kind, delta, reverses_id, note, created_by, created_at) VALUES (?, ?, 'reversal', ?, ?, ?, ?, ?)`)
         .bind(e.placement_id, e.tutor_id, -e.delta, e.id, why, actorId, now()),
+      ...(e.kind === "credit" ? [env.DB.prepare(
+        `INSERT INTO wallet_entries (tutor_id, kind, delta, reverses_id, note, created_by, created_at)
+         SELECT w.tutor_id, 'reversal', -w.delta, w.id, ?, ?, ? FROM wallet_entries w WHERE w.fee_entry_id = ?`,
+      ).bind(why, actorId, now(), e.id)] : []),
       audit(actorId, "fee_reversed", e.placement_id, why, { entry: e.id, kind: e.kind, amount: -e.delta }),
     ]);
   } catch {

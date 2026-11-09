@@ -17,6 +17,7 @@ import { UNIVERSITIES, sessionYears } from "~/lib/join";
 import { bdPhone } from "~/lib/lead";
 import { type JoinErrors, myDocuments, saveJoin } from "~/lib/join.server";
 import { myChoices, tutorForUser } from "~/lib/me.server";
+import { checkRef, refFromCookie, referrerOf, setReferrer } from "~/lib/referral.server";
 import { TRANSPORTS } from "~/lib/options";
 import { squarePhoto } from "~/lib/images";
 
@@ -36,7 +37,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (me && me.review_status === "approved") throw redirect(safeNext(new URL(request.url).searchParams.get("next")) ?? "/me");
   const choices = me ? await myChoices(me.id) : { areas: [], classes: [], subjects: [] };
   const documents = me ? (await myDocuments(me.id)).map(({ id, kind, label }) => ({ id, kind, label })) : [];
-  return { me, choices, documents, email: viewer.email, googleName: viewer.name, sessions: sessionYears() };
+  // The referrer, once (owner, 2026-11-09): already saved, else the code a referral link left on this phone.
+  const referredBy = me ? await referrerOf(me.id) : null;
+  return { me, choices, documents, email: viewer.email, googleName: viewer.name, sessions: sessionYears(), referredBy, refCode: referredBy ? null : refFromCookie(request) };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -44,8 +47,15 @@ export async function action({ request }: Route.ActionArgs) {
   if (viewer.role === "owner") throw redirect("/admin");
   const me = await tutorForUser(viewer.id);
   if (me && me.review_status === "approved") throw redirect("/me");
-  const result = await saveJoin(viewer, me, await request.formData());
-  if ("errors" in result) return { errors: result.errors };
+  const form = await request.formData();
+  const canRefer = !me || !(await referrerOf(me.id));
+  const ref = canRefer ? await checkRef(form.get("ref"), me?.code ?? null) : { id: null };
+  const result = await saveJoin(viewer, me, form);
+  if ("errors" in result || ref.error) return { errors: { ...("errors" in result ? result.errors : {}), ...(ref.error ? { ref: ref.error } : {}) } };
+  if (ref.id) {
+    const tutor = await tutorForUser(viewer.id);
+    if (tutor) await setReferrer(tutor.id, ref.id);
+  }
   throw redirect("/me?joined=1");
 }
 
@@ -87,7 +97,7 @@ const Err = ({ children }: { children?: string }) => (children ? <p role="alert"
 // Which error a changed field answers, so its message goes away as soon as the tutor fixes it.
 const FIELD_ERROR: Record<string, keyof JoinErrors> = {
   photo: "photo", nid: "nid", full_name: "name", phone: "phone", gender: "gender", university: "university", institution: "institution", department: "department",
-  session_year: "session", anywhere: "areas", areas: "areas", classes: "classes", subjects: "subjects", available: "confirm", terms: "confirm",
+  session_year: "session", anywhere: "areas", areas: "areas", classes: "classes", subjects: "subjects", available: "confirm", terms: "confirm", ref: "ref",
 };
 const label = "mb-1 block text-sm font-bold text-forest";
 
@@ -101,7 +111,7 @@ const SCREENS = [
 ] as const;
 const SCREEN_OF: Record<keyof JoinErrors, number> = {
   photo: 0, name: 0, phone: 0, gender: 0, university: 1, institution: 1, department: 1, session: 1, documents: 1, nid: 1,
-  areas: 2, classes: 2, subjects: 2, confirm: 2, form: 2,
+  areas: 2, classes: 2, subjects: 2, confirm: 2, ref: 2, form: 2,
 };
 
 /** The screen's own required fields, read from the form; the server says the rest. */
@@ -121,7 +131,7 @@ function checkScreen(form: HTMLFormElement, screen: number): JoinErrors {
   return e;
 }
 
-export default function Join({ loaderData: { me, choices, documents, email, googleName, sessions }, actionData }: Route.ComponentProps) {
+export default function Join({ loaderData: { me, choices, documents, email, googleName, sessions, referredBy, refCode }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const [fixed, setFixed] = useState<Set<string>>(new Set());
   const [local, setLocal] = useState<JoinErrors>({});
@@ -315,6 +325,19 @@ export default function Join({ loaderData: { me, choices, documents, email, goog
                 <span>I accept the <a href="/terms" target="_blank" className="font-semibold text-brand-700 underline">terms</a>, including the one-time media fee when I get a tuition.</span>
               </label>
               <Err>{errors.confirm}</Err>
+              <div className="mt-4 border-t border-brand-50 pt-4">
+                {referredBy ? (
+                  <p className="text-sm text-slate-600">Referred by <b className="text-forest">T-{referredBy}</b></p>
+                ) : (
+                  <label className="block">
+                    <span className={label}>Referred by a tutor? <span className="font-normal text-slate-500">(optional)</span></span>
+                    <input name="ref" defaultValue={refCode ? String(refCode) : ""} inputMode="numeric" maxLength={8} placeholder="Their code, e.g. 2345"
+                      aria-invalid={!!errors.ref} className={`${inputClass} max-w-48`} />
+                    <span className="mt-1.5 block text-sm text-slate-500">যে টিউটর আপনাকে বলেছেন, তাঁর কোড। পরে আর বদলানো যাবে না।</span>
+                    <Err>{errors.ref}</Err>
+                  </label>
+                )}
+              </div>
             </Step>
           </div>
 

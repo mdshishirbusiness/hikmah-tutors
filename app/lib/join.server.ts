@@ -14,7 +14,7 @@ const text = (v: FormDataEntryValue | null, max: number) => String(v ?? "").repl
 const BAND_KEYS = new Set(BANDS.map((b) => b.key));
 const SUBJECT_KEYS = new Set(SUBJECTS.map((s) => s.key));
 
-export type JoinErrors = Partial<Record<"photo" | "documents" | "nid" | "name" | "phone" | "gender" | "university" | "institution" | "department" | "session" | "areas" | "classes" | "subjects" | "confirm" | "form", string>>;
+export type JoinErrors = Partial<Record<"photo" | "documents" | "nid" | "name" | "phone" | "gender" | "university" | "institution" | "department" | "session" | "areas" | "classes" | "subjects" | "confirm" | "ref" | "form", string>>;
 
 export type TutorDocument = { id: number; kind: "academic" | "nid"; label: string | null; r2_key: string };
 

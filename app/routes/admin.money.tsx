@@ -12,7 +12,9 @@ import { ChoiceChip, Sheet } from "~/components/tutor";
 import { requireAdmin } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
 import { FEE_METHODS, chargeTermsLabel } from "~/lib/fee";
-import { type FeeEntry, type MoneyRow, moneyBoard, placementEntries, recordPayment, reduceFee, reverseEntry, setAgreedSalary, switchToEarly } from "~/lib/fee.server";
+import {
+  type FeeEntry, type MoneyRow, moneyBoard, placementEntries, placementWallet, recordPayment, reduceFee, reverseEntry, setAgreedSalary, switchToEarly, useWalletCredit,
+} from "~/lib/fee.server";
 import { AREAS, CLASS_LEVELS, labelOf } from "~/lib/options";
 import { taka } from "~/lib/tuition";
 import { firstName } from "~/lib/whatsapp";
@@ -24,8 +26,8 @@ export function meta(_: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const id = Number(new URL(request.url).searchParams.get("p")) || 0;
-  const [board, entries] = await Promise.all([moneyBoard(), id ? placementEntries(id) : null]);
-  return { ...board, entries, today: new Date(Date.now() + 6 * 3600 * 1000).toISOString().slice(0, 10) };
+  const [board, entries, wallet] = await Promise.all([moneyBoard(), id ? placementEntries(id) : null, id ? placementWallet(id) : 0]);
+  return { ...board, entries, wallet, today: new Date(Date.now() + 6 * 3600 * 1000).toISOString().slice(0, 10) };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -39,6 +41,7 @@ export async function action({ request }: Route.ActionArgs) {
     case "early": return { intent: "early", error: await switchToEarly(id, actor) };
     case "reverse": return { intent: "reverse", error: await reverseEntry(Number(form.get("entry")), String(form.get("reason") ?? ""), actor) };
     case "salary": return { intent: "salary", error: await setAgreedSalary(id, form, actor) };
+    case "wallet": return { intent: "wallet", error: await useWalletCredit(id, actor) };
   }
   return { intent: "", error: "Unknown request." };
 }
@@ -64,7 +67,7 @@ function reminder(r: MoneyRow) {
 
 function EntryRow({ e, busy }: { e: FeeEntry; busy: boolean }) {
   const [open, setOpen] = useState(false);
-  const reversible = (e.kind === "payment" || e.kind === "reduction") && !e.reversed;
+  const reversible = (e.kind === "payment" || e.kind === "reduction" || e.kind === "credit") && !e.reversed;
   return (
     <li className={`py-2.5 ${e.reversed || e.kind === "reversal" ? "text-slate-400" : "text-slate-800"}`}>
       <div className="flex items-baseline justify-between gap-2">
@@ -93,7 +96,7 @@ function EntryRow({ e, busy }: { e: FeeEntry; busy: boolean }) {
   );
 }
 
-function Detail({ r, entries, today, busy, error }: { r: MoneyRow; entries: FeeEntry[]; today: string; busy: boolean; error: string | null }) {
+function Detail({ r, entries, wallet, today, busy, error }: { r: MoneyRow; entries: FeeEntry[]; wallet: number; today: string; busy: boolean; error: string | null }) {
   const [panel, setPanel] = useState<"pay" | "reduce">("pay");
   return (
     <div className="space-y-4">
@@ -120,6 +123,14 @@ function Detail({ r, entries, today, busy, error }: { r: MoneyRow; entries: FeeE
       )}
       {later(r) > 0 && <p className="text-sm text-slate-600">{taka(later(r))} more after the first salary{r.first_salary_at ? "" : " (not reported yet)"}.</p>}
       {r.owed < 0 && <p className="rounded-xl bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-900">Overpaid by {taka(-r.owed)}. Refund it, or keep it for the wallet when that comes.</p>}
+      {wallet > 0 && r.charged > 0 && r.owed > 0 && (
+        <Form method="post" className="flex items-center justify-between gap-3 rounded-2xl bg-brand-50 px-4 py-3">
+          <input type="hidden" name="intent" value="wallet" />
+          <input type="hidden" name="id" value={r.id} />
+          <p className="text-sm text-forest"><b>Wallet {taka(wallet)}</b> from referrals. Take {taka(Math.min(wallet, r.owed))} off this fee?</p>
+          <button disabled={busy} className="min-h-11 shrink-0 rounded-xl bg-forest px-4 text-sm font-bold text-cream disabled:opacity-60">Use credit</button>
+        </Form>
+      )}
 
       {r.charged > 0 && r.owed > 0 && (
         <section className="rounded-2xl bg-white shadow-ring">
@@ -194,7 +205,7 @@ function Detail({ r, entries, today, busy, error }: { r: MoneyRow; entries: FeeE
   );
 }
 
-export default function MoneyAdmin({ loaderData: { rows, byMonth, totals, entries, today }, actionData }: Route.ComponentProps) {
+export default function MoneyAdmin({ loaderData: { rows, byMonth, totals, entries, wallet, today }, actionData }: Route.ComponentProps) {
   const [sp, setSp] = useSearchParams();
   const busy = useNavigation().state !== "idle";
   const tab = TABS.find((t) => t.key === (sp.get("tab") ?? "")) ?? TABS[0];
@@ -256,7 +267,7 @@ export default function MoneyAdmin({ loaderData: { rows, byMonth, totals, entrie
       )}
 
       <Sheet open={!!open && !!entries} onClose={close} title={open ? `${open.name} · T-${open.tutor_code}` : "Fee"}>
-        {open && entries && <Detail key={open.id} r={open} entries={entries} today={today} busy={busy} error={actionData?.error ?? null} />}
+        {open && entries && <Detail key={open.id} r={open} entries={entries} wallet={wallet} today={today} busy={busy} error={actionData?.error ?? null} />}
       </Sheet>
     </>
   );

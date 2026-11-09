@@ -12,6 +12,7 @@ import { ChoiceChip } from "~/components/tutor";
 import { requireAdmin } from "~/lib/auth.server";
 import { askLabel, askMessage, missingItems } from "~/lib/ask";
 import { callTutor, logAsk, logCall, saveCheck } from "~/lib/calls.server";
+import { creditReferral } from "~/lib/referral.server";
 import { telLink, waLink } from "~/lib/contact";
 import { dhakaAt } from "~/lib/dhaka";
 import { BANDS, SUBJECTS, labelOf } from "~/lib/options";
@@ -53,6 +54,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     ? await saveCheck(found.tutor.id, found.tutor.code, form, actor)
     : await logCall(found.tutor.id, intent, intent === "later" ? Number(form.get("at")) || 0 : 0, "Call to check (Call list)", actor);
   if (error) return { error };
+  // A check can be what completes a referral (profile already at 80%).
+  if (intent === "check") await creditReferral(found.tutor.id, actor);
   return redirect(backOf(request));
 }
 

@@ -18,6 +18,7 @@ import { SitePage } from "~/components/site";
 import { AreaField, ClassField, SalaryField, SubjectField, useClasses } from "~/components/TeachingFields";
 import { ChoiceChip, HtrChecked, Sheet, TutorBar } from "~/components/tutor";
 import { askLabel } from "~/lib/ask";
+import { creditReferral } from "~/lib/referral.server";
 import { CONTACT, waLink } from "~/lib/contact";
 import { FREE_TIMES, freeLabel } from "~/lib/fit";
 import { guardianSummary } from "~/lib/whatsapp";
@@ -63,6 +64,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
   if (form.get("intent") === "add_student") {
     const error = await addStudent(viewer, me, form);
+    if (!error) await creditReferral(me.id, viewer.id);
     return { error: null, saved: null, studentSaved: !error, studentError: error };
   }
   if (form.get("intent") === "delete_student") {
@@ -83,6 +85,8 @@ export async function action({ request }: Route.ActionArgs) {
     }
   }
   const error = await saveProfile(viewer, me, form);
+  // A referred tutor reaching 80% (after HTR's check) earns their referrer's credit.
+  if (!error) await creditReferral(me.id, viewer.id);
   return { error, saved: error ? null : "Saved. Your profile and For You are up to date.", profileSaved: !error };
 }
 
