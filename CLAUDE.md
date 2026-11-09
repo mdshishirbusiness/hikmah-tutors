@@ -70,6 +70,9 @@ enforced with SQLite triggers. Roles: Owner only for now.
   `fee_entries` (charge, payment, reduction, credit, reversal; balance = sum of `delta`). Rules in `app/lib/fee.ts`, ledger
   in `fee.server.ts`; the charge is written inside `moveApplication` on confirm and reversed on undo. Admin `/admin/money`,
   tutor card `app/components/FeeDue.tsx` on Home.
+- Referral and wallet (migration 0028): `/r/<code>` links, credit rules in `app/lib/referral.ts`, ledger and credit in
+  `app/lib/referral.server.ts` (call `creditReferral` after anything that can complete a referral), `/me/wallet`;
+  wallet credit is spent on a fee from Money (`useWalletCredit` in `fee.server.ts`).
 - Call list (`/admin/calls`, migration 0026): the owner phones tutors and rates them per level and per subject at each
   level, with notes; `app/lib/calls.server.ts`, shared rules in `app/lib/rating.ts`, "Ask to update" texts in
   `app/lib/ask.ts`. Ratings are private (audited as 'tutor_check'); tutors see only "HTR checked".

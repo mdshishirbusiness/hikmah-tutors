@@ -23,7 +23,7 @@ export default function ReferralLanding({ loaderData: { code } }: Route.Componen
       <div className="mx-auto max-w-xl px-4 pt-8 pb-16">
         <section className="overflow-hidden rounded-3xl bg-forest p-6 text-cream">
           {code && <p className="inline-flex rounded-full bg-mango px-3 py-1 text-sm font-extrabold text-forest">Invited by T-{code}</p>}
-          <h1 className="mt-4 text-[32px] leading-tight font-extrabold tracking-tight">Tuitions near you, every day.</h1>
+          <h1 className="mt-4 text-[32px] leading-tight font-extrabold tracking-tight">Teach in Rajshahi with Hikmah Tutors.</h1>
           <p className="mt-2 text-[15px] leading-relaxed text-cream/85">রাজশাহীর অভিভাবকেরা প্রতিদিন Hikmah Tutors-এ টিউটর খোঁজেন। একবার রেজিস্ট্রেশন করুন, তারপর পছন্দের টিউশনে আবেদন করুন।</p>
           <a href="/login?next=/me/join" className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-mango px-5 text-base font-extrabold text-forest">
             Join as a tutor<ArrowRight size={18} aria-hidden />

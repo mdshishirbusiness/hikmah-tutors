@@ -3,6 +3,34 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-09 (Premium reminder, planned)
+
+- **A Premium reminder now and then** (owner, after seeing a competitor's full-screen pop-up): many tutors don't know
+  Premium exists. Shown only to signed-in tutors without Premium, at most **once every 3 days** (owner, replacing
+  Claude's once a week); "Not now" hides it for 3 days, and a Premium member never sees it. Claude's proposal, waiting
+  for the owner's OK on a 375 px screenshot: a bottom sheet (not a full-screen modal) when a tutor opens a tuition,
+  brand colours, no stock photo or "#1" claims, honest about rizq and no guarantee, plus a lasting Premium card on Home.
+- Correction: Claude first said this must wait until the core is live. The core and Premium are already live
+  (hikmahtutor.com since 2026-11-04, Premium since 2026-11-05), so nothing blocks it.
+
+## 2026-11-09 (referral and wallet, built)
+
+Step 5 of the ready tutors plan, as decided there; how it was built:
+- **Link and code**: `/r/<code>` keeps the code on the phone for 30 days and shows "Invited by T-<code>" (code only,
+  never the referrer's name). Join's last screen has "Referred by a tutor?" filled from it; a code that matches nobody,
+  or the tutor's own, is an error. Set once (`tutors.referred_by`, migration 0028); only new registrations go through
+  Join, so tutors already on the list have no referrer.
+- **Credit** is checked after every profile save, every added student and every owner check; whichever completes the
+  pair (profile 80% and checked) gives it, once per referred tutor, at the rates of the referred tutor's university and
+  gender at that moment.
+- **Wallet** (`/me/wallet`, a card on Home): balance, link and code with copy and share, rates, the referred tutors by
+  code with where each stands, history. The Premium deposit is shown there but stays in Premium's own flow (it is
+  already the advance on the fee of the tuition HTR gives).
+- **Spending**: the owner taps "Use credit" on a placement in Money; the wallet credit (up to what is owed) becomes a
+  `credit` fee entry and a wallet `spend`, together. Reversing that fee entry gives the credit back. The wallet never
+  goes below zero and its entries are never edited or deleted (triggers).
+- **Admin tutor page**: who referred them (fix or clear it until credit is given, logged), wallet, whom they referred.
+
 ## 2026-11-09 (media fee ledger, built)
 
 Step 3 of the ready tutors plan, as built (migration 0027, `app/lib/fee.ts`, `fee.server.ts`, `/admin/money`). Details

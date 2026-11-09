@@ -15,6 +15,7 @@ import { getTutor, reviewTutor, setFlag, setTutorAccount } from "~/lib/admin.ser
 import { followupsFor } from "~/lib/followups.server";
 import { decideUpload, pendingUploads, removeDocument } from "~/lib/uploads.server";
 import { requireAdmin } from "~/lib/auth.server";
+import { fixReferrer, referralAdmin } from "~/lib/referral.server";
 import { waLink } from "~/lib/contact";
 import { DOC_LABELS, UNIVERSITIES } from "~/lib/join";
 import { AREAS, BANDS, CLASS_LEVELS, MEDIUMS, SUBJECTS, TRANSPORTS, labelOf } from "~/lib/options";
@@ -28,8 +29,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAdmin(request);
   const found = await getTutor(Number(params.code) || -1);
   if (!found) throw data("Tutor not found", { status: 404 });
-  const [follow, uploads] = await Promise.all([followupsFor("tutor", found.tutor.id), pendingUploads(found.tutor.id)]);
-  return { ...found, follow, uploads };
+  const [follow, uploads, referral] = await Promise.all([followupsFor("tutor", found.tutor.id), pendingUploads(found.tutor.id), referralAdmin(found.tutor.id)]);
+  return { ...found, follow, uploads, referral };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -43,6 +44,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (intent === "approve_upload" || intent === "decline_upload") {
     return { error: await decideUpload(viewer?.id ?? null, found.tutor.id, Number(form.get("id")) || 0, intent === "approve_upload", String(form.get("note") ?? "")) };
   }
+  if (intent === "referrer") return { error: await fixReferrer(found.tutor.id, found.tutor.code, String(form.get("ref") ?? ""), viewer?.id ?? null) };
   if (intent === "remove_doc") return { error: await removeDocument(viewer?.id ?? null, found.tutor.id, Number(form.get("id")) || 0) };
   return { error: await setFlag("tutor", found.tutor.id, form.get("intent") === "clear" ? "" : String(form.get("reason") ?? ""), viewer?.id ?? null) };
 }
@@ -57,7 +59,7 @@ const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical"
 const LEVEL_KINDS = new Set(["junior_strategy", "junior_experience", "ssc_strategy", "ssc_experience", "hsc_strategy", "hsc_experience", "special_skills", "demo_video"]);
 const ghost = "inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring hover:bg-brand-50";
 
-export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, documents, areas, classes, follow, uploads }, actionData }: Route.ComponentProps) {
+export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, documents, areas, classes, follow, uploads, referral }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const facebook = safeUrl(t.facebook_url);
   const reached = (s: string[]) => applications.filter((a) => s.includes(a.status)).length;
@@ -246,6 +248,27 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
                 {t.flag_reason && <button name="intent" value="clear" disabled={busy} className={ghost}>Clear flag</button>}
               </div>
             </Form>
+          </Card>
+          <Card>
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-forest"><UserPlus size={15} aria-hidden />Referral and wallet</h2>
+            {referral.by ? (
+              <p className="mt-2 text-sm">Referred by <Link to={`/admin/tutors/${referral.by.code}`} className="font-semibold text-brand-700 hover:underline">T-{referral.by.code} · {referral.by.full_name}</Link>{referral.by.credited ? " · credit given" : ""}</p>
+            ) : <p className="mt-2 text-sm text-slate-500">Not referred by a tutor.</p>}
+            {!referral.by?.credited && (
+              <Form method="post" className="mt-2 flex gap-2">
+                <input type="hidden" name="intent" value="referrer" />
+                <input name="ref" defaultValue={referral.by ? String(referral.by.code) : ""} inputMode="numeric" maxLength={8} placeholder="Code, or empty to clear" aria-label="Referrer's tutor code" className={`${inputClass} min-h-11 flex-1 text-sm`} />
+                <button disabled={busy} className={ghost}>{referral.by ? "Change" : "Set"}</button>
+              </Form>
+            )}
+            <p className="mt-3 text-sm"><b className="text-forest">Wallet {taka(referral.balance)}</b> · referred {num(referral.referred.length)}, credited {num(referral.referred.filter((r) => r.status === "credited").length)}</p>
+            {referral.referred.length > 0 && (
+              <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                {referral.referred.map((r) => (
+                  <li key={r.code}><Link to={`/admin/tutors/${r.code}`} className={`inline-flex min-h-8 items-center rounded-full px-2.5 text-xs font-bold ${r.status === "credited" ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-700"}`}>T-{r.code}{r.amount ? ` +${taka(r.amount)}` : ""}</Link></li>
+                ))}
+              </ul>
+            )}
           </Card>
           {placements.length > 0 && (
             <Card>
