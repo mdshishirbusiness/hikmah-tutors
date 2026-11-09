@@ -151,6 +151,11 @@ Migration 0021 (seen tick, free times, status links) was already on the real dat
 apply. Then the deploy: "Seen by HTR", the guardian preview, free times, the status link, and the Profile's folding
 sections with the sticky completion line. Home answers 200; `/me/profile` asks for sign-in.
 
+## 14. Salary range: live 2026-11-09 (version a74969fb)
+
+Migration 0031 (`salary_amount_max`) applied on the real database from the Terminal panel after the `whoami` check
+(account `30ae03db…`), then `npm run deploy`. Additive column only; nothing else was pending.
+
 ## 13. Ready tutors plan steps 2–5, Premium reminder, apply note: live 2026-11-09 (version 5e98a493)
 
 Migrations 0022–0028 were already on the real database; `migrations list --remote` had nothing to apply. Then the
