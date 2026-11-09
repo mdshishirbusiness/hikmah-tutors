@@ -151,6 +151,14 @@ Migration 0021 (seen tick, free times, status links) was already on the real dat
 apply. Then the deploy: "Seen by HTR", the guardian preview, free times, the status link, and the Profile's folding
 sections with the sticky completion line. Home answers 200; `/me/profile` asks for sign-in.
 
+## 13. Ready tutors plan steps 2–5, Premium reminder, apply note: live 2026-11-09 (version 5e98a493)
+
+Migrations 0022–0028 were already on the real database; `migrations list --remote` had nothing to apply. Then the
+deploy: Call list, media fee ledger and Money, the UX fixes (one apply window, Join in 3 screens), referral and wallet,
+the Premium reminder sheet, and the apply note (1000 characters, Recommended when the Profile has gaps). Home, a tuition
+and `/r/<code>` answer 200; `/me`, `/me/wallet` and `/admin/money` ask for sign-in. Referral was not tried in a browser
+before this deploy.
+
 ## Before tutors are invited (later)
 
 - Consent screen: **published (In production), 2026-11-04**. Branding has the home, privacy and terms links; no
