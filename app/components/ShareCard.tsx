@@ -59,7 +59,7 @@ export function ShareCard({ label, title, filename, make, text = "", share = tru
             <Download size={16} aria-hidden />Save picture
           </button>
         </div>
-        {share && !canShare && <p className="mt-2 text-xs text-slate-500">এই ব্রাউজার থেকে সরাসরি পাঠানো যায় না। ছবিটা সেভ করে WhatsApp-এ পাঠান।</p>}
+        {share && !canShare && <p className="mt-2 text-sm text-slate-500">এই ব্রাউজার থেকে সরাসরি পাঠানো যায় না। ছবিটা সেভ করে WhatsApp-এ পাঠান।</p>}
       </Sheet>
     </>
   );

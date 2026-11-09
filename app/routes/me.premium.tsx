@@ -158,7 +158,7 @@ function Apply({ me, missing, choices, busy }: {
               {n >= MIN_SALARY_FLOOR ? <>Premium {taka(premiumPrice(n))}</> : `At least ${taka(MIN_SALARY_FLOOR)}`}
             </span>
           </span>
-          <span className="mt-1 block text-xs text-slate-500">এর কম বেতনের টিউশন নিতে বাধ্য নন। এটা আপনার Profile-এর Lowest salary-ও হবে।</span>
+          <span className="mt-1 block text-sm text-slate-500">এর কম বেতনের টিউশন নিতে বাধ্য নন। এটা আপনার Profile-এর Lowest salary-ও হবে।</span>
         </label>
         <FeeBar min={n} />
         <div className="rounded-xl bg-cream p-4 ring-1 ring-brand-100">
@@ -250,7 +250,7 @@ function Term({ m, person, problems, now, busy }: {
       {m.status === "active" && m.fee_left === null && <Patience during />}
 
       {m.status === "active" && (
-        <SectionCard icon={ReceiptText} tone="amber" title="Your cards" hint="ছবিগুলো সেভ করে রাখুন। Premium গোপন থাকে, তাই এগুলো ফেসবুকে দেওয়ার দরকার নেই।" className="mt-5">
+        <SectionCard icon={ReceiptText} tone="mango" title="Your cards" hint="ছবিগুলো সেভ করে রাখুন। Premium গোপন থাকে, তাই এগুলো ফেসবুকে দেওয়ার দরকার নেই।" className="mt-5">
           <div className="flex flex-wrap gap-2">
             <ShareCard label="Welcome card" title="Your Premium card" filename={`hikmah-premium-${m.id}.png`} share={false} make={() => welcomeCard(welcomeOf(m, person, labels))} className="bg-forest text-cream" />
             <ShareCard label="Payment receipt" title="Payment receipt" filename={`hikmah-receipt-${m.id}.png`} share={false} make={() => receiptCard(paymentOf(m, person))} className="bg-white text-forest shadow-ring" />
@@ -266,7 +266,7 @@ function Term({ m, person, problems, now, busy }: {
       )}
 
       {m.status === "active" && (
-        <SectionCard icon={TriangleAlert} tone="rose" title="Problems" aside={<span className="rounded-full bg-white px-2.5 py-0.5 text-sm font-extrabold text-rose-800 tabular-nums ring-1 ring-rose-200">{points} of {PROBLEM_LIMIT}</span>}
+        <SectionCard icon={TriangleAlert} tone="mango" title="Problems" aside={<span className="rounded-full bg-white px-2.5 py-0.5 text-sm font-extrabold text-rose-800 tabular-nums ring-1 ring-rose-200">{points} of {PROBLEM_LIMIT}</span>}
           hint={`সমস্যা: ${points} of ${PROBLEM_LIMIT}। ${PROBLEM_LIMIT}টি হলে Premium শেষ, অর্ধেক টাকা ফেরত। HTR প্রতিটির আগে কথা বলবে।`} className="mt-5">
           {problems.length === 0 ? <p className="flex items-center gap-2 text-sm font-semibold text-emerald-800"><BadgeCheck size={18} aria-hidden />No problems. Keep it up!</p> : (
             <ul className="space-y-2">
@@ -281,7 +281,7 @@ function Term({ m, person, problems, now, busy }: {
         </SectionCard>
       )}
 
-      <SectionCard icon={ListChecks} tone="sky" title="A matching tuition is" hint="HTR গ্রহণ করার দিনের তথ্য। এর সাথে মেলে এমন টিউশন না নিলে সমস্যা গোনা হয়।" className="mt-5">
+      <SectionCard icon={ListChecks} tone="cream" title="A matching tuition is" hint="HTR গ্রহণ করার দিনের তথ্য। এর সাথে মেলে এমন টিউশন না নিলে সমস্যা গোনা হয়।" className="mt-5">
         <dl className="space-y-1.5 text-sm">
           <div className="flex gap-2"><dt className="w-24 shrink-0 font-semibold text-slate-500">Min. salary</dt><dd className="font-bold text-slate-800">{taka(m.min_salary)}</dd></div>
           <div className="flex gap-2"><dt className="w-24 shrink-0 font-semibold text-slate-500">Areas</dt><dd className="text-slate-800">{m.anywhere ? "Anywhere in Rajshahi" : labels.areas || "—"}</dd></div>

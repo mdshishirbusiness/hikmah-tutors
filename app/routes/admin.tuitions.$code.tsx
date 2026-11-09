@@ -15,7 +15,7 @@ import { requireAdmin } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
 import { tutorFromLabel } from "~/lib/fit";
 import { AREAS, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, STUDENT_GENDERS, SUBJECTS, labelOf } from "~/lib/options";
-import { GENDER_CHIP, SUBJECT_TONE, SUBJECT_TONE_OTHER, needText, scheduleNote } from "~/lib/tuition";
+import { GENDER_CHIP, SUBJECT_CHIP, needText, scheduleNote } from "~/lib/tuition";
 import { classLabel, requirementKeys, subjectLabel } from "~/lib/request";
 import { FollowUpButton } from "~/components/FollowUps";
 import { facebookPost, whatsappPost } from "~/lib/whatsapp";
@@ -183,7 +183,7 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
             <div className="mt-3 flex flex-wrap gap-1.5">
               <Chip tone={gender.tone}>{gender.label}</Chip>
               {tutorFrom.length > 0 && <Chip tone="bg-brand-50 text-brand-700 ring-1 ring-brand-100">From {tutorFromLabel(tutorFrom)}</Chip>}
-              {subjects.map((s) => <Chip key={s} tone={`ring-1 ${SUBJECT_TONE[s] ?? SUBJECT_TONE_OTHER}`}>{subjectLabel(s, t.subject_other)}</Chip>)}
+              {subjects.map((s) => <Chip key={s} tone={`ring-1 ${SUBJECT_CHIP}`}>{subjectLabel(s, t.subject_other)}</Chip>)}
               {t.student_gender && <Chip tone="bg-slate-50 text-slate-700 ring-1 ring-slate-200">{labelOf(STUDENT_GENDERS, t.student_gender)}</Chip>}
               {t.medium && <Chip tone="bg-slate-50 text-slate-700 ring-1 ring-slate-200">{labelOf(MEDIUMS, t.medium)}</Chip>}
             </div>

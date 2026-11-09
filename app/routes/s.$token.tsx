@@ -89,7 +89,7 @@ export default function GuardianStatusPage({ loaderData: s }: Route.ComponentPro
         <Link to="/request-tutor" className="mt-3 flex min-h-12 items-center justify-center gap-1.5 rounded-xl text-sm font-bold text-brand-700 hover:bg-brand-50">
           <Plus size={16} aria-hidden />Tutor for another child
         </Link>
-        <p className="mt-4 text-center text-xs text-slate-500">এই লিংকটি শুধু আপনার জন্য। অন্য কাউকে পাঠাবেন না।</p>
+        <p className="mt-4 text-center text-sm text-slate-500">এই লিংকটি শুধু আপনার জন্য। অন্য কাউকে পাঠাবেন না।</p>
       </div>
     </SitePage>
   );

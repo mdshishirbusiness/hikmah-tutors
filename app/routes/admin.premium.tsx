@@ -286,7 +286,7 @@ function Detail({ r, detail, origin, now }: { r: AdminPremium; detail: Route.Com
                 ))}
               </ul>
             )}
-            <p className="mb-2 text-xs text-slate-500">আগে টিউটরের সাথে কথা বলুন, তারপর লিখুন। {PROBLEM_LIMIT}টি হলে Premium নিজে থেকেই শেষ হবে, অর্ধেক টাকা ফেরত।</p>
+            <p className="mb-2 text-sm text-slate-500">আগে টিউটরের সাথে কথা বলুন, তারপর লিখুন। {PROBLEM_LIMIT}টি হলে Premium নিজে থেকেই শেষ হবে, অর্ধেক টাকা ফেরত।</p>
             <Step intent="problem" id={r.id} label="Record" tone="danger" busy={busy}>
               <select name="kind" required defaultValue="" aria-label="What happened" className={`${inputClass} min-h-11 flex-1 text-sm`}>
                 <option value="" disabled>What happened?</option>

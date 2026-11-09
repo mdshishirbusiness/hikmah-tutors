@@ -46,7 +46,7 @@ export function PastGuardianFind({ onUse, onNewPhone }: { onUse: (g: PastGuardia
       {found && (
         <div className="mt-3">
           <p className="flex items-center gap-1.5 text-sm font-bold text-forest"><History size={15} aria-hidden />{found.name || "Guardian"} · {found.phone}</p>
-          <p className="text-xs text-slate-500">আগের কোনটা থেকে শুরু করবেন, বেছে নিন। সব তথ্য বসে যাবে, দরকার হলে বদলাবেন।</p>
+          <p className="text-sm text-slate-500">আগের কোনটা থেকে শুরু করবেন, বেছে নিন। সব তথ্য বসে যাবে, দরকার হলে বদলাবেন।</p>
           <ul className="mt-2 space-y-1.5">
             {found.tuitions.map((t) => (
               <li key={t.code}>

@@ -150,7 +150,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               {stats.map(([k, v]) => (
                 <span key={k} className="rounded-xl py-1.5 text-center">
                   <span className="block text-2xl font-extrabold text-forest tabular-nums">{num(v)}</span>
-                  <span className="block text-[11px] font-semibold text-slate-500">{k}</span>
+                  <span className="block text-[13px] font-semibold text-slate-500">{k}</span>
                 </span>
               ))}
             </Link>}
@@ -173,9 +173,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                         <p className="font-bold text-slate-800">{labelOf(CLASS_LEVELS, t.class_level)} · {placeLabel(t)}</p>
                         <p className="mt-0.5 truncate text-sm text-slate-500">{t.subjects.map((s) => labelOf(SUBJECTS, s)).join(", ")} · {t.days_per_week} days</p>
                         <div className="mt-2"><GenderChip t={t} /></div>
+                        {/* One apply window (owner, 2026-11-09): details and Apply are the same view. */}
                         <div className="mt-auto flex gap-2 pt-3">
-                          <Link to={`/tuitions/${t.code_label}`} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-white text-sm font-bold text-forest shadow-ring">Details</Link>
-                          <Link to={`/tuitions/${t.code_label}/apply`} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-forest text-sm font-bold text-cream hover:bg-brand-700">Apply</Link>
+                          <Link to={`/tuitions/${t.code_label}`} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-forest text-sm font-bold text-cream hover:bg-brand-700">Apply</Link>
                         </div>
                       </article>
                     </li>
@@ -238,7 +238,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-mango text-forest"><Crown size={20} aria-hidden /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-extrabold">{premium?.status === "active" ? "Premium" : premium?.status === "accepted" ? `Premium accepted · pay ${taka(premium.price)}` : premium ? "Premium · HTR is checking" : "Become Premium"}</span>
-                  <span className="block text-xs text-brand-100">{premium?.status === "active" && premium.ends_at ? `${Math.max(0, Math.ceil((premium.ends_at - now) / 86400))} days left` : premium ? "See where it stands" : "সমান যোগ্যদের মধ্যে আগে বিবেচনা, 90 দিনে টিউশনের চেষ্টা"}</span>
+                  <span className="block text-sm text-brand-100">{premium?.status === "active" && premium.ends_at ? `${Math.max(0, Math.ceil((premium.ends_at - now) / 86400))} days left` : premium ? "See where it stands" : "সমান যোগ্যদের মধ্যে আগে বিবেচনা, 90 দিনে টিউশনের চেষ্টা"}</span>
                 </span>
                 <ArrowRight size={18} className="shrink-0 text-mango transition-transform group-hover:translate-x-0.5" aria-hidden />
               </span>

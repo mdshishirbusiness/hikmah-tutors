@@ -110,7 +110,7 @@ export default function AdminReview({ loaderData: d, actionData }: Route.Compone
               </ul>
               {d.held.total > 0 && (
                 <Form method="post" className="mt-3 border-t border-brand-50 pt-3" onSubmit={(e) => { if (!confirm(`Set aside all ${d.held!.total} held rows? They leave this list and later top-ups skip them.`)) e.preventDefault(); }}>
-                  <p className="mb-2 text-xs text-slate-500">পুরনো, আর দরকার নেই? সব সরিয়ে দিন। মুছে যাবে না, শুধু এই তালিকা আর পরের টপ-আপ থেকে বাদ যাবে।</p>
+                  <p className="mb-2 text-sm text-slate-500">পুরনো, আর দরকার নেই? সব সরিয়ে দিন। মুছে যাবে না, শুধু এই তালিকা আর পরের টপ-আপ থেকে বাদ যাবে।</p>
                   <button name="intent" value="set_aside_held" className={primaryButton}>Set all aside</button>
                 </Form>
               )}

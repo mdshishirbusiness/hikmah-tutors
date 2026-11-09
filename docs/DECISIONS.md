@@ -50,6 +50,16 @@ is telling the expert, dedicated tutors apart. The completeness score only measu
   share one calm colour (colour only where it tells something, like Female Tutor); section tints only from the brand
   (emerald, cream, mango), red and pink only for errors; no text under 13 px, Bangla helper text 14 px; Bangla examples
   in the apply note; the offline screen's logo is kept on the phone.
+- **How step 4 was built** (2026-11-09, choices within the approved fixes): `/tuitions/:code` is the one apply window
+  for everyone; `/tuitions/:code/apply` redirects there. Its fixed button says what to do next (Apply, Sign in to apply,
+  Join as a tutor to apply, You've applied, Fix my profile…). The note is 500 characters; phone numbers in English or
+  Bangla digits become "[phone]" on save (`app/lib/redact.ts`, also used by Copy for AI). Profile asks the four habits
+  once ("Your habits", above the levels); each level has "My habits are different at <level>", which keeps its own
+  answers; otherwise saving copies the shared answers into every level, so the stored data stays per level. Levels show
+  one at a time with Junior / SSC / HSC buttons and a "Next: …" button; `#exp-<band>` opens that level. Join's Next and
+  Send sit under the last field, not fixed. Section tones are now brand, mango, cream and slate only (two new tokens,
+  `cream-200` and `mango-50`); subject chips are one emerald tint; Tailwind's `text-xs` is 13 px site-wide. The board
+  card's stub stays 112 px, so at 13 px its "New" tag drops under the code instead of squeezing the area name.
 
 ## 2026-11-09 (tutor voice, planned)
 

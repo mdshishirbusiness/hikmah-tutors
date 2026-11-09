@@ -111,7 +111,7 @@ function SubjectMarks({ exam, subjects, marks }: { exam: "ssc" | "hsc"; subjects
               </label>
             ))}
           </div>
-          <p className="mt-2 text-xs text-slate-500">HTR এগুলো গার্ডিয়ানকে দেখাতে পারে, তাই সঠিক নম্বর দিন। HTR মার্কশিট দেখতে চাইতে পারে।</p>
+          <p className="mt-2 text-sm text-slate-500">HTR এগুলো গার্ডিয়ানকে দেখাতে পারে, তাই সঠিক নম্বর দিন। HTR মার্কশিট দেখতে চাইতে পারে।</p>
         </div>
       )}
     </div>

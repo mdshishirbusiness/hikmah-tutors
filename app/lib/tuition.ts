@@ -152,6 +152,9 @@ export const taka = (n: number) => `৳${new Intl.NumberFormat("en-IN").format(n
 
 const NEW_FOR_SECONDS = 48 * 3600;
 
+/** The note a tutor may add when applying (owner, 2026-11-09: 500 characters, phone numbers cut out on save). */
+export const APPLY_NOTE_MAX = 500;
+
 export const isNew = (postedAt: number | null, now: number) => postedAt !== null && now - postedAt < NEW_FOR_SECONDS;
 
 export function formatDate(unix: number): string {
@@ -213,22 +216,6 @@ export const GENDER_CHIP: Record<PublicTuition["tutor_gender_pref"], { label: st
   any: { label: "Male/Female Tutor", tone: "bg-forest text-cream" },
 };
 
-// One colour per subject, the same everywhere, so tutors learn "blue = Math". Dark text on a pale fill (contrast ≥ 7).
-export const SUBJECT_TONE: Record<string, string> = {
-  math: "bg-blue-50 text-blue-800 ring-blue-100",
-  hmath: "bg-indigo-50 text-indigo-800 ring-indigo-100",
-  physics: "bg-violet-50 text-violet-800 ring-violet-100",
-  chemistry: "bg-orange-50 text-orange-800 ring-orange-100",
-  biology: "bg-lime-50 text-lime-800 ring-lime-100",
-  science: "bg-teal-50 text-teal-800 ring-teal-100",
-  english: "bg-rose-50 text-rose-800 ring-rose-100",
-  bangla: "bg-cyan-50 text-cyan-800 ring-cyan-100",
-  ict: "bg-sky-50 text-sky-800 ring-sky-100",
-  accounting: "bg-amber-50 text-amber-800 ring-amber-100",
-  finance: "bg-amber-50 text-amber-800 ring-amber-100",
-  economics: "bg-yellow-50 text-yellow-800 ring-yellow-100",
-  bgs: "bg-fuchsia-50 text-fuchsia-800 ring-fuchsia-100",
-  quran: "bg-emerald-50 text-emerald-800 ring-emerald-100",
-  islam: "bg-emerald-50 text-emerald-800 ring-emerald-100",
-};
-export const SUBJECT_TONE_OTHER = "bg-slate-100 text-slate-700 ring-slate-200";
+// Every subject in one calm colour (owner, 2026-11-09: a rainbow of chips read as noise; colour only where it tells
+// something, like Female Tutor).
+export const SUBJECT_CHIP = "bg-brand-50 text-forest ring-brand-100";

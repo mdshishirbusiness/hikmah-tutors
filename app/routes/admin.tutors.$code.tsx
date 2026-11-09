@@ -306,7 +306,7 @@ function AccountCard({ t, busy }: { t: Route.ComponentProps["loaderData"]["tutor
           <label className={label}>Sign-in Gmail
             <input name="email" type="email" defaultValue={t.email ?? ""} placeholder="name@gmail.com" className={`${field} mt-1`} />
           </label>
-          <p className="text-xs leading-relaxed text-slate-500">নতুন Gmail দিলে পুরনো Google অ্যাকাউন্ট থেকে সাথে সাথে log out হয়ে যাবে। টিউটর নতুন Gmail দিয়ে log in করলে একই প্রোফাইল, আবেদন আর সব তথ্য পাবেন।</p>
+          <p className="text-sm leading-relaxed text-slate-500">নতুন Gmail দিলে পুরনো Google অ্যাকাউন্ট থেকে সাথে সাথে log out হয়ে যাবে। টিউটর নতুন Gmail দিয়ে log in করলে একই প্রোফাইল, আবেদন আর সব তথ্য পাবেন।</p>
           {[...new Set(TUTOR_DETAIL_FIELDS.map((f) => f.group))].map((group) => (
             <fieldset key={group} className="border-t border-brand-50 pt-3">
               <legend className="text-xs font-extrabold tracking-wide text-forest uppercase">{group}</legend>

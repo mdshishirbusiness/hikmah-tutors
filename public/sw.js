@@ -12,8 +12,11 @@ const MAX_FILES = 400;
 const NEVER = /^\/(api|docs|photos|auth|login|logout|dev|admin\/(search|followups|guardian-lookup|tuitions\/\d+\/ai))(\/|\.data|$)/;
 const FILE = /^\/(assets|fonts|brand)\/|^\/(favicon\.ico|manifest\.webmanifest)$/;
 const WARM = "/admin/quick"; // the owner's call-time page is always ready
+const LOGO = "/brand/mark.webp"; // the "No internet" screen's logo: kept from install on, so it shows with no net
 
-self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("install", (e) => {
+  e.waitUntil(caches.open(FILES).then((c) => c.add(LOGO)).catch(() => {}).then(() => self.skipWaiting()));
+});
 self.addEventListener("activate", (e) => {
   e.waitUntil((async () => {
     for (const k of await caches.keys()) if (k !== PAGES && k !== FILES) await caches.delete(k);
@@ -87,7 +90,7 @@ function offline(req) {
 main{max-width:360px;text-align:center}h1{font-size:22px;margin:16px 0 6px}p{color:#475569;line-height:1.5;margin:0 0 20px}
 a{display:inline-flex;min-height:48px;align-items:center;padding:0 20px;border-radius:12px;background:#09332a;color:#fefdf8;font-weight:700;text-decoration:none;margin:4px}
 a.alt{background:#fff;color:#09332a;box-shadow:inset 0 0 0 1px #cfe3d8}</style></head><body><main>
-<img src="/brand/mark.webp" alt="" width="56" height="56"><h1>No internet</h1>
+<img src="${LOGO}" alt="" width="56" height="56"><h1>No internet</h1>
 <p>এই পেজটা এই ফোনে আগে খোলা হয়নি, তাই নেট ছাড়া দেখানো যাচ্ছে না। আগে খোলা পেজগুলো নেট ছাড়াও খুলবে।</p>
 <a href="/admin/quick">Quick Pad</a><a class="alt" href="/">Home</a><a class="alt" href="javascript:location.reload()">Try again</a>
 </main></body></html>`, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } });

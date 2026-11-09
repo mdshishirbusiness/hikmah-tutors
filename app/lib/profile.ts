@@ -36,15 +36,16 @@ export type Student = {
 
 // The checklist groups, in the order the tutor sees them; each has its own colour (SectionCard tones).
 export type StepGroup = "students" | Band | "teaching" | "you";
-export const STEP_GROUPS: { key: StepGroup; label: string; tone: "rose" | "amber" | "sky" | "violet" | "brand" | "slate" }[] = [
-  { key: "students", label: "Students you've taught", tone: "rose" },
-  { key: "junior", label: "Junior experience", tone: "amber" },
-  { key: "ssc", label: "SSC experience", tone: "sky" },
-  { key: "hsc", label: "HSC experience", tone: "violet" },
+export const STEP_GROUPS: { key: StepGroup; label: string; tone: "brand" | "mango" | "cream" | "slate" }[] = [
+  { key: "students", label: "Students you've taught", tone: "brand" },
+  { key: "junior", label: "Junior experience", tone: "mango" },
+  { key: "ssc", label: "SSC experience", tone: "brand" },
+  { key: "hsc", label: "HSC experience", tone: "cream" },
   { key: "teaching", label: "Teaching", tone: "brand" },
   { key: "you", label: "You", tone: "slate" },
 ];
-export type ProgressStep = { key: string; label: string; section: string; group: StepGroup; weight: number; done: boolean };
+// `label` stands alone (Home's chips: "SSC · Your habits", owner 2026-11-09); `short` is for lists already grouped by level.
+export type ProgressStep = { key: string; label: string; short?: string; section: string; group: StepGroup; weight: number; done: boolean };
 
 const BAND_SHORT: Record<Band, string> = { junior: "Junior", ssc: "SSC", hsc: "HSC" };
 export const bandShort = (b: Band) => BAND_SHORT[b];
@@ -89,10 +90,10 @@ export function profileSteps(
   for (const band of taughtBands(choices.classes, choices.subjects, levels)) {
     const l = levels.find((x) => x.band === band);
     steps.push(
-      { key: `${band}-numbers`, label: "Students and years", section: `exp-${band}`, group: band, weight: 2, done: !!l && (l.students ?? 0) > 0 && l.years !== null },
-      { key: `${band}-approach`, label: "How you teach", section: `exp-${band}`, group: band, weight: 2, done: written(l?.approach) },
-      { key: `${band}-habits`, label: "Your habits", section: `exp-${band}`, group: band, weight: 1, done: !!l && hasHabits(l) },
-      { key: `${band}-story`, label: "A student you helped", section: `exp-${band}`, group: band, weight: 1, done: written(l?.story) },
+      { key: `${band}-numbers`, label: `${bandShort(band)} · Students and years`, short: "Students and years", section: `exp-${band}`, group: band, weight: 2, done: !!l && (l.students ?? 0) > 0 && l.years !== null },
+      { key: `${band}-approach`, label: `${bandShort(band)} · How you teach`, short: "How you teach", section: `exp-${band}`, group: band, weight: 2, done: written(l?.approach) },
+      { key: `${band}-habits`, label: `${bandShort(band)} · Your habits`, short: "Your habits", section: "habits", group: band, weight: 1, done: !!l && hasHabits(l) },
+      { key: `${band}-story`, label: `${bandShort(band)} · A student you helped`, short: "A student you helped", section: `exp-${band}`, group: band, weight: 1, done: written(l?.story) },
     );
   }
   steps.push(

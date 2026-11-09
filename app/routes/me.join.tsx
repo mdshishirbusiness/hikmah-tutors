@@ -1,9 +1,9 @@
-// Tutor registration (owner, 2026-11-04, review step 2). A Google account with no tutor record lands here: photo and
+// Tutor registration (owner, 2026-11-04, review step 2; three screens 2026-11-09). A Google account with no tutor record lands here: photo and
 // name, study, where and what they teach, then confirm. HTR checks it before the tutor can apply. Opened again while
 // waiting or when HTR asks for a fix, it shows the saved answers and the owner's note.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form, redirect, useNavigation } from "react-router";
-import { AlertTriangle, BookOpen, Camera, FileText, GraduationCap, MapPin, MessageCircle, ShieldCheck, UserRound, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Camera, Check, FileText, GraduationCap, MapPin, MessageCircle, ShieldCheck, UserRound, Wallet } from "lucide-react";
 import type { Route } from "./+types/me.join";
 import { inputClass, primaryButton } from "~/components/admin";
 import { JoinDocuments } from "~/components/JoinDocuments";
@@ -14,6 +14,7 @@ import { requireUser } from "~/lib/auth.server";
 import { CONTACT, waLink } from "~/lib/contact";
 import { safeNext } from "~/lib/google-auth";
 import { UNIVERSITIES, sessionYears } from "~/lib/join";
+import { bdPhone } from "~/lib/lead";
 import { type JoinErrors, myDocuments, saveJoin } from "~/lib/join.server";
 import { myChoices, tutorForUser } from "~/lib/me.server";
 import { TRANSPORTS } from "~/lib/options";
@@ -76,7 +77,7 @@ function PhotoField({ existing, error }: { existing: string | null; error?: stri
           <Camera size={16} aria-hidden />{busy ? "Preparing…" : preview ? "Change photo" : "Add photo"}
           <input type="file" name="photo" accept="image/*" onChange={pick} className="sr-only" />
         </label>
-        <p className="mt-1.5 text-xs text-slate-500">আপনার মুখ পরিষ্কার দেখা যায় এমন ছবি। শুধু HTR দেখবে, গার্ডিয়ান বা অন্য কেউ নয়।</p>
+        <p className="mt-1.5 text-sm text-slate-500">আপনার মুখ পরিষ্কার দেখা যায় এমন ছবি। শুধু HTR দেখবে, গার্ডিয়ান বা অন্য কেউ নয়।</p>
       </div>
     </div>
   );
@@ -90,153 +91,241 @@ const FIELD_ERROR: Record<string, keyof JoinErrors> = {
 };
 const label = "mb-1 block text-sm font-bold text-forest";
 
+// Three short screens (owner, 2026-11-09): You, Study, Teaching, with a progress bar. One form underneath, so the
+// photo and documents picked on an earlier screen still go with Send. Next checks the screen's own fields; the server
+// checks everything again, and a failed send opens the first screen with a problem.
+const SCREENS = [
+  { key: "you", label: "You", icon: UserRound },
+  { key: "study", label: "Study", icon: GraduationCap },
+  { key: "teaching", label: "Teaching", icon: BookOpen },
+] as const;
+const SCREEN_OF: Record<keyof JoinErrors, number> = {
+  photo: 0, name: 0, phone: 0, gender: 0, university: 1, institution: 1, department: 1, session: 1, documents: 1, nid: 1,
+  areas: 2, classes: 2, subjects: 2, confirm: 2, form: 2,
+};
+
+/** The screen's own required fields, read from the form; the server says the rest. */
+function checkScreen(form: HTMLFormElement, screen: number): JoinErrors {
+  const v = (name: string) => String(new FormData(form).get(name) ?? "").trim();
+  const e: JoinErrors = {};
+  if (screen === 0) {
+    if (!v("full_name")) e.name = "Write your full name.";
+    if (!bdPhone(v("phone"))) e.phone = "Write your mobile number, e.g. 01712345678.";
+    if (!v("gender")) e.gender = "Pick one.";
+  } else if (screen === 1) {
+    if (!v("university")) e.university = "Pick where you study.";
+    else if ((v("university") === "medical" || v("university") === "other") && !v("institution")) e.institution = "Write the name of your college.";
+    if (!v("department")) e.department = "Write your department.";
+    if (!v("session_year")) e.session = "Pick your session.";
+  }
+  return e;
+}
+
 export default function Join({ loaderData: { me, choices, documents, email, googleName, sessions }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const [fixed, setFixed] = useState<Set<string>>(new Set());
+  const [local, setLocal] = useState<JoinErrors>({});
   useEffect(() => setFixed(new Set()), [actionData]);
-  const errors: JoinErrors = Object.fromEntries(Object.entries(actionData?.errors ?? {}).filter(([k]) => !fixed.has(k)));
+  const errors: JoinErrors = { ...Object.fromEntries(Object.entries(actionData?.errors ?? {}).filter(([k]) => !fixed.has(k))), ...local };
   const count = Object.keys(actionData?.errors ?? {}).length;
   const [uni, setUni] = useState(me?.university ?? "");
   const picked = new Set(choices.subjects.map((s) => `${s.band}:${s.subject}`));
   const [classes, setClasses] = useClasses(choices.classes);
+  const [screen, setScreen] = useState(0);
+  const form = useRef<HTMLFormElement>(null);
+  const top = useRef<HTMLDivElement>(null);
 
-  // After a failed send, bring the first problem into view.
+  const go = (n: number) => {
+    setScreen(n);
+    requestAnimationFrame(() => {
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const y = (top.current?.getBoundingClientRect().top ?? 0) + window.scrollY - 72;
+      if (window.scrollY > y) window.scrollTo({ top: y, behavior: still ? "instant" : "smooth" });
+    });
+  };
+  const next = () => {
+    const e = form.current ? checkScreen(form.current, screen) : {};
+    setLocal(e);
+    if (Object.keys(e).length) {
+      requestAnimationFrame(() => document.querySelector('[role="alert"]')?.scrollIntoView({ behavior: "smooth", block: "center" }));
+      return;
+    }
+    go(screen + 1);
+  };
+
+  // After a failed send, open the first screen with a problem and bring it into view.
   useEffect(() => {
     if (!count) return;
-    document.querySelector('[role="alert"]')?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const first = Math.min(...Object.keys(actionData?.errors ?? {}).map((k) => SCREEN_OF[k as keyof JoinErrors] ?? 2));
+    setScreen(first);
+    requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector('[data-screen]:not([hidden]) [role="alert"]')?.scrollIntoView({ behavior: "smooth", block: "center" })));
   }, [actionData, count]);
+
+  const screenProps = (n: number) => ({ "data-screen": n, hidden: screen !== n, className: "space-y-4 animate-rise motion-reduce:animate-none" });
+  const back = screen > 0 && (
+    <button type="button" onClick={() => go(screen - 1)} className="inline-flex min-h-12 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-forest ring-1 ring-brand-100 hover:bg-brand-50">
+      <ArrowLeft size={16} aria-hidden />Back
+    </button>
+  );
 
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-2xl px-4 pt-6 pb-32 sm:px-6">
-        <p className="text-xs font-bold tracking-[0.14em] text-brand-700 uppercase">{me ? `T-${me.code} · ${me.review_status === "needs_fix" ? "Asked to fix" : "Waiting for check"}` : "Join as a tutor"}</p>
+      <main className="mx-auto max-w-2xl px-4 pt-6 pb-16 sm:px-6">
+        <p className="text-sm font-bold tracking-[0.14em] text-brand-700 uppercase">{me ? `T-${me.code} · ${me.review_status === "needs_fix" ? "Asked to fix" : "Waiting for check"}` : "Join as a tutor"}</p>
         <h1 className="mt-1 text-3xl leading-tight font-extrabold tracking-tight text-forest">{me ? "Your registration" : "Tuitions near you, every day."}</h1>
-        <p className="mt-2 text-slate-600">{me ? "Change anything, then send it again." : "One form, about 3 minutes. HTR checks every profile before you apply."}</p>
-        <p className="mt-1 text-xs text-slate-500">Signed in as {email}</p>
+        <p className="mt-2 text-slate-600">{me ? "Change anything, then send it again." : "Three short steps, about 3 minutes. HTR checks every profile before you apply."}</p>
+        <p className="mt-1 text-sm text-slate-500">Signed in as {email}</p>
 
         {me?.review_status === "needs_fix" && me.review_note && (
           <div className="mt-4 rounded-2xl bg-mango px-4 py-3 text-forest">
-            <p className="text-xs font-extrabold tracking-wide uppercase">HTR asks</p>
+            <p className="text-sm font-extrabold tracking-wide uppercase">HTR asks</p>
             <p className="mt-0.5 font-semibold">{me.review_note}</p>
           </div>
         )}
         {count > 0 && Object.keys(errors).length > 0 && (
           <p role="alert" className="mt-4 flex items-center gap-2 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">
-            <AlertTriangle size={18} className="shrink-0" aria-hidden />{errors.form ?? (Object.keys(errors).length === 1 ? "One thing to fix below." : `${Object.keys(errors).length} things to fix below.`)}
+            <AlertTriangle size={18} className="shrink-0" aria-hidden />{errors.form ?? (Object.keys(errors).length === 1 ? "One thing to fix." : `${Object.keys(errors).length} things to fix.`)}
           </p>
         )}
 
-        <Form method="post" encType="multipart/form-data" noValidate className="mt-6 space-y-4"
+        {/* The progress bar: three segments, the step's name under each; a step already passed can be tapped. */}
+        <div ref={top} className="sticky top-16 z-20 -mx-4 mt-5 bg-cream/95 px-4 pt-2 pb-3 backdrop-blur sm:mx-0 sm:px-0">
+          <p className="text-sm font-bold text-forest">Step {screen + 1} of 3 · {SCREENS[screen].label}</p>
+          <ol className="mt-2 grid grid-cols-3 gap-2">
+            {SCREENS.map((s, i) => (
+              <li key={s.key}>
+                <button type="button" disabled={i >= screen} onClick={() => go(i)} aria-current={i === screen ? "step" : undefined} aria-label={`Step ${i + 1}: ${s.label}`}
+                  className="block w-full py-1 text-left disabled:cursor-default">
+                  <span className={`block h-2 rounded-full transition-colors duration-300 motion-reduce:transition-none ${i <= screen ? "bg-brand-600" : "bg-brand-100"}`} />
+                  <span className={`mt-1.5 flex items-center gap-1 text-sm font-semibold ${i <= screen ? "text-forest" : "text-slate-500"}`}>
+                    {i < screen && <Check size={14} strokeWidth={3} className="text-brand-600" aria-hidden />}{s.label}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <Form ref={form} method="post" encType="multipart/form-data" noValidate className="mt-2"
           onChange={(e) => {
             const field = (e.target as unknown as HTMLInputElement).name;
             const key = FIELD_ERROR[field] ?? (field.startsWith("doc_") ? "documents" : undefined);
             if (key && !fixed.has(key)) setFixed(new Set(fixed).add(key));
+            if (key && local[key]) setLocal(({ [key]: _, ...rest }) => rest);
           }}>
-          <Step n={1} icon={UserRound} tone="brand" title="You" hint="Your photo and how HTR reaches you.">
-            <PhotoField existing={me?.photo_key ? `/photos/tutor/${me.code}` : null} error={errors.photo} />
-            <Err>{errors.photo}</Err>
-            <div className="mt-5 space-y-4">
-              <div>
-                <label htmlFor="j-name" className={label}>Full name</label>
-                <input id="j-name" name="full_name" defaultValue={me?.full_name ?? googleName ?? ""} autoComplete="name" maxLength={60} className={inputClass} aria-invalid={!!errors.name} />
-                <Err>{errors.name}</Err>
-              </div>
-              <div>
-                <label htmlFor="j-phone" className={label}>Mobile number</label>
-                <input id="j-phone" name="phone" defaultValue={me?.phone ?? ""} inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" className={inputClass} aria-invalid={!!errors.phone} />
-                <p className="mt-1 text-xs text-slate-500">গার্ডিয়ান বা পাবলিক কখনো দেখবে না।</p>
-                <Err>{errors.phone}</Err>
-                {errors.phone?.includes("already") && (
-                  <a href={waLink(CONTACT.whatsapp, `Assalamu alaikum. I registered before with another Google account. Please link my profile to ${email}.`)} target="_blank" rel="noreferrer"
-                    className="wa-text mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-brand-700"><MessageCircle size={16} aria-hidden />Message HTR</a>
-                )}
-              </div>
-              <fieldset>
-                <legend className={label}>Gender</legend>
-                <div className="flex gap-2">
-                  <ChoiceChip type="radio" name="gender" value="male" checked={me?.gender === "male"}>Male</ChoiceChip>
-                  <ChoiceChip type="radio" name="gender" value="female" checked={me?.gender === "female"}>Female</ChoiceChip>
+          <div {...screenProps(0)}>
+            <Step n={1} icon={UserRound} tone="brand" title="You" hint="Your photo and how HTR reaches you.">
+              <PhotoField existing={me?.photo_key ? `/photos/tutor/${me.code}` : null} error={errors.photo} />
+              <Err>{errors.photo}</Err>
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label htmlFor="j-name" className={label}>Full name</label>
+                  <input id="j-name" name="full_name" defaultValue={me?.full_name ?? googleName ?? ""} autoComplete="name" maxLength={60} className={inputClass} aria-invalid={!!errors.name} />
+                  <Err>{errors.name}</Err>
                 </div>
-                <Err>{errors.gender}</Err>
+                <div>
+                  <label htmlFor="j-phone" className={label}>Mobile number</label>
+                  <input id="j-phone" name="phone" defaultValue={me?.phone ?? ""} inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" className={inputClass} aria-invalid={!!errors.phone} />
+                  <p className="mt-1 text-sm text-slate-500">গার্ডিয়ান বা পাবলিক কখনো দেখবে না।</p>
+                  <Err>{errors.phone}</Err>
+                  {errors.phone?.includes("already") && (
+                    <a href={waLink(CONTACT.whatsapp, `Assalamu alaikum. I registered before with another Google account. Please link my profile to ${email}.`)} target="_blank" rel="noreferrer"
+                      className="wa-text mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-brand-700"><MessageCircle size={16} aria-hidden />Message HTR</a>
+                  )}
+                </div>
+                <fieldset>
+                  <legend className={label}>Gender</legend>
+                  <div className="flex gap-2">
+                    <ChoiceChip type="radio" name="gender" value="male" checked={me?.gender === "male"}>Male</ChoiceChip>
+                    <ChoiceChip type="radio" name="gender" value="female" checked={me?.gender === "female"}>Female</ChoiceChip>
+                  </div>
+                  <Err>{errors.gender}</Err>
+                </fieldset>
+              </div>
+            </Step>
+          </div>
+
+          <div {...screenProps(1)}>
+            <Step n={2} icon={GraduationCap} tone="mango" title="Where you study">
+              <fieldset>
+                <legend className={label}>University</legend>
+                <div className="flex flex-wrap gap-2">
+                  {UNIVERSITIES.map((u) => <ChoiceChip key={u.key} type="radio" name="university" value={u.key} checked={uni === u.key} onChange={(on) => on && setUni(u.key)}>{u.label}</ChoiceChip>)}
+                </div>
+                <Err>{errors.university}</Err>
               </fieldset>
-            </div>
-          </Step>
+              {(uni === "medical" || uni === "other") && (
+                <div className="mt-4">
+                  <label htmlFor="j-inst" className={label}>{uni === "medical" ? "Medical college" : "College or university"}</label>
+                  <input id="j-inst" name="institution" defaultValue={me?.university === uni ? me?.institution ?? "" : ""} maxLength={80}
+                    placeholder={uni === "medical" ? "e.g. Rajshahi Medical College" : "e.g. Rajshahi College"} className={inputClass} aria-invalid={!!errors.institution} />
+                  <Err>{errors.institution}</Err>
+                </div>
+              )}
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="j-dept" className={label}>Department</label>
+                  <input id="j-dept" name="department" defaultValue={me?.department ?? ""} maxLength={60} placeholder="e.g. Physics, CSE, MBBS" className={inputClass} aria-invalid={!!errors.department} />
+                  <Err>{errors.department}</Err>
+                </div>
+                <div>
+                  <label htmlFor="j-session" className={label}>Session</label>
+                  <select id="j-session" name="session_year" defaultValue={me?.session_year ?? ""} className={inputClass} aria-invalid={!!errors.session}>
+                    <option value="">Choose</option>
+                    {sessions.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <Err>{errors.session}</Err>
+                </div>
+              </div>
+            </Step>
+            <Step n={3} icon={FileText} tone="cream" title="Your documents" hint="Proof of your education. Only HTR sees it.">
+              <JoinDocuments code={me?.code ?? null} existing={documents} error={errors.documents} nidError={errors.nid} />
+            </Step>
+          </div>
 
-          <Step n={2} icon={GraduationCap} tone="sky" title="Where you study">
-            <fieldset>
-              <legend className={label}>University</legend>
+          <div {...screenProps(2)}>
+            <Step n={4} icon={MapPin} tone="mango" title="Where you can teach" hint="Every area you can reach. No limit.">
+              <AreaField picked={choices.areas} anywhere={me?.anywhere === 1} />
+              <Err>{errors.areas}</Err>
+            </Step>
+            <Step n={5} icon={BookOpen} tone="brand" title="What you teach" hint="Classes first, then the subjects at each level you teach.">
+              <ClassField value={classes} onChange={setClasses} />
+              <Err>{errors.classes}</Err>
+              <div className="mt-5 border-t border-brand-50 pt-4">
+                <SubjectField picked={picked} classes={classes} onClasses={setClasses} />
+                <Err>{errors.subjects}</Err>
+              </div>
+            </Step>
+            <Step n={6} icon={Wallet} tone="cream" title="Salary and travel">
+              <p className={label}>Lowest salary you'll take <span className="font-normal text-slate-500">(per month)</span></p>
+              <SalaryField value={me?.min_salary ?? null} />
+              <p className={`${label} mt-5`}>How you travel</p>
               <div className="flex flex-wrap gap-2">
-                {UNIVERSITIES.map((u) => <ChoiceChip key={u.key} type="radio" name="university" value={u.key} checked={uni === u.key} onChange={(on) => on && setUni(u.key)}>{u.label}</ChoiceChip>)}
+                {TRANSPORTS.map((t) => <ChoiceChip key={t.key} type="radio" name="transport" value={t.key} checked={me?.transport === t.key}>{t.key === "none" ? "On foot / rickshaw" : t.label}</ChoiceChip>)}
               </div>
-              <Err>{errors.university}</Err>
-            </fieldset>
-            {(uni === "medical" || uni === "other") && (
-              <div className="mt-4">
-                <label htmlFor="j-inst" className={label}>{uni === "medical" ? "Medical college" : "College or university"}</label>
-                <input id="j-inst" name="institution" defaultValue={me?.university === uni ? me?.institution ?? "" : ""} maxLength={80}
-                  placeholder={uni === "medical" ? "e.g. Rajshahi Medical College" : "e.g. Rajshahi College"} className={inputClass} aria-invalid={!!errors.institution} />
-                <Err>{errors.institution}</Err>
-              </div>
+            </Step>
+            <Step n={7} icon={ShieldCheck} tone="slate" title="Confirm">
+              <label className="flex min-h-11 items-start gap-3 py-1 text-slate-800">
+                <input type="checkbox" name="available" value="1" defaultChecked={!!me} className="mt-0.5 size-5 shrink-0 accent-forest" />
+                I want to take tuitions now.
+              </label>
+              <label className="flex min-h-11 items-start gap-3 py-1 text-slate-800">
+                <input type="checkbox" name="terms" value="1" defaultChecked={!!me} className="mt-0.5 size-5 shrink-0 accent-forest" />
+                <span>I accept the <a href="/terms" target="_blank" className="font-semibold text-brand-700 underline">terms</a>, including the one-time media fee when I get a tuition.</span>
+              </label>
+              <Err>{errors.confirm}</Err>
+            </Step>
+          </div>
+
+          {/* In the page's flow, under the last field: a fixed bar covered fields (Gender) on short phones. */}
+          <div className="mt-5 flex gap-2">
+            {back}
+            {screen < 2 ? (
+              <button type="button" onClick={next} className={`${primaryButton} flex-1`}>Next: {SCREENS[screen + 1].label}<ArrowRight size={16} aria-hidden /></button>
+            ) : (
+              <button disabled={busy} className={`${primaryButton} flex-1`}>{busy ? "Sending…" : me ? "Send again for check" : "Send for check"}</button>
             )}
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="j-dept" className={label}>Department</label>
-                <input id="j-dept" name="department" defaultValue={me?.department ?? ""} maxLength={60} placeholder="e.g. Physics, CSE, MBBS" className={inputClass} aria-invalid={!!errors.department} />
-                <Err>{errors.department}</Err>
-              </div>
-              <div>
-                <label htmlFor="j-session" className={label}>Session</label>
-                <select id="j-session" name="session_year" defaultValue={me?.session_year ?? ""} className={inputClass} aria-invalid={!!errors.session}>
-                  <option value="">Choose</option>
-                  {sessions.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <Err>{errors.session}</Err>
-              </div>
-            </div>
-          </Step>
-
-          <Step n={3} icon={FileText} tone="slate" title="Your documents" hint="Proof of your education. Only HTR sees it.">
-            <JoinDocuments code={me?.code ?? null} existing={documents} error={errors.documents} nidError={errors.nid} />
-          </Step>
-
-          <Step n={4} icon={MapPin} tone="amber" title="Where you can teach" hint="Every area you can reach. No limit.">
-            <AreaField picked={choices.areas} anywhere={me?.anywhere === 1} />
-            <Err>{errors.areas}</Err>
-          </Step>
-
-          <Step n={5} icon={BookOpen} tone="violet" title="What you teach" hint="Classes first, then the subjects at each level you teach.">
-            <ClassField value={classes} onChange={setClasses} />
-            <Err>{errors.classes}</Err>
-            <div className="mt-5 border-t border-brand-50 pt-4">
-              <SubjectField picked={picked} classes={classes} onClasses={setClasses} />
-              <Err>{errors.subjects}</Err>
-            </div>
-          </Step>
-
-          <Step n={6} icon={Wallet} tone="brand" title="Salary and travel">
-            <p className={label}>Lowest salary you'll take <span className="font-normal text-slate-500">(per month)</span></p>
-            <SalaryField value={me?.min_salary ?? null} />
-            <p className={`${label} mt-5`}>How you travel</p>
-            <div className="flex flex-wrap gap-2">
-              {TRANSPORTS.map((t) => <ChoiceChip key={t.key} type="radio" name="transport" value={t.key} checked={me?.transport === t.key}>{t.key === "none" ? "On foot / rickshaw" : t.label}</ChoiceChip>)}
-            </div>
-          </Step>
-
-          <Step n={7} icon={ShieldCheck} tone="slate" title="Confirm">
-            <label className="flex min-h-11 items-start gap-3 py-1 text-slate-800">
-              <input type="checkbox" name="available" value="1" defaultChecked={!!me} className="mt-0.5 size-5 shrink-0 accent-forest" />
-              I want to take tuitions now.
-            </label>
-            <label className="flex min-h-11 items-start gap-3 py-1 text-slate-800">
-              <input type="checkbox" name="terms" value="1" defaultChecked={!!me} className="mt-0.5 size-5 shrink-0 accent-forest" />
-              <span>I accept the <a href="/terms" target="_blank" className="font-semibold text-brand-700 underline">terms</a>, including the one-time media fee when I get a tuition.</span>
-            </label>
-            <Err>{errors.confirm}</Err>
-          </Step>
-
-          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-100 bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
-            <button disabled={busy} className={`${primaryButton} mx-auto flex w-full max-w-2xl`}>{busy ? "Sending…" : me ? "Send again for check" : "Send for check"}</button>
           </div>
         </Form>
       </main>
