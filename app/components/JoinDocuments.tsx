@@ -63,7 +63,7 @@ export function JoinDocuments({ code, existing, error, nidError }: { code: numbe
   return (
     <div>
       <p className="text-sm text-slate-600">At least one is needed. A student ID card is best; if you don't have one yet, send an admission slip, result sheet or certificate. You can add more to strengthen your profile.</p>
-      <p className="mt-1 text-xs text-slate-500">কমপক্ষে একটি শিক্ষা-সংক্রান্ত ডকুমেন্টের ছবি দিন। শুধু HTR দেখবে, গার্ডিয়ান বা অন্য কেউ নয়।</p>
+      <p className="mt-1 text-sm text-slate-500">কমপক্ষে একটি শিক্ষা-সংক্রান্ত ডকুমেন্টের ছবি দিন। শুধু HTR দেখবে, গার্ডিয়ান বা অন্য কেউ নয়।</p>
 
       <ul className="mt-4 space-y-3">
         {kept.map((d) => (
@@ -99,7 +99,7 @@ export function JoinDocuments({ code, existing, error, nidError }: { code: numbe
 
       <div className="mt-5 border-t border-brand-50 pt-4">
         <p className="text-sm font-bold text-forest">NID <span className="font-normal text-slate-500">(optional)</span></p>
-        <p className="mb-2 text-xs text-slate-500">Extra security only. It does not replace the document above. শুধু HTR দেখবে।</p>
+        <p className="mb-2 text-sm text-slate-500">Extra security only. It does not replace the document above. শুধু HTR দেখবে।</p>
         {nid ? (
           <div className="flex items-center gap-3 rounded-xl bg-brand-50/60 p-2">
             <DocViewer src={`/docs/tutor/${code}/${nid.id}`} title="NID" className="shrink-0 rounded-xl">

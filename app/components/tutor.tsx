@@ -23,12 +23,12 @@ export function TutorBar({ active, count = 0, dot = false }: { active?: (typeof 
       {TABS.map((t) => {
         const on = t.key === active;
         return (
-          <Link key={t.key} to={t.to} viewTransition prefetch="intent" aria-current={on ? "page" : undefined} className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-colors ${on ? "text-forest" : "text-slate-500"}`}>
+          <Link key={t.key} to={t.to} viewTransition prefetch="intent" aria-current={on ? "page" : undefined} className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[13px] font-bold transition-colors ${on ? "text-forest" : "text-slate-500"}`}>
             <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition-colors ${on ? "bg-brand-100" : ""}`}>
               <t.icon size={20} aria-hidden />
               {t.key === "home" && dot && !on && <span aria-label="New" className="absolute top-0 right-2.5 size-2.5 rounded-full bg-rose-600 ring-2 ring-white" />}
               {t.key === "applied" && count > 0 && (
-                <span className="absolute -top-1 right-1 grid min-w-4.5 place-items-center rounded-full bg-rose-600 px-1 text-[10px] leading-4.5 text-white">{count}</span>
+                <span className="absolute -top-1 right-1 grid min-w-4.5 place-items-center rounded-full bg-rose-600 px-1 text-[13px] leading-4.5 text-white">{count}</span>
               )}
             </span>
             {t.label}

@@ -145,7 +145,7 @@ export default function QuickPad() {
           <Chips>{LEAD_SOURCES.map((s) => <ChoiceChip key={s.key} type="radio" name="lead_source" value={s.key} checked={s.key === (seed.source ?? "call")}>{s.label}</ChoiceChip>)}</Chips>
         </Card>
 
-        <Card id="f-class_level" icon={UserRound} tone="sky" title="Student" required error={errors.class_level}>
+        <Card id="f-class_level" icon={UserRound} tone="cream" title="Student" required error={errors.class_level}>
           <ClassPicker value={t.class_level} other={t.class_other} />
           <Sub>Medium</Sub>
           <MediumPicker value={t.medium} />
@@ -153,14 +153,14 @@ export default function QuickPad() {
           <Chips>{STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key} checked={t.student_gender === g.key}>{g.label}</ChoiceChip>)}</Chips>
         </Card>
 
-        <Card icon={BookOpen} tone="violet" title="Subjects"><SubjectPicker picked={(t.subjects ?? "").split(",").filter(Boolean)} other={t.subject_other} /></Card>
+        <Card icon={BookOpen} tone="brand" title="Subjects"><SubjectPicker picked={(t.subjects ?? "").split(",").filter(Boolean)} other={t.subject_other} /></Card>
 
-        <Card id="f-area" icon={MapPin} tone="amber" title="Area" required error={errors.area}>
+        <Card id="f-area" icon={MapPin} tone="mango" title="Area" required error={errors.area}>
           <AreaPicker allowOther value={t.area} />
           <AddressDetails name="address" value={seed.address} />
         </Card>
 
-        <Card id="f-time" icon={Clock} tone="sky" title="When" error={errors.time}>
+        <Card id="f-time" icon={Clock} tone="cream" title="When" error={errors.time}>
           <Sub>Days per week</Sub>
           <Chips>{DAYS_PER_WEEK.map((d) => <ChoiceChip key={d} type="radio" name="days_per_week" value={String(d)} checked={t.days_per_week === d}>{d} days</ChoiceChip>)}</Chips>
           <Sub>Time</Sub>
@@ -173,7 +173,7 @@ export default function QuickPad() {
           <SalaryChips initial={t.salary_amount} />
         </Card>
 
-        <Card icon={GraduationCap} tone="violet" title="Tutor wanted">
+        <Card icon={GraduationCap} tone="brand" title="Tutor wanted">
           <TutorPicker genderName="tutor_gender" gender={t.tutor_gender_pref} from={(t.tutor_from ?? "").split(",").filter(Boolean)} />
           <Sub>Guardian asks</Sub>
           <RequirementPicker picked={requirementKeys(t.requirement_keys)} />

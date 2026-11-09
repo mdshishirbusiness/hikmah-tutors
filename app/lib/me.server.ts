@@ -7,7 +7,8 @@ import { type Viewer, getViewer, requireUser } from "./auth.server";
 import { FREE_TIMES, type Fit, bandOf, fitOf } from "./fit";
 import { DIDNT_WORK_OUT, NOTE_MAX } from "./admin-labels";
 import { AREAS, BANDS, CLASS_CHOICES, SUBJECTS, TRANSPORTS } from "./options";
-import type { PublicTuition } from "./tuition";
+import { APPLY_NOTE_MAX, type PublicTuition } from "./tuition";
+import { cutPhones } from "./redact";
 import { openTuitions, visibleTuition } from "./tuitions.server";
 import { type Band, HABITS, type Level, MARK_EXAMS, type Student, markable, profileSteps } from "./profile";
 
@@ -50,6 +51,12 @@ export async function myProfile(userId: number) {
 }
 
 /** The signed-in user's tutor record, or null (a Google account with no registration). */
+/** Who is looking at a public page: a visitor (both null), any signed-in account, and its tutor record if it has one. */
+export async function optionalTutor(request: Request): Promise<{ viewer: Viewer | null; me: MyTutor | null }> {
+  const viewer = await getViewer(request);
+  return { viewer, me: viewer && viewer.role !== "owner" ? await tutorForUser(viewer.id) : null };
+}
+
 export async function tutorForUser(userId: number) {
   return env.DB.prepare(`SELECT ${COLUMNS} FROM tutors WHERE user_id = ? AND deleted_at IS NULL`).bind(userId).first<MyTutor>();
 }
@@ -145,7 +152,9 @@ export async function applyTo(viewer: Viewer, me: MyTutor, code: number, note: s
   if (!view || !view.t.is_available || !view.t.accepting_applications) return "This tuition isn't taking applications now.";
   if (view.fit.gender === "mismatch") return "This tuition needs a tutor of a different gender.";
   if (view.applied) return "You've already applied to this tuition.";
-  if (note.length > 300) return "Keep the note under 300 characters.";
+  if (note.length > APPLY_NOTE_MAX) return `Keep the note under ${APPLY_NOTE_MAX} characters.`;
+  // Phone numbers never reach the owner's list or the Copy for AI pack; tutors talk to HTR on WhatsApp (owner, 2026-11-09).
+  note = cutPhones(note).trim();
   const t = now();
   try {
     const app = await env.DB.prepare(

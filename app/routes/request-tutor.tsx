@@ -115,20 +115,20 @@ export default function RequestTutor({ loaderData: { clientId }, actionData }: R
           </div>
         </Part>
 
-        <Part n={2} icon={MapPin} tone="amber" title="Where" hint="এলাকা বেছে নিন। বিস্তারিত ঠিকানা দিলে শুধু নির্বাচিত টিউটর দেখবেন।" error={!!errors.area}>
+        <Part n={2} icon={MapPin} tone="mango" title="Where" hint="এলাকা বেছে নিন। বিস্তারিত ঠিকানা দিলে শুধু নির্বাচিত টিউটর দেখবেন।" error={!!errors.area}>
           <AreaPicker allowOther />
           <AddressDetails name="address" />
           {err("area")}
         </Part>
 
-        <Part n={3} icon={UserRound} tone="sky" title="Your child" error={!!(errors.class_level || errors.subjects)}>
+        <Part n={3} icon={UserRound} tone="cream" title="Your child" error={!!(errors.class_level || errors.subjects)}>
           <div><Q>Class</Q><ClassPicker />{err("class_level")}</div>
           <div><Q>Subjects</Q><SubjectPicker />{err("subjects")}</div>
           <div><Q optional>Medium</Q><MediumPicker /></div>
           <div><Q optional>Student</Q><Chips>{STUDENT_GENDERS.map((g) => <ChoiceChip key={g.key} type="radio" name="student_gender" value={g.key}>{g.key === "boy" ? "Son" : "Daughter"}</ChoiceChip>)}</Chips></div>
         </Part>
 
-        <Part n={4} icon={Clock} tone="violet" title="When" hint="জানা না থাকলে খালি রাখুন, ফোনে ঠিক করে নেব।" error={!!errors.time}>
+        <Part n={4} icon={Clock} tone="brand" title="When" hint="জানা না থাকলে খালি রাখুন, ফোনে ঠিক করে নেব।" error={!!errors.time}>
           <div><Q optional>Days per week</Q><Chips>{DAYS_PER_WEEK.map((d) => <ChoiceChip key={d} type="radio" name="days_per_week" value={String(d)}>{d} days</ChoiceChip>)}</Chips></div>
           <div><Q optional>Time</Q><TimePicker />{err("time")}</div>
         </Part>

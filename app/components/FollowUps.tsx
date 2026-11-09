@@ -155,7 +155,7 @@ export function NotesPanel({ kind, refId, notes, open }: { kind: "guardian" | "t
   const [body, setBody] = useState("");
   useEffect(() => { if (fetcher.state === "idle" && fetcher.data && !fetcher.data.error) setBody(""); }, [fetcher.state, fetcher.data]);
   return (
-    <SectionCard icon={MessagesSquare} tone="sky" title="Notes and follow-ups" hint="কী কথা হলো, পরে কী করবেন।"
+    <SectionCard icon={MessagesSquare} tone="cream" title="Notes and follow-ups" hint="কী কথা হলো, পরে কী করবেন।"
       aside={<FollowUpButton kind={kind} refId={refId} />}>
       {open.length > 0 && <ul className="mb-4 space-y-2">{open.map((f) => <FollowupRow key={f.id} f={f} showTarget={false} />)}</ul>}
       <div className="flex flex-col gap-2 sm:flex-row">

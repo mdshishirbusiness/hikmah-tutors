@@ -54,7 +54,7 @@ export default function Setup({ loaderData: { me, choices, first }, actionData }
         {actionData?.error && <p role="alert" className="mt-4 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
 
         <Form method="post" className="mt-6 space-y-4">
-          <Step n={1} icon={UserRound} tone="sky" title="Your details" hint="Locked. If something is wrong, message HTR.">
+          <Step n={1} icon={UserRound} tone="cream" title="Your details" hint="Locked. If something is wrong, message HTR.">
             <Facts rows={[
               ["Name", me.full_name],
               ["Phone", me.phone],
@@ -69,7 +69,7 @@ export default function Setup({ loaderData: { me, choices, first }, actionData }
             </a>
           </Step>
 
-          <Step n={2} icon={MapPin} tone="amber" title="Where can you teach?" hint="Pick every area you can reach. No limit.">
+          <Step n={2} icon={MapPin} tone="mango" title="Where can you teach?" hint="Pick every area you can reach. No limit.">
             <ChoiceChip name="anywhere" value="1" checked={anywhere} onChange={setAnywhere}>Anywhere in Rajshahi</ChoiceChip>
             <div className={`mt-3 flex flex-wrap gap-2 transition-opacity ${anywhere ? "pointer-events-none opacity-40" : ""}`} aria-disabled={anywhere}>
               {AREAS.map((a, i) => (
@@ -89,7 +89,7 @@ export default function Setup({ loaderData: { me, choices, first }, actionData }
             <SalaryField value={me.min_salary} />
           </Step>
 
-          <Step n={4} icon={BookOpen} tone="violet" title="Classes you want" hint={first ? "We picked the levels you teach on the old form. Change freely." : undefined}>
+          <Step n={4} icon={BookOpen} tone="brand" title="Classes you want" hint={first ? "We picked the levels you teach on the old form. Change freely." : undefined}>
             <div className="space-y-3">
               {CLASS_GROUPS.map((g) => (
                 <div key={g.label}>

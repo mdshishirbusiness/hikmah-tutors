@@ -62,6 +62,9 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
+  /* Nothing under 13 px (owner, 2026-11-09): the smallest step is 13 px, not Tailwind's 12. Bangla helper text is text-sm (14 px). */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: calc(1.125 / 0.8125);
 
   /* Brand colours sampled from the logo (design/brand/logo-square.png). Contrast checked (WCAG):
      emerald on white 4.8 (text, links, buttons OK) · white on forest 13.8 · mango on forest 9.6 · forest on mango 9.6
@@ -79,6 +82,8 @@
   --color-mango: #fed262; /* the RAJSHAHI pill */
   --color-mango-deep: #f9c143; /* the star and cap */
   --color-cream: #fefdf8; /* the logo background */
+  --color-cream-200: #f5edd6; /* a deeper cream for section bands on white (owner, 2026-11-09: tints only from the brand) */
+  --color-mango-50: #fff7df; /* a pale mango band; dark text only on it */
 
   --shadow-card: 0 1px 2px rgb(9 51 42 / 0.05), 0 4px 16px rgb(9 51 42 / 0.05);
   --shadow-lift: 0 2px 4px rgb(9 51 42 / 0.06), 0 16px 40px -12px rgb(9 51 42 / 0.22);

@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, useActionData, useNavigation } from "react-router";
 import {
-  ArrowRight, Bike, BookOpen, Check, Clock, Eye, GraduationCap, Library, Lock, LogOut, MapPin, MessageCircle, NotebookPen, PauseCircle, PenLine,
+  ArrowRight, Bike, BookOpen, Check, Clock, Eye, GraduationCap, Library, ListChecks, Lock, LogOut, MapPin, MessageCircle, NotebookPen, PauseCircle, PenLine,
   PlayCircle, Presentation, Wallet,
 } from "lucide-react";
 import type { Route } from "./+types/me.profile";
@@ -24,14 +24,14 @@ import { guardianSummary } from "~/lib/whatsapp";
 import { addStudent, deleteStudent, htrChecked, myAsk, myChoices, myLevels, myStudents, mySubjectMarks, requireTutor, saveProfile, setPaused, tutorBadges } from "~/lib/me.server";
 import { AREAS, MEDIUMS, TRANSPORTS, classNames, labelOf } from "~/lib/options";
 import {
-  type Band, type Level, PROFILE_TABS, type ProfileTab, type ProgressStep, TAB_OF, bandLabel, bandShort, habitsDone, hasHabits, profilePercent, profileSteps, taughtBands,
+  type Band, HABITS, type Level, PROFILE_TABS, type ProfileTab, type ProgressStep, TAB_OF, bandLabel, bandShort, habitsDone, hasHabits, profilePercent, profileSteps, taughtBands,
 } from "~/lib/profile";
 import { ProfileChecklist } from "~/components/ProfileChecklist";
 import { ProfileTabs, panelId, tabId } from "~/components/ProfileTabs";
 import { StudentsCard } from "~/components/StudentsCard";
 import { ProfileUploads } from "~/components/ProfileUploads";
 import { myDocumentList, myUploads, sendUpload, withdrawUpload } from "~/lib/uploads.server";
-import { ExperienceChart, GuidedText, HabitQuestions } from "~/components/ExperienceParts";
+import { ExperienceChart, GuidedText, HabitQuestions, LevelHabits, type HabitAnswers, sharedHabits } from "~/components/ExperienceParts";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Profile · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
@@ -74,18 +74,26 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: null, saved: form.get("paused") === "1" ? "Paused. HTR won't suggest tuitions until you turn it back on." : "You're taking tuitions again." };
   }
   form.set("paused", me.availability_paused ? "1" : "0");
+  // Habits are asked once (owner, 2026-11-09): a level without its own answers takes the shared ones.
+  for (const b of ["junior", "ssc", "hsc"] as Band[]) {
+    if (form.get(`lv_${b}`) !== "1" || form.get(`lv_${b}_own_habits`) === "1") continue;
+    for (const h of HABITS) {
+      const v = form.get(`hab_${h.key}`);
+      if (v) form.set(`lv_${b}_${h.key}`, v); else form.delete(`lv_${b}_${h.key}`);
+    }
+  }
   const error = await saveProfile(viewer, me, form);
   return { error, saved: error ? null : "Saved. Your profile and For You are up to date.", profileSaved: !error };
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical", other: "Other" };
-const BAND_TONE: Record<Band, SectionTone> = { junior: "amber", ssc: "sky", hsc: "violet" };
+const BAND_TONE: Record<Band, SectionTone> = { junior: "mango", ssc: "brand", hsc: "cream" };
 function Count({ value, max }: { value: string; max: number }) {
-  return <p className={`mt-1 text-right text-xs tabular-nums ${value.length > max * 0.9 ? "text-amber-700" : "text-slate-400"}`}>{value.length}/{max}</p>;
+  return <p className={`mt-1 text-right text-xs tabular-nums ${value.length > max * 0.9 ? "font-semibold text-forest" : "text-slate-500"}`}>{value.length}/{max}</p>;
 }
 
 /** One level's experience: what the owner reads first when picking a tutor for a tuition at this level. */
-function LevelCard({ band, level, done }: { band: Band; level?: Level; done: boolean }) {
+function LevelCard({ band, level, done, shared, next }: { band: Band; level?: Level; done: boolean; shared: HabitAnswers; next: { href: string; label: string } }) {
   const p = (k: string) => `lv_${band}_${k}`;
   const summary = level && [level.students && `${level.students} students`, level.years !== null && `${level.years} yrs`, hasHabits(level) && `${habitsDone(level)} of 4 habits`].filter(Boolean).join(" · ");
   return (
@@ -103,7 +111,10 @@ function LevelCard({ band, level, done }: { band: Band; level?: Level; done: boo
       </div>
       <GuidedText name={p("approach")} kind="approach" band={band} label="How you teach at this level" initial={level?.approach ?? ""} />
       <GuidedText name={p("story")} kind="story" band={band} label="A student you helped" optional initial={level?.story ?? ""} rows={3} />
-      <HabitQuestions band={band} level={level} />
+      <LevelHabits band={band} level={level} shared={shared} />
+      <a href={next.href} className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-forest px-5 text-sm font-bold text-cream transition-colors duration-150 hover:bg-brand-700">
+        Next: {next.label}<ArrowRight size={16} aria-hidden />
+      </a>
     </SectionCard>
   );
 }
@@ -172,7 +183,7 @@ function GuardianPreview({ me, choices, levels, bands }: { me: PreviewTutor; cho
             </div>
           </div>
         ) : <p className="mt-4 flex items-center gap-1.5 text-sm font-bold text-emerald-800"><Check size={16} aria-hidden />Nothing missing at this level.</p>}
-        <p className="mt-4 text-xs leading-relaxed text-slate-500">গার্ডিয়ান আপনার ফোন নম্বর, ছবি, Facebook বা ঠিকানা পান না। আপনি Selected হলে শুধু তখন HTR আপনার নম্বর দেয়।</p>
+        <p className="mt-4 text-sm leading-relaxed text-slate-500">গার্ডিয়ান আপনার ফোন নম্বর, ছবি, Facebook বা ঠিকানা পান না। আপনি Selected হলে শুধু তখন HTR আপনার নম্বর দেয়।</p>
       </Sheet>
     </>
   );
@@ -217,6 +228,11 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
   // Open on the tab that holds the next step, so the tutor lands where there is something to do.
   const next = steps.find((s) => !s.done);
   const [tab, setTab] = useState<ProfileTab>(next ? TAB_OF[next.group] : "teaching");
+  // One level open at a time (owner, 2026-11-09): the first with something left to do; a #exp-<band> link opens its own.
+  const [level, setLevel] = useState<Band>(() => bands.find((b) => steps.some((s) => s.group === b && !s.done)) ?? bands[0]);
+  const shared = sharedHabits(levels, bands);
+  const levelDone = (b: Band) => steps.filter((s) => s.group === b).every((s) => s.done);
+  const habitsAllDone = steps.filter((s) => s.section === "habits").every((s) => s.done) && steps.some((s) => s.section === "habits");
   const bar = useRef<HTMLDivElement>(null);
   const panels = useRef<HTMLDivElement>(null);
   const form = useRef<HTMLFormElement>(null);
@@ -237,6 +253,8 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
       const t = el?.closest<HTMLElement>("[data-tab]")?.dataset.tab as ProfileTab | undefined;
       if (!el || !t) return false;
       setTab(t);
+      const lv = el.closest<HTMLElement>("[data-level]")?.dataset.level as Band | undefined;
+      if (lv) setLevel(lv);
       requestAnimationFrame(() => requestAnimationFrame(() => {
         const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - under(), behavior: smooth && !still ? "smooth" : "instant" });
@@ -285,16 +303,16 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
 
         {actionData?.error && <p role="alert" className="mt-4 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
 
-        <Form method="post" id="availability" className={`mt-4 flex scroll-mt-24 items-center gap-4 rounded-2xl p-4 ${paused ? "bg-amber-100" : "bg-white shadow-ring"}`}>
+        <Form method="post" id="availability" className={`mt-4 flex scroll-mt-24 items-center gap-4 rounded-2xl p-4 ${paused ? "bg-mango" : "bg-white shadow-ring"}`}>
           <input type="hidden" name="intent" value="pause" />
           <input type="hidden" name="paused" value={paused ? "0" : "1"} />
-          {paused ? <PauseCircle size={28} className="shrink-0 text-amber-800" aria-hidden /> : <PlayCircle size={28} className="shrink-0 text-brand-600" aria-hidden />}
+          {paused ? <PauseCircle size={28} className="shrink-0 text-forest" aria-hidden /> : <PlayCircle size={28} className="shrink-0 text-brand-600" aria-hidden />}
           <div className="min-w-0 flex-1">
-            <p className={`font-extrabold ${paused ? "text-amber-900" : "text-forest"}`}>{paused ? "You're paused" : "Taking tuitions"}</p>
-            <p className={`text-sm ${paused ? "text-amber-900/80" : "text-slate-500"}`}>{paused ? "No suggestions while paused. Applying turns it off." : "Busy for a while? Pause, and turn it back on any time."}</p>
+            <p className={`font-extrabold ${paused ? "text-forest" : "text-forest"}`}>{paused ? "You're paused" : "Taking tuitions"}</p>
+            <p className={`text-sm ${paused ? "text-forest/80" : "text-slate-500"}`}>{paused ? "No suggestions while paused. Applying turns it off." : "Busy for a while? Pause, and turn it back on any time."}</p>
           </div>
           <button role="switch" aria-checked={!paused} aria-label="Taking tuitions" disabled={busy}
-            className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${paused ? "bg-amber-300" : "bg-brand-600"}`}>
+            className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${paused ? "bg-forest/30" : "bg-brand-600"}`}>
             <span className={`absolute top-1 size-6 rounded-full bg-white shadow transition-[left] duration-200 ${paused ? "left-1" : "left-7"}`} />
           </button>
         </Form>
@@ -309,14 +327,14 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
 
           <div ref={panels}>
           <div {...panel("teaching")}>
-          <SectionCard id="areas" icon={MapPin} tone="amber" title="Where you teach" hint="Every area you can reach. No limit." done={done("areas")}
+          <SectionCard id="areas" icon={MapPin} tone="mango" title="Where you teach" hint="Every area you can reach. No limit." done={done("areas")}
             summary={me.anywhere === 1 ? "Anywhere in Rajshahi" : firstFew(choices.areas.map((a) => labelOf(AREAS, a)))}>
             <AreaField picked={choices.areas} anywhere={me.anywhere === 1} />
           </SectionCard>
-          <SectionCard id="classes" icon={BookOpen} tone="violet" title="Classes you want" done={done("classes")} summary={firstFew(classNames(choices.classes), 3)}>
+          <SectionCard id="classes" icon={BookOpen} tone="brand" title="Classes you want" done={done("classes")} summary={firstFew(classNames(choices.classes), 3)}>
             <ClassField value={classes} onChange={setClasses} />
           </SectionCard>
-          <SectionCard id="subjects" icon={Library} tone="sky" title="Subjects you teach" hint="Yes or No for each level, then its subjects. An SSC tuition only matches your SSC subjects." done={done("subjects")}
+          <SectionCard id="subjects" icon={Library} tone="cream" title="Subjects you teach" hint="Yes or No for each level, then its subjects. An SSC tuition only matches your SSC subjects." done={done("subjects")}
             summary={subjectCounts.map(([b, n]) => `${bandShort(b)} ${n}`).join(" · ") || undefined}>
             <SubjectField picked={picked} classes={classes} onClasses={setClasses} marks={marks} />
           </SectionCard>
@@ -324,17 +342,17 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
             summary={me.min_salary !== null ? `৳${me.min_salary.toLocaleString("en-IN")} or more` : undefined}>
             <SalaryField value={me.min_salary} />
           </SectionCard>
-          <SectionCard id="free_times" icon={Clock} tone="amber" title="When you're free" hint="Pick every time you can teach. Tuitions at other times won't show in For You." done={done("free_times")} summary={freeLabel(me.free_times)}>
+          <SectionCard id="free_times" icon={Clock} tone="mango" title="When you're free" hint="Pick every time you can teach. Tuitions at other times won't show in For You." done={done("free_times")} summary={freeLabel(me.free_times)}>
             <FreeTimes value={me.free_times} />
           </SectionCard>
           <div className="grid gap-4 sm:grid-cols-2">
-            <SectionCard id="transport" icon={Bike} tone="sky" title="How you travel" done={done("transport")}
+            <SectionCard id="transport" icon={Bike} tone="cream" title="How you travel" done={done("transport")}
               summary={me.transport === "none" ? "On foot / rickshaw" : me.transport ? labelOf(TRANSPORTS, me.transport) : undefined}>
               <div className="flex flex-wrap gap-2">
                 {TRANSPORTS.map((t) => <ChoiceChip key={t.key} type="radio" name="transport" value={t.key} checked={me.transport === t.key}>{t.key === "none" ? "On foot / rickshaw" : t.label}</ChoiceChip>)}
               </div>
             </SectionCard>
-            <SectionCard id="demo" icon={Presentation} tone="violet" title="Demo class" hint="Will you take a free trial class?" done={done("demo")} summary={me.demo_willing === 1 ? "Yes" : me.demo_willing === 0 ? "No" : undefined}>
+            <SectionCard id="demo" icon={Presentation} tone="brand" title="Demo class" hint="Will you take a free trial class?" done={done("demo")} summary={me.demo_willing === 1 ? "Yes" : me.demo_willing === 0 ? "No" : undefined}>
               <div className="flex flex-wrap gap-2">
                 <ChoiceChip type="radio" name="demo" value="yes" checked={me.demo_willing === 1}>Yes</ChoiceChip>
                 <ChoiceChip type="radio" name="demo" value="no" checked={me.demo_willing === 0}>No</ChoiceChip>
@@ -347,8 +365,29 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
           <p className="text-sm text-slate-600">HTR এই অংশটাই সবার আগে পড়ে। যাদের পড়িয়েছেন তাদের কথা, আর প্রতিটি লেভেলে কীভাবে পড়ান।</p>
           <ExperienceChart form={form} bands={bands} added={students.length} />
           <StudentsCard students={students} />
-          {!taught.length && <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Pick your classes in Teaching and save; the levels you teach will show here. Until then, all three are open.</p>}
-          {bands.map((b) => <LevelCard key={b} band={b} level={levels.find((l) => l.band === b)} done={done(`exp-${b}`)} />)}
+          {/* Habits asked once for every level (owner, 2026-11-09); a level can still differ, inside its own card. */}
+          <SectionCard id="habits" icon={ListChecks} tone="cream" title="Your habits" hint="How often you do each. Counts for every level you teach." done={habitsAllDone}
+            summary={HABITS.filter((h) => shared[h.col] && shared[h.col] !== h.no).map((h) => h.q).join(" · ") || undefined}>
+            <p className="mb-3 text-sm text-slate-600">যা সত্যি করেন সেটাই বেছে নিন। "না" বলাও ঠিক আছে; গার্ডিয়ান ডেমো ক্লাসে মিলিয়ে দেখেন।</p>
+            <HabitQuestions prefix="hab_" answers={shared} />
+          </SectionCard>
+          {!taught.length && <p className="rounded-xl bg-mango-50 px-4 py-3 text-sm text-forest ring-1 ring-mango/50">Pick your classes in Teaching and save; the levels you teach will show here. Until then, all three are open.</p>}
+          {bands.length > 1 && (
+            <div role="group" aria-label="Level" className="grid gap-2" style={{ gridTemplateColumns: `repeat(${bands.length}, minmax(0, 1fr))` }}>
+              {bands.map((b) => (
+                <button key={b} type="button" aria-pressed={level === b} onClick={() => setLevel(b)}
+                  className={`inline-flex min-h-12 items-center justify-center gap-1.5 rounded-xl text-[15px] font-extrabold transition-colors duration-150 ${level === b ? "bg-forest text-cream" : "bg-white text-forest ring-1 ring-brand-100 hover:bg-brand-50"}`}>
+                  {levelDone(b) && <Check size={16} strokeWidth={3} className={level === b ? "text-mango" : "text-brand-600"} aria-label="done" />}{bandShort(b)}
+                </button>
+              ))}
+            </div>
+          )}
+          {bands.map((b, i) => (
+            <div key={b} data-level={b} hidden={level !== b} className="animate-rise motion-reduce:animate-none">
+              <LevelCard band={b} level={levels.find((l) => l.band === b)} done={done(`exp-${b}`)} shared={shared}
+                next={i < bands.length - 1 ? { href: `#exp-${bands[i + 1]}`, label: `${bandShort(bands[i + 1])} experience` } : { href: "#academic", label: "About you" }} />
+            </div>
+          ))}
           </div>
 
           <div {...panel("you")}>
@@ -394,7 +433,7 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
                 <span className="mb-1 block text-xs font-bold text-slate-600">Admission result</span>
                 <input name="admission_result" defaultValue={me.admission_result ?? ""} maxLength={300} placeholder="e.g. RU A unit merit 640, RUET waiting" className={inputClass} />
               </label>
-              <p className="mt-2 text-xs text-slate-500">বিষয়ভিত্তিক মার্ক Teaching ট্যাবে, প্রতিটি লেভেলের বিষয়ের নিচে দিতে পারবেন।</p>
+              <p className="mt-2 text-sm text-slate-500">বিষয়ভিত্তিক মার্ক Teaching ট্যাবে, প্রতিটি লেভেলের বিষয়ের নিচে দিতে পারবেন।</p>
             </div>
           </SectionCard>
 

@@ -69,7 +69,7 @@ export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?:
   const days = t.days_per_week ?? 4;
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Group icon={UserRound} tone="sky" title="Student">
+      <Group icon={UserRound} tone="cream" title="Student">
         {legacy && <p className="rounded-xl bg-amber-100 px-3 py-2 text-sm text-amber-900">Old class “{legacy.label}”. Pick one class or batch below before it goes on the board.</p>}
         <ClassPicker value={legacy ? "" : t.class_level} other={t.class_other} />
         {legacy && <input type="hidden" name="class_level" value={t.class_level} />}
@@ -87,7 +87,7 @@ export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?:
         </div>
       </Group>
 
-      <Group icon={MapPin} tone="amber" title="Place and time">
+      <Group icon={MapPin} tone="mango" title="Place and time">
         <div>
           <Sub>Area</Sub>
           <AreaPicker value={t.area} />
@@ -122,7 +122,7 @@ export function TuitionFields({ t = {}, address }: { t?: TuitionDraft; address?:
         <MediaFee kind={t.fee_kind} value={t.fee_value} />
       </Group>
 
-      <Group icon={GraduationCap} tone="violet" title="Tutor wanted">
+      <Group icon={GraduationCap} tone="brand" title="Tutor wanted">
         <TutorPicker genderName="tutor_gender_pref" gender={t.tutor_gender_pref} from={(t.tutor_from ?? "").split(",").filter(Boolean)} />
       </Group>
 

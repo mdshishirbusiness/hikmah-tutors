@@ -5,7 +5,7 @@ import { tutorFromLabel } from "~/lib/fit";
 import { AREAS, MEDIUMS, STUDENT_GENDERS, labelOf } from "~/lib/options";
 import { classLabel, subjectLabel } from "~/lib/request";
 import {
-  GENDER_CHIP, SUBJECT_TONE, SUBJECT_TONE_OTHER, isNew, needText, perClass, scheduleNote, taka, timeAgo,
+  GENDER_CHIP, SUBJECT_CHIP, isNew, needText, perClass, scheduleNote, taka, timeAgo,
   type PublicTuition,
 } from "~/lib/tuition";
 
@@ -48,7 +48,7 @@ export function SubjectChips({ t }: { t: Pick<PublicTuition, "subjects" | "subje
   return (
     <ul className="flex flex-wrap gap-1.5">
       {t.subjects.map((s) => (
-        <li key={s} className={`rounded-md px-2 py-0.5 text-[13px] font-semibold ring-1 ${SUBJECT_TONE[s] ?? SUBJECT_TONE_OTHER}`}>{subjectLabel(s, t.subject_other)}</li>
+        <li key={s} className={`rounded-md px-2 py-0.5 text-[13px] font-semibold ring-1 ${SUBJECT_CHIP}`}>{subjectLabel(s, t.subject_other)}</li>
       ))}
     </ul>
   );
@@ -66,7 +66,7 @@ export function FactChips({ t }: { t: PublicTuition }) {
   return (
     <ul className="flex flex-wrap gap-1.5">
       {facts.map(([icon, text]) => (
-        <li key={text} className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-[12.5px] font-medium text-slate-700 ring-1 ring-slate-200">
+        <li key={text} className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-[13px] font-medium text-slate-700 ring-1 ring-slate-200">
           <Icon name={icon} className="size-3.5 text-slate-500" />{text}
         </li>
       ))}
@@ -97,8 +97,8 @@ function Applicants({ t, now }: { t: PublicTuition; now: number }) {
         )}
       </span>
       <span className="min-w-0 leading-tight">
-        <span className="block text-[12px] font-semibold text-forest">{t.applicants ? `${t.applicants} applied` : "No applicants yet"}</span>
-        {ago && <span className="block text-[11px] text-slate-500">Posted {ago}</span>}
+        <span className="block text-[13px] font-semibold text-forest">{t.applicants ? `${t.applicants} applied` : "No applicants yet"}</span>
+        {ago && <span className="block text-[13px] text-slate-500">Posted {ago}</span>}
       </span>
     </div>
   );
@@ -110,18 +110,18 @@ function StubPay({ t }: { t: PublicTuition }) {
     const rate = perClass(t);
     return (
       <>
-        <p className="mt-2.5 text-[11px] font-semibold">Salary / {t.salary_period === "per_month" ? "month" : "course"}</p>
+        <p className="mt-2.5 text-[13px] font-semibold">Salary / {t.salary_period === "per_month" ? "month" : "course"}</p>
         <p className="mt-0.5 leading-none font-semibold">
           <span className="text-base">৳</span>
           <span className="ml-0.5 text-[24px] tracking-tight">{taka(t.salary_amount).replace("৳", "")}</span>
         </p>
-        {rate && <p className="mt-1 text-[11px]">≈ {taka(rate)} / class</p>}
+        {rate && <p className="mt-1 text-[13px]">≈ {taka(rate)} / class</p>}
       </>
     );
   }
   return (
     <>
-      <p className="mt-2.5 text-[11px] font-semibold">Salary</p>
+      <p className="mt-2.5 text-[13px] font-semibold">Salary</p>
       <p className="mt-0.5 text-base leading-tight font-semibold">{t.salary_kind === "negotiable" ? "Negotiable" : "Not given"}</p>
     </>
   );
@@ -130,9 +130,10 @@ function StubPay({ t }: { t: PublicTuition }) {
 /**
  * The board's ticket card (owner, 2026-11-02): what the tuition is on the left; pay and Apply on the stub. Days, student
  * and time sit as chips on the left, and the guardian's tutor requirement gets its own full-width strip below
- * (owner, 2026-11-04). The whole card opens the detail page; Apply sits above that link.
+ * (owner, 2026-11-04). The whole card and its Apply open the one apply window (owner, 2026-11-09); there, `linked` is
+ * false: no links (Apply is the window's own fixed button) and the stub keeps its status.
  */
-export function TuitionCard({ t, now, index = 0 }: { t: PublicTuition; now: number; index?: number }) {
+export function TuitionCard({ t, now, index = 0, linked = true }: { t: PublicTuition; now: number; index?: number; linked?: boolean }) {
   const open = t.status === "available" && t.accepting_applications;
   const stubColour = open ? "#fed262" : "#e2e8f0";
   const line = open ? "border-forest/25" : "border-slate-400/50";
@@ -160,14 +161,14 @@ export function TuitionCard({ t, now, index = 0 }: { t: PublicTuition; now: numb
           <span className={`absolute top-4 left-1/2 -translate-x-1/2 border-l-2 border-dashed ${line} ${need ? "bottom-0" : "bottom-4"}`} />
         </div>
         <div className={`flex w-[112px] shrink-0 flex-col pt-4 pr-3 pb-3 pl-1 ${need ? "rounded-tr-[22px]" : "rounded-r-[22px]"} ${open ? "bg-mango text-forest" : "bg-slate-200 text-slate-700"}`}>
-          <p className="flex items-center justify-between gap-1 text-[11px] font-semibold tracking-wide">
+          <p className="flex flex-wrap items-center justify-between gap-1 text-[13px] font-semibold">
             {t.code_label}
             {t.is_available && isNew(t.posted_at, now) && <span className="rounded bg-forest px-1.5 py-px tracking-normal text-mango">New</span>}
           </p>
           <StubPay t={t} />
           <div className="mt-auto pt-3">
             {open ? (
-              <Link to={`${href}/apply`} className="relative z-10 flex min-h-11 w-full items-center justify-center rounded-xl bg-forest text-sm font-semibold text-cream transition-colors duration-150 hover:bg-brand-700">Apply</Link>
+              linked && <Link to={href} className="relative z-10 flex min-h-11 w-full items-center justify-center rounded-xl bg-forest text-sm font-semibold text-cream transition-colors duration-150 hover:bg-brand-700">Apply</Link>
             ) : (
               <span className="flex min-h-11 items-center justify-center rounded-xl bg-white/70 text-sm font-semibold">{t.status === "processing" ? "Processing" : "Paused"}</span>
             )}
@@ -177,13 +178,13 @@ export function TuitionCard({ t, now, index = 0 }: { t: PublicTuition; now: numb
       {need && (
         <div className="flex items-start gap-2.5 rounded-b-[22px] border-t-2 border-dashed border-brand-100 bg-white px-4 pt-2.5 pb-3.5">
           <span aria-hidden className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700"><Icon name="cap" className="size-4" /></span>
-          <p className="min-w-0 text-[13px] leading-snug">
-            <span className="block text-[11px] font-semibold tracking-wide text-slate-500">Tutor requirement</span>
+          <p className="min-w-0 text-sm leading-snug">
+            <span className="block text-[13px] font-semibold text-slate-500">Tutor requirement</span>
             <span className="line-clamp-2 font-semibold text-forest">{need}</span>
           </p>
         </div>
       )}
-      <Link to={href} aria-label={`${t.code_label}, ${placeLabel(t)}: details`} className="absolute inset-0 rounded-[22px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600" />
+      {linked && <Link to={href} aria-label={`${t.code_label}, ${placeLabel(t)}: details`} className="absolute inset-0 rounded-[22px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600" />}
     </article>
   );
 }

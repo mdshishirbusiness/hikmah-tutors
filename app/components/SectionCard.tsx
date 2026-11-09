@@ -4,13 +4,13 @@
 import { createContext, useCallback, useContext, useEffect, useId, useState } from "react";
 import { Check, ChevronDown, type LucideIcon } from "lucide-react";
 
-// Full class names per tone, so Tailwind keeps them.
+// Full class names per tone, so Tailwind keeps them. Tints come only from the brand: emerald, mango and cream
+// (owner, 2026-11-09: a pink section read as an error; red and pink are kept for errors). Mango is a fill behind
+// forest text, never text itself.
 export const SECTION_TONES = {
   brand: { band: "bg-brand-50 border-brand-100", frame: "ring-brand-100", tile: "text-brand-700 ring-brand-200", eyebrow: "text-brand-700", dot: "bg-brand-500", soft: "bg-brand-50", text: "text-brand-700", strong: "ring-brand-500" },
-  amber: { band: "bg-amber-50 border-amber-100", frame: "ring-amber-100", tile: "text-amber-700 ring-amber-200", eyebrow: "text-amber-800", dot: "bg-amber-500", soft: "bg-amber-50", text: "text-amber-800", strong: "ring-amber-500" },
-  sky: { band: "bg-sky-50 border-sky-100", frame: "ring-sky-100", tile: "text-sky-700 ring-sky-200", eyebrow: "text-sky-800", dot: "bg-sky-500", soft: "bg-sky-50", text: "text-sky-800", strong: "ring-sky-500" },
-  violet: { band: "bg-violet-50 border-violet-100", frame: "ring-violet-100", tile: "text-violet-700 ring-violet-200", eyebrow: "text-violet-800", dot: "bg-violet-500", soft: "bg-violet-50", text: "text-violet-800", strong: "ring-violet-500" },
-  rose: { band: "bg-rose-50 border-rose-100", frame: "ring-rose-100", tile: "text-rose-700 ring-rose-200", eyebrow: "text-rose-800", dot: "bg-rose-500", soft: "bg-rose-50", text: "text-rose-800", strong: "ring-rose-500" },
+  mango: { band: "bg-mango-50 border-mango/50", frame: "ring-mango/50", tile: "text-forest ring-mango", eyebrow: "text-forest", dot: "bg-mango-deep", soft: "bg-mango-50", text: "text-forest", strong: "ring-mango-deep" },
+  cream: { band: "bg-cream-200 border-cream-200", frame: "ring-cream-200", tile: "text-forest ring-cream-200", eyebrow: "text-forest", dot: "bg-forest", soft: "bg-cream-200/60", text: "text-forest", strong: "ring-forest/40" },
   slate: { band: "bg-slate-50 border-slate-200", frame: "ring-slate-200", tile: "text-slate-700 ring-slate-300", eyebrow: "text-slate-600", dot: "bg-slate-400", soft: "bg-slate-50", text: "text-slate-700", strong: "ring-slate-400" },
 } as const;
 export type SectionTone = keyof typeof SECTION_TONES;
@@ -24,7 +24,7 @@ export function SectionHead({ icon: Icon, tone = "brand", title, hint, step, req
     <div className={`flex items-start gap-3 border-b px-4 py-3.5 sm:px-5 ${t.band}`}>
       <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl bg-white shadow-sm ring-1 ${t.tile}`}><Icon size={19} strokeWidth={2.1} /></span>
       <div className="min-w-0 flex-1">
-        {step !== undefined && <p className={`text-[11px] font-bold tracking-[0.14em] uppercase ${t.eyebrow}`}>Step {step}</p>}
+        {step !== undefined && <p className={`text-[13px] font-bold tracking-[0.14em] uppercase ${t.eyebrow}`}>Step {step}</p>}
         <h2 className="text-[17px] leading-tight font-extrabold tracking-tight text-forest">
           {title}{required && <span className="text-rose-600"> *</span>}
         </h2>

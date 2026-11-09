@@ -50,7 +50,7 @@ export function AddressDetails({ name, value }: { name: "address" | "exact_addre
   return (
     <div className="mt-3">
       <input name={name} defaultValue={value ?? ""} maxLength={200} placeholder="Details: house, road, landmark" aria-label="Address details" className={box} />
-      <p className="mt-1 text-xs text-slate-500">শুধু নির্বাচিত টিউটর দেখবেন, আর কেউ নয়।</p>
+      <p className="mt-1 text-sm text-slate-500">শুধু নির্বাচিত টিউটর দেখবেন, আর কেউ নয়।</p>
     </div>
   );
 }

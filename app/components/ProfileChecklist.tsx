@@ -52,7 +52,7 @@ function Ring({ percent }: { percent: number }) {
         <circle cx="31" cy="31" r={r} fill="none" stroke="url(#ring-fill)" strokeWidth="6" strokeLinecap="round"
           strokeDasharray={c} strokeDashoffset={c * (1 - p / 100)} className="transition-[stroke-dashoffset] duration-[900ms] ease-out" />
       </svg>
-      <span className="text-[17px] font-extrabold tracking-tight text-forest tabular-nums">{n}<span className="text-[11px] text-slate-500">%</span></span>
+      <span className="text-[17px] font-extrabold tracking-tight text-forest tabular-nums">{n}<span className="text-[13px] text-slate-500">%</span></span>
     </span>
   );
 }
@@ -73,7 +73,7 @@ export function ProfileChecklist({ steps, code }: { steps: ProgressStep[]; code:
         className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-brand-50/40 sm:p-5">
         <Ring percent={percent} />
         <span className="min-w-0 flex-1">
-          <span className="block text-[11px] font-bold tracking-[0.14em] text-brand-700 uppercase">Profile strength</span>
+          <span className="block text-[13px] font-bold tracking-[0.14em] text-brand-700 uppercase">Profile strength</span>
           <span className="mt-0.5 block text-[17px] leading-tight font-extrabold tracking-tight text-forest">{done} of {steps.length} steps done</span>
           <span className="mt-0.5 block text-sm text-slate-500">{percent === 100 ? "Complete. HTR sees you first." : "Complete profiles are shown to HTR first."}</span>
         </span>
@@ -87,8 +87,8 @@ export function ProfileChecklist({ steps, code }: { steps: ProgressStep[]; code:
             <span className={`relative inline-flex size-3 rounded-full ${nextTone.dot}`} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className={`block text-[11px] font-bold tracking-[0.12em] uppercase ${nextTone.text}`}>Next · {STEP_GROUPS.find((g) => g.key === next.group)!.label}</span>
-            <span className="block font-extrabold text-forest">{next.label}</span>
+            <span className={`block text-[13px] font-bold tracking-[0.12em] uppercase ${nextTone.text}`}>Next · {STEP_GROUPS.find((g) => g.key === next.group)!.label}</span>
+            <span className="block font-extrabold text-forest">{next.short ?? next.label}</span>
           </span>
           <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-extrabold text-forest shadow-sm tabular-nums">+{stepGain(steps, next)}%</span>
           <ArrowRight size={17} aria-hidden className="shrink-0 text-forest transition-transform duration-200 group-hover:translate-x-0.5" />
@@ -116,7 +116,7 @@ export function ProfileChecklist({ steps, code }: { steps: ProgressStep[]; code:
                           </span>
                           <a href={href(s)} {...ext(s)} onClick={() => setOpen(false)}
                             className={`flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm transition-colors hover:bg-slate-50 ${s.done ? "text-slate-500" : isNext ? `font-extrabold text-forest ${t.soft}` : "font-semibold text-forest"}`}>
-                            <span className="min-w-0 flex-1">{s.label}</span>
+                            <span className="min-w-0 flex-1">{s.short ?? s.label}</span>
                             {!s.done && <span className="shrink-0 text-xs font-bold text-slate-400 tabular-nums">+{stepGain(steps, s)}%</span>}
                           </a>
                         </li>

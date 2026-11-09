@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import { inputClass } from "~/components/admin";
 import { ChoiceChip } from "~/components/tutor";
-import { type Band, HABITS, type Level, bandShort } from "~/lib/profile";
+import { type Band, HABITS, type HabitCol, type Level, bandShort } from "~/lib/profile";
 
 // ---------- Writing help ----------
 
@@ -81,9 +81,9 @@ export function GuidedText({ name, kind, band, label, optional, initial, max = 2
       </div>
       {example && (
         <div className="mt-1 mb-2 animate-rise rounded-xl bg-cream p-3 ring-1 ring-brand-100 motion-reduce:animate-none">
-          <p className="text-[11px] font-bold tracking-[0.12em] text-brand-700 uppercase">Example · {bandShort(band)}</p>
+          <p className="text-[13px] font-bold tracking-[0.12em] text-brand-700 uppercase">Example · {bandShort(band)}</p>
           <p className="mt-1 text-sm leading-relaxed text-slate-700">{EXAMPLES[kind][band]}</p>
-          <p className="mt-2 text-xs text-slate-500">নিজের কথা নিজের মতো লিখুন। উদাহরণ কপি করলে HTR সহজেই বোঝে।</p>
+          <p className="mt-2 text-sm text-slate-500">নিজের কথা নিজের মতো লিখুন। উদাহরণ কপি করলে HTR সহজেই বোঝে।</p>
         </div>
       )}
       <div className="-mx-1 mt-1 flex gap-1.5 overflow-x-auto px-1 pb-1.5 scroll-thin">
@@ -108,7 +108,7 @@ export function GuidedText({ name, kind, band, label, optional, initial, max = 2
             {d.word && <span className="font-bold text-forest">{d.word}. </span>}{d.tip}
           </p>
         </div>
-        <span className={`shrink-0 text-xs tabular-nums ${text.length > max * 0.9 ? "text-amber-700" : "text-slate-400"}`}>{text.length}/{max}</span>
+        <span className={`shrink-0 text-xs tabular-nums ${text.length > max * 0.9 ? "font-semibold text-forest" : "text-slate-500"}`}>{text.length}/{max}</span>
       </div>
     </div>
   );
@@ -116,31 +116,65 @@ export function GuidedText({ name, kind, band, label, optional, initial, max = 2
 
 // ---------- Habits ----------
 
-/** Four how-often questions; nothing is picked until the tutor answers. */
-export function HabitQuestions({ band, level }: { band: Band; level?: Level }) {
+export type HabitAnswers = Partial<Record<HabitCol, string | null>>;
+
+/**
+ * The habits asked once for every level (owner, 2026-11-09): the answer most levels already share, so a tutor who
+ * answered per level before sees what they said.
+ */
+export function sharedHabits(levels: Level[], bands: Band[]): HabitAnswers {
+  const mine = levels.filter((l) => bands.includes(l.band));
+  return Object.fromEntries(HABITS.map((h) => {
+    const counts = new Map<string, number>();
+    for (const l of mine) if (l[h.col]) counts.set(l[h.col]!, (counts.get(l[h.col]!) ?? 0) + 1);
+    return [h.col, [...counts].sort((a, b) => b[1] - a[1])[0]?.[0]];
+  }).filter(([, v]) => v));
+}
+
+/** A level answered differently from the shared habits keeps its own answers. */
+export const ownHabits = (level: Level | undefined, shared: HabitAnswers) =>
+  !!level && HABITS.some((h) => level[h.col] !== null && level[h.col] !== shared[h.col]);
+
+/** Four how-often questions; nothing is picked until the tutor answers. `prefix` names the radios. */
+export function HabitQuestions({ prefix, answers }: { prefix: string; answers: HabitAnswers }) {
   return (
-    <div className="mt-4">
-      <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Your habits at this level</p>
-      <p className="mt-0.5 text-xs text-slate-500">যা সত্যি করেন সেটাই বেছে নিন। "না" বলাও ঠিক আছে; গার্ডিয়ান ডেমো ক্লাসে মিলিয়ে দেখেন।</p>
-      <div className="mt-2 space-y-3">
-        {HABITS.map((h) => (
-          <fieldset key={h.key}>
-            <legend className="mb-1.5 text-sm font-bold text-forest">{h.q}</legend>
-            <div className="flex flex-wrap gap-2">
-              {h.options.map(([k, label]) => (
-                <ChoiceChip key={k} type="radio" name={`lv_${band}_${h.key}`} value={k} checked={level?.[h.col] === k}>{label}</ChoiceChip>
-              ))}
-            </div>
-          </fieldset>
-        ))}
-      </div>
+    <div className="space-y-3">
+      {HABITS.map((h) => (
+        <fieldset key={h.key}>
+          <legend className="mb-1.5 text-sm font-bold text-forest">{h.q}</legend>
+          <div className="flex flex-wrap gap-2">
+            {h.options.map(([k, label]) => (
+              <ChoiceChip key={k} type="radio" name={`${prefix}${h.key}`} value={k} checked={answers[h.col] === k}>{label}</ChoiceChip>
+            ))}
+          </div>
+        </fieldset>
+      ))}
+    </div>
+  );
+}
+
+/** Inside a level: "Different at this level?" opens that level's own four questions; closed, the shared answers count. */
+export function LevelHabits({ band, level, shared }: { band: Band; level?: Level; shared: HabitAnswers }) {
+  const [own, setOwn] = useState(() => ownHabits(level, shared));
+  return (
+    <div className="mt-4 rounded-xl bg-cream p-3 ring-1 ring-brand-100">
+      <label className="flex min-h-11 items-center gap-3 text-sm font-semibold text-forest">
+        <input type="checkbox" name={`lv_${band}_own_habits`} value="1" checked={own} onChange={(e) => setOwn(e.target.checked)} className="size-5 shrink-0 accent-forest" />
+        My habits are different at {bandShort(band)}
+      </label>
+      {own ? (
+        <div className="mt-2"><HabitQuestions prefix={`lv_${band}_`} answers={level ?? {}} /></div>
+      ) : (
+        <p className="text-sm text-slate-600">{bandShort(band)}-এ আপনার উপরের "Your habits" উত্তরগুলোই ধরা হবে।</p>
+      )}
     </div>
   );
 }
 
 // ---------- Chart ----------
 
-const BAND_COLOR: Record<Band, string> = { junior: "var(--color-amber-500)", ssc: "var(--color-sky-500)", hsc: "var(--color-violet-500)" };
+// The brand's three colours, matching the level cards (owner, 2026-11-09).
+const BAND_COLOR: Record<Band, string> = { junior: "var(--color-mango-deep)", ssc: "var(--color-brand-500)", hsc: "var(--color-forest)" };
 
 /**
  * Students taught per level as a ring, read live from the level boxes below (the form's own inputs), so the ring moves
@@ -173,12 +207,12 @@ export function ExperienceChart({ form, bands, added }: { form: RefObject<HTMLFo
           <div className="grid size-[76px] place-items-center rounded-full bg-white text-center">
             <span>
               <span className="block text-2xl leading-none font-extrabold text-forest tabular-nums">{total}</span>
-              <span className="block text-[11px] font-bold text-slate-500">students</span>
+              <span className="block text-[13px] font-bold text-slate-500">students</span>
             </span>
           </div>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold tracking-[0.14em] text-brand-700 uppercase">Your experience</p>
+          <p className="text-[13px] font-bold tracking-[0.14em] text-brand-700 uppercase">Your experience</p>
           <ul className="mt-1.5 space-y-1">
             {rows.map((r) => (
               <li key={r.band} className="flex items-center gap-2 text-sm">

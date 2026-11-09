@@ -72,7 +72,7 @@ export function GuardianPanel() {
         <a href={waLink(CONTACT.whatsapp, GUARDIAN_WA_TEXT)} target="_blank" rel="noreferrer" className="wa-btn inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-700 hover:text-forest"><MessageCircle size={17} aria-hidden /> WhatsApp</a>
         <a href={telLink(CONTACT.call)} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-700 hover:text-forest"><Phone size={16} aria-hidden />Call us</a>
       </div>
-      <p className="mt-3 text-xs text-slate-500">আপনার চাহিদা জানান। উপযুক্ত টিউটর নিয়ে আমরা ফোনে কথা বলব।</p>
+      <p className="mt-3 text-sm text-slate-500">আপনার চাহিদা জানান। উপযুক্ত টিউটর নিয়ে আমরা ফোনে কথা বলব।</p>
     </section>
   );
 }

@@ -7,6 +7,7 @@ import { getTuition } from "./admin.server";
 import { bandOf, freeLabel } from "./fit";
 import { AREAS, CLASS_LEVELS, MEDIUMS, SUBJECTS, TRANSPORTS, labelOf } from "./options";
 import { HABITS, type Band, type Level, type Student, bandShort, habitAnswer, periodLabel } from "./profile";
+import { cutPhones } from "./redact";
 import { classLabel } from "./request";
 import { taka } from "./tuition";
 import { postLines } from "./whatsapp";
@@ -32,8 +33,7 @@ Answer in Bangla (চলিত); keep codes, subject names and numbers in Englis
 
 /** Cuts phone numbers, emails and links out of what a tutor typed. */
 const scrub = (s: string | null | undefined) =>
-  (s ?? "").replace(/https?:\/\/\S+|www\.\S+/gi, "[link]").replace(/\S+@\S+\.\S+/g, "[email]")
-    .replace(/(\+?88[\s-]?)?01[3-9](?:[\s-]?\d){8}/g, "[phone]").trim();
+  cutPhones((s ?? "").replace(/https?:\/\/\S+|www\.\S+/gi, "[link]").replace(/\S+@\S+\.\S+/g, "[email]")).trim();
 const list = (keys: string | null | undefined, options = SUBJECTS) => (keys ?? "").split(",").filter(Boolean).map((k) => labelOf(options, k) || k).join(", ");
 
 /** The classes a tutor wants at this tuition's level only; the rest as a count. */

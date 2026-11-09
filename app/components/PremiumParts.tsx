@@ -22,7 +22,7 @@ export function MemberPass({ who, no, stub, stubLabel, tilt = false, cut = "bg-f
       <span aria-hidden className="absolute -bottom-20 -left-12 -z-10 size-48 rounded-full border-[22px] border-forest/6" />
       <div className="grid grid-cols-[minmax(0,1fr)_6rem]">
         <div className="min-w-0 p-5">
-          <p className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.2em]"><Crown size={14} aria-hidden />PREMIUM TUTOR</p>
+          <p className="flex items-center gap-1.5 text-[13px] font-extrabold tracking-[0.2em]"><Crown size={14} aria-hidden />PREMIUM TUTOR</p>
           <div className="mt-4 flex items-center gap-3">
             <span className="shrink-0 rounded-full bg-forest p-[3px]"><Avatar code={who.code} name={who.name} hasPhoto={who.hasPhoto} size="lg" /></span>
             <span className="min-w-0">
@@ -33,9 +33,9 @@ export function MemberPass({ who, no, stub, stubLabel, tilt = false, cut = "bg-f
           </div>
         </div>
         <div className="flex flex-col items-center justify-center border-l-2 border-dashed border-forest/25 px-2 py-4 text-center">
-          <span className="text-[10px] font-bold tracking-widest text-forest/70">{no}</span>
+          <span className="text-[13px] font-bold tracking-widest text-forest/70">{no}</span>
           <span className="mt-1.5 text-[40px] leading-none font-extrabold tabular-nums">{stub}</span>
-          <span className="mt-1 text-[10px] font-extrabold tracking-widest">{stubLabel}</span>
+          <span className="mt-1 text-[13px] font-extrabold tracking-widest">{stubLabel}</span>
         </div>
       </div>
       <span aria-hidden className={`absolute -top-3 right-[5.25rem] size-6 rounded-full ${cut}`} />
@@ -96,7 +96,7 @@ export function RankDemo({ who }: { who: Who }) {
     </div>
   );
   return (
-    <SectionCard icon={Crown} tone="amber" title="Watch your name move up" hint="উদাহরণ: একটি টিউশনে HTR-এর আবেদন তালিকা। গার্ডিয়ান এটা কখনো দেখেন না।" className="mt-5">
+    <SectionCard icon={Crown} tone="mango" title="Watch your name move up" hint="উদাহরণ: একটি টিউশনে HTR-এর আবেদন তালিকা। গার্ডিয়ান এটা কখনো দেখেন না।" className="mt-5">
       <div ref={box}>
         <div role="radiogroup" aria-label="Show as" className="inline-flex rounded-xl bg-slate-100 p-1">
           {[[false, "Normal"], [true, "Premium"]].map(([v, label]) => (
@@ -121,7 +121,7 @@ export function RankDemo({ who }: { who: Who }) {
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
                         <span className="truncate font-bold text-forest">{who.name}</span>
-                        <span className={`inline-flex shrink-0 items-center gap-0.5 rounded bg-mango px-1.5 text-[10px] font-extrabold text-forest transition-all duration-300 ${on ? "scale-100 opacity-100" : "scale-75 opacity-0"}`}><Crown size={10} aria-hidden />PREMIUM</span>
+                        <span className={`inline-flex shrink-0 items-center gap-0.5 rounded bg-mango px-1.5 text-[13px] font-extrabold text-forest transition-all duration-300 ${on ? "scale-100 opacity-100" : "scale-75 opacity-0"}`}><Crown size={10} aria-hidden />PREMIUM</span>
                       </span>
                       <span className="block text-xs text-slate-500">You · T-{who.code}</span>
                     </span>
@@ -146,7 +146,7 @@ export function RankDemo({ who }: { who: Who }) {
   );
 }
 const Level = ({ strong }: { strong?: boolean }) => (
-  <span className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${strong ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>{strong ? "Strong" : "Good"}</span>
+  <span className={`shrink-0 rounded-md px-2 py-0.5 text-[13px] font-bold ${strong ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>{strong ? "Strong" : "Good"}</span>
 );
 
 /** The way in, step by step, each step on its own colour. */
@@ -194,7 +194,7 @@ export function FeeBar({ min }: { min: number }) {
         <span className="inline-flex items-center gap-1.5"><span aria-hidden className="size-2.5 rounded-sm bg-mango ring-1 ring-forest/20" />Premium, paid now</span>
         {later > 0 && <span className="inline-flex items-center gap-1.5"><span aria-hidden className="size-2.5 rounded-sm bg-brand-600" />After the first salary</span>}
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-slate-500">Premium-এর টাকা ফি-র ভেতরেই ধরা, বাড়তি কিছু নয়। আপনার সর্বনিম্ন বেতনের ({taka(min)}) টিউশন হলে Premium-এই পুরো ফি শোধ।</p>
+      <p className="mt-2 text-sm leading-relaxed text-slate-500">Premium-এর টাকা ফি-র ভেতরেই ধরা, বাড়তি কিছু নয়। আপনার সর্বনিম্ন বেতনের ({taka(min)}) টিউশন হলে Premium-এই পুরো ফি শোধ।</p>
     </div>
   );
 }
@@ -202,7 +202,7 @@ export function FeeBar({ min }: { min: number }) {
 /** Said before every application, and kept in view while a term runs (owner, 2026-11-05). */
 export function Patience({ during = false }: { during?: boolean }) {
   return (
-    <SectionCard icon={HeartHandshake} tone="violet" title={during ? "ধৈর্য রাখুন" : "A word before you apply"} className="mt-5"
+    <SectionCard icon={HeartHandshake} tone="brand" title={during ? "ধৈর্য রাখুন" : "A word before you apply"} className="mt-5"
       hint={during ? "HTR প্রতিদিন আপনার শর্তে মেলে এমন টিউশন খুঁজছে।" : "Premium নেওয়ার আগে সবাইকে এটা বলা হয়।"}>
       <div className="space-y-2.5 text-[15px] leading-relaxed text-slate-700">
         <p><b className="text-violet-900">টিউশন রিযিকের ব্যাপার।</b> রিযিকে থাকলে ইনশাআল্লাহ পাবেন।</p>

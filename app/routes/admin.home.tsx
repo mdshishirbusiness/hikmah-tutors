@@ -150,7 +150,7 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
             <section aria-labelledby="follow">
               <div className="mb-2 flex items-baseline justify-between">
                 <h2 id="follow" className="flex items-center gap-2 text-sm font-bold text-slate-500">Follow-ups<span className="rounded-full bg-sky-100 px-2 text-xs text-sky-900 tabular-nums">{follow.due.length}</span></h2>
-                {follow.later > 0 && <span className="text-xs text-slate-400">{follow.later} পরে আছে</span>}
+                {follow.later > 0 && <span className="text-sm text-slate-400">{follow.later} পরে আছে</span>}
               </div>
               <ul className="space-y-2">{follow.due.map((f) => <FollowupRow key={f.id} f={f} />)}</ul>
             </section>
