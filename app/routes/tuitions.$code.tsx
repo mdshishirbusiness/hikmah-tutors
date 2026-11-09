@@ -15,7 +15,9 @@ import { SiteTutorBar, useTutorSignedIn } from "~/components/tutor";
 import { TuitionCard, placeLabel, subjectList } from "~/components/TuitionCard";
 import type { Fit } from "~/lib/fit";
 import { atTime, timeOfDay, tutorFromLabel } from "~/lib/fit";
+import { PremiumNudge } from "~/components/PremiumNudge";
 import { applyTo, applyView, optionalTutor, requireTutor } from "~/lib/me.server";
+import { premiumNudgeOk } from "~/lib/premium.server";
 import { MEDIUMS, MODES, STUDENT_GENDERS, SUBJECTS, labelOf } from "~/lib/options";
 import { classLabel, requirementLabels } from "~/lib/request";
 import { APPLY_NOTE_MAX, type PublicTuition, feeDisplay, formatDate, scheduleNote, taka } from "~/lib/tuition";
@@ -46,7 +48,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const t = view?.t ?? (code > 0 ? await visibleTuition(code) : null);
   if (!t) throw data("Tuition not found", { status: 404 });
   const who = !viewer ? "visitor" : viewer.role === "owner" ? "owner" : !me ? "join" : !ready ? "setup" : "tutor";
+  // The Premium reminder: checked tutors with no Premium term (the 3-day gap is kept on the phone).
+  const nudge = who === "tutor" && ready?.review_status === "approved" ? await premiumNudgeOk(ready.id) : false;
   return {
+    nudge,
     t, who, now: Math.floor(Date.now() / 1000), fit: view?.fit ?? null, applied: view?.applied ?? false,
     minSalary: ready?.min_salary ?? null, paused: ready?.availability_paused === 1, review: ready?.review_status ?? null,
   } as const;
@@ -142,7 +147,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 const sectionTitle = "mb-2 px-1 text-sm font-bold tracking-wide text-slate-500 uppercase";
 
-export default function TuitionWindow({ loaderData: { t, who, now, fit, applied, minSalary, paused, review }, actionData }: Route.ComponentProps) {
+export default function TuitionWindow({ loaderData: { t, who, now, fit, applied, minSalary, paused, review, nudge }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const navigate = useNavigate();
   const { share, toast } = useShare();
@@ -275,6 +280,7 @@ export default function TuitionWindow({ loaderData: { t, who, now, fit, applied,
         <div className="mx-auto max-w-lg">{action}</div>
       </div>
       <SiteTutorBar />
+      <PremiumNudge show={nudge} />
       <Toast message={toast} />
     </>
   );

@@ -325,6 +325,14 @@ export async function premiumAction(intent: string, id: number, form: FormData, 
 }
 
 
+/** Whether the Premium reminder may show: no open term, and not declined by HTR in the last 30 days. */
+export async function premiumNudgeOk(tutorId: number) {
+  const row = await env.DB.prepare(
+    `SELECT 1 FROM premium_members WHERE tutor_id = ? AND (status IN ${OPEN} OR (status = 'declined' AND decided_at > unixepoch() - 30 * 86400)) LIMIT 1`,
+  ).bind(tutorId).first();
+  return !row;
+}
+
 /** The tutor's open term in one line, for Home. */
 export async function premiumStatus(tutorId: number) {
   return env.DB.prepare(`SELECT id, status, ends_at, price FROM premium_members WHERE tutor_id = ? AND status IN ${OPEN} ORDER BY id DESC LIMIT 1`)

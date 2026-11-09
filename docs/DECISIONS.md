@@ -3,13 +3,17 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
-## 2026-11-09 (Premium reminder, planned)
+## 2026-11-09 (Premium reminder, built)
 
 - **A Premium reminder now and then** (owner, after seeing a competitor's full-screen pop-up): many tutors don't know
   Premium exists. Shown only to signed-in tutors without Premium, at most **once every 3 days** (owner, replacing
-  Claude's once a week); "Not now" hides it for 3 days, and a Premium member never sees it. Claude's proposal, waiting
-  for the owner's OK on a 375 px screenshot: a bottom sheet (not a full-screen modal) when a tutor opens a tuition,
-  brand colours, no stock photo or "#1" claims, honest about rizq and no guarantee, plus a lasting Premium card on Home.
+  Claude's once a week); "Not now" hides it for 3 days, and a Premium member never sees it. Design approved by the
+  owner on a 375 px screenshot: a bottom sheet (not a full-screen modal), brand colours, no stock photo or "#1" claims,
+  honest about rizq and no guarantee. Home's Premium card stays as the lasting entry.
+- **How it was built** (Claude): `app/components/PremiumNudge.tsx` on the tuition window, 2.5 s after it opens, for
+  checked tutors with no open Premium term and no decline in the last 30 days (`premiumNudgeOk`). The 3-day gap is kept
+  on the phone (localStorage), so another phone or browser may show it again. `?premium-nudge` shows it at once for
+  trying the design.
 - Correction: Claude first said this must wait until the core is live. The core and Premium are already live
   (hikmahtutor.com since 2026-11-04, Premium since 2026-11-05), so nothing blocks it.
 
