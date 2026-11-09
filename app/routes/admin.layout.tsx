@@ -6,7 +6,7 @@ import { Form, Link, NavLink, Outlet, type ShouldRevalidateFunctionArgs, useFetc
 import { InstallButton } from "~/components/InstallApp";
 import { ScrollRide } from "~/components/ScrollRide";
 import {
-  ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, PhoneCall, Plus, Search, UserRound, Users, Wallet, X, Zap,
+  ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, GraduationCap, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, PhoneCall, Plus, Search, UserRound, Users, Wallet, X, Zap,
 } from "lucide-react";
 import type { Route } from "./+types/admin.layout";
 import { Avatar } from "~/components/Avatar";
@@ -50,6 +50,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors + c.uploads, hot: true },
       { to: "/admin/calls", label: "Call list", icon: PhoneCall },
       { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true },
+      { to: "/admin/batches", label: "Batch teachers", icon: GraduationCap, count: (c) => c.batches, hot: true },
       { to: "/admin/guardians", label: "Guardians", icon: UserRound },
     ],
   },
@@ -75,6 +76,7 @@ const MORE: Item[] = [
   { to: "/admin/placements", label: "Placements", icon: Handshake, count: (c) => c.selected },
   { to: "/admin/money", label: "Money", icon: Wallet },
   { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true },
+  { to: "/admin/batches", label: "Batch teachers", icon: GraduationCap, count: (c) => c.batches, hot: true },
   { to: "/admin/guardians", label: "Guardians", icon: UserRound },
   { to: "/admin/insights", label: "Insights", icon: BarChart3 },
   { to: "/admin/review", label: "Review", icon: ListChecks, count: (c) => c.review },

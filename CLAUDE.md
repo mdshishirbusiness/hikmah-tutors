@@ -76,6 +76,8 @@ enforced with SQLite triggers. Roles: Owner only for now.
 - Call list (`/admin/calls`, migration 0026): the owner phones tutors and rates them per level and per subject at each
   level, with notes; `app/lib/calls.server.ts`, shared rules in `app/lib/rating.ts`, "Ask to update" texts in
   `app/lib/ask.ts`. Ratings are private (audited as 'tutor_check'); tutors see only "HTR checked".
+- Admission batch teachers (migration 0029): choices and form checks in `app/lib/batch.ts`, saves and the admin list in
+  `batch.server.ts`; apply at `/batch/apply` (any Google account), review at `/admin/batches`.
 - Admin pieces: `app/components/Applicants.tsx` (applicant table/board/detail), `charts.tsx` (no chart library),
   `TuitionFields.tsx` (new and edit tuition), `Avatar.tsx` (private photos via `/photos/tutor/:code`).
 - Database changes: a new numbered file in `migrations/`, then `npm run db:migrate:local` (and `db:migrate` for the

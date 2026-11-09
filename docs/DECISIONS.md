@@ -17,6 +17,14 @@ Newest first. Each entry: what was decided, by whom, and why.
   similar.
 - Not decided yet: which tracks the first batches cover (Claude suggested starting with the humanities unit for
   students changing group, then science and engineering), fees, the pay rule, and the student side (sign-up, payment).
+- **Teacher applications on the website, not a Google Form** (owner, built): `/batch/apply` (migration 0029). Anyone
+  signs in with Google and applies once; a registered tutor's name, phone, university and admission result are filled
+  in. Asks: tracks, subjects (with Other), own admission result, years and admission students taught, coaching taught,
+  online/offline/both, and for online the setup (laptop, pen tablet, quiet room, can record), internet and tools,
+  free days and times, pay expected per class, an optional demo link and a note. Answers can change only while the
+  application is New (a trigger locks them after). Admin `/admin/batches` ("Batch teachers", counted in the menu while
+  New): steps New → Called → Demo → Shortlisted → Final or Not now, a private 1–5 rating and note (audited), filters by
+  subject, track, online/offline and "Laptop + pen tablet", and "Share apply link". The phone is shown to the admin only.
 
 ## 2026-11-09 (apply note when the profile has gaps)
 

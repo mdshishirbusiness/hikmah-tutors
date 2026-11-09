@@ -938,10 +938,11 @@ export async function navCounts() {
             (SELECT count(DISTINCT tutor_id) FROM tutor_uploads WHERE status = 'pending') uploads,
             (SELECT count(*) FROM followups WHERE done_at IS NULL AND due_at <= unixepoch()) followups,
             (SELECT count(*) FROM premium_members WHERE status IN ('applied', 'paid')
-               OR (refund_due_at IS NOT NULL AND refund_sent_at IS NULL)) premium`,
-  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number; uploads: number; followups: number; premium: number }>();
+               OR (refund_due_at IS NOT NULL AND refund_sent_at IS NULL)) premium,
+            (SELECT count(*) FROM batch_applications WHERE status = 'new') batches`,
+  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number; uploads: number; followups: number; premium: number; batches: number }>();
   const review = await reviewCounts();
-  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0, uploads: 0, followups: 0, premium: 0 }), review: review.tutors + review.tuitions + review.held };
+  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0, uploads: 0, followups: 0, premium: 0, batches: 0 }), review: review.tutors + review.tuitions + review.held };
 }
 
 export type SearchHit = { kind: "tuition" | "tutor" | "guardian" | "lead"; to: string; title: string; sub: string; photo?: { code: number; has: boolean } };
