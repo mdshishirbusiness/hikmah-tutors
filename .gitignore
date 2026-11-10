@@ -18,3 +18,10 @@ worker-configuration.d.ts
 
 !.dev.vars.example
 !.env.example
+
+# Owner's inspiration drops stay on this PC (other brands' ads, real photos and phone numbers; the repo is public).
+# Only files with a note in design/inspiration/README.md, cleaned of personal details, are committed: add a ! line.
+/design/inspiration/*
+!/design/inspiration/README.md
+!/design/inspiration/hts-confirmation-progress.jpg
+!/design/inspiration/icon-fact-rows.png

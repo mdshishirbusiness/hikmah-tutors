@@ -1,7 +1,8 @@
 # Design inspiration
 
 Screens the owner showed, with what they like in each. Personal details are blacked out before a file is added here
-(the repo is public).
+(the repo is public). Everything else dropped in this folder stays on the owner's PC: `.gitignore` skips it until a file
+gets a note here and its own `!` line there (owner, 2026-11-11).
 
 ## hts-confirmation-progress.jpg — Home Tutor Service, tutor's "Applied" tab (owner, 2026-11-03)
 
