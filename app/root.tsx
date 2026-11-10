@@ -6,6 +6,8 @@ import { PageLoader } from "./components/PageLoader";
 import { addedAreas, loadAreas } from "./lib/areas.server";
 import { headerViewer } from "./lib/me.server";
 import { addAreas } from "./lib/options";
+import { siteVoice } from "./lib/voice.server";
+import { VoiceNote } from "./components/VoiceNote";
 import "./app.css";
 
 // Areas the owner added join the built-in list before any loader or action reads it.
@@ -13,7 +15,8 @@ export const middleware: Route.MiddlewareFunction[] = [async (_, next) => { awai
 
 // The header shows who is signed in (a tutor's photo, Admin for the owner, Log in otherwise).
 export async function loader({ request }: Route.LoaderArgs) {
-  return { viewer: await headerViewer(request), areas: addedAreas() };
+  const [viewer, voice] = await Promise.all([headerViewer(request), siteVoice()]);
+  return { viewer, areas: addedAreas(), voice };
 }
 
 // Sign-in state only changes on a form post (log out) or a full page load (Google's return), not on filters.
@@ -56,6 +59,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
       <PageLoader />
       <Offline />
       <Outlet />
+      <VoiceNote clips={loaderData.voice} />
     </>
   );
 }

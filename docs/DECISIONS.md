@@ -3,6 +3,14 @@
 `docs/PRD.md` (v1.0, 20 Sep 2026) is the product spec. Where this file differs, this file wins.
 Newest first. Each entry: what was decided, by whom, and why.
 
+## 2026-11-10 (guardian promises, Meta AI agent)
+
+- **What Hikmah promises guardians** (owner, while setting up the Meta Business AI agent on the Facebook page): the
+  service is free for guardians (they pay the tutor's salary straight to the tutor), a new tutor gets **2 free demo
+  days**, and a guardian who is not happy gets **another tutor at no cost**. Any guardian-facing text (site, posts,
+  the AI agent's Google Doc "Hikmah Tutors FAQ for AI") should say the same. The FAQ doc holds only public facts;
+  the salary guide in it comes from the sheet's tuitions (class and salary only).
+
 ## 2026-11-09 (salary range)
 
 - **A tuition's salary can be a range** (owner): the tuition form has an optional "Up to" box under the amount
@@ -1162,3 +1170,19 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
   either spelling. A name already on the list (label or any spelling) reuses that area instead of making a twin; a save
   that fails another check adds nothing. Guardian and Quick Pad leads keep a free-text "Other area"; when a lead
   becomes a tuition, that text opens in the New area box to confirm.
+- **The owner's voice on the site** (owner, 2026-11-11: "to make the site lively"): one short clip per page, uploaded
+  at `/admin/voice` (MP3 or M4A, up to 3 MB; `site_voice`, migration 0033; files in R2 under `voice/`, served publicly
+  at `/voice/<slot>` with byte ranges). Visitors get a floating button on that page (`app/components/VoiceNote.tsx`).
+  Auto-play is per page, not site-wide: Premium is the suggested one. An auto clip plays once per visitor per upload;
+  browsers block sound before the first touch, so on a fresh load it starts at the first tap. The X stops it and keeps
+  auto voice off on that phone. The pages that can have a clip are listed in `app/lib/voice.ts`.
+- **Premium in three steps** (owner, 2026-11-11: "so more people can buy"): the form sits right after the hero, the
+  benefits and the word on rizq, as Step 1 salary, Step 2 send, Step 3 TrxID. One tick instead of two (details right +
+  promises read + no guarantee); the fee example and "a matching tuition" fold away; the sender's number is prefilled
+  with the tutor's own. Rules, price and the terms text are unchanged.
+- **Profile top: Wallet and Premium** (owner, 2026-11-11): two tiles under the name, the wallet balance and the
+  Premium offer (or the term's state). "Students you've taught" has its own forest band with the count and the classes
+  and subjects taught picked out, and leads the Experience tab.
+- **HSC subject marks are out of 200** (owner, 2026-11-11: two papers per subject); SSC stays out of 100 (migration
+  0032). HSC marks saved before this were typed as out of 100; the admin label now says "of 200", so an old low number
+  may be an old entry.

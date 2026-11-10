@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Form, Link, useNavigation } from "react-router";
 import {
-  ArrowLeft, BadgeCheck, CalendarClock, Check, Copy, Crown, Hourglass, ListChecks, ReceiptText, ShieldCheck, TriangleAlert, Wallet,
+  ArrowLeft, BadgeCheck, CalendarClock, Check, ChevronDown, Copy, Crown, Hourglass, ListChecks, ReceiptText, ShieldCheck, TriangleAlert, Wallet,
 } from "lucide-react";
 import type { Route } from "./+types/me.premium";
 import { inputClass } from "~/components/admin";
@@ -71,11 +71,12 @@ export default function Premium({ loaderData: { me, premium, badges, now }, acti
             <Hero who={person} members={premium.members} />
             <BenefitTiles />
             {m && <LastTerm m={m} person={person} />}
-            <RankDemo who={person} />
-            <HowItWorks />
+            {/* The form comes early (owner, 2026-11-11: fewer steps to Premium); the word on rizq stays before it. */}
             <Patience />
-            <Promises />
             <Apply me={me} missing={premium.missing} choices={premium.choices} busy={busy} />
+            <HowItWorks />
+            <RankDemo who={person} />
+            <Promises />
           </>
         )}
       </div>
@@ -98,7 +99,7 @@ function Hero({ who, members }: { who: Person; members: number }) {
         <p className="mt-6 mb-2 text-xs font-semibold text-brand-200">Your pass could look like this</p>
         <div className="px-1 pb-2"><MemberPass who={who} no="No. ——" stub="90" stubLabel="DAYS" tilt /></div>
         <a href="#apply" className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-mango text-base font-extrabold text-forest transition-transform hover:-translate-y-0.5">
-          Apply now
+          Apply in 3 steps
         </a>
         {members >= 5 && <p className="mt-3 text-center text-xs font-semibold text-brand-100">{members} tutors are Premium now</p>}
       </div>
@@ -117,7 +118,7 @@ function Promises() {
   );
   return (
     <section aria-labelledby="promises" className="mt-5">
-      <h2 id="promises" className="flex items-center gap-2 text-lg font-extrabold text-forest"><ShieldCheck size={20} className="text-brand-600" aria-hidden />Promises on both sides</h2>
+      <h2 id="promises" className="flex scroll-mt-20 items-center gap-2 text-lg font-extrabold text-forest"><ShieldCheck size={20} className="text-brand-600" aria-hidden />Promises on both sides</h2>
       <p className="mt-0.5 text-sm text-slate-500">শর্তগুলো দুই পক্ষের প্রতিশ্রুতি হিসেবে লেখা।</p>
       <div className="mt-3 space-y-3">
         <Block title="HTR promises" items={PREMIUM_TERMS.htr} tone="bg-brand-50 text-brand-700 ring-brand-100" tick="text-brand-600" />
@@ -134,6 +135,7 @@ function Apply({ me, missing, choices, busy }: {
 }) {
   const [min, setMin] = useState(String(me.min_salary && me.min_salary >= MIN_SALARY_FLOOR ? me.min_salary : ""));
   const n = Number(min.replace(/\D/g, ""));
+  const ok = n >= MIN_SALARY_FLOOR, price = premiumPrice(n);
   const ready = me.review_status === "approved" && missing.length === 0;
   return (
     <SectionCard id="apply" icon={Crown} tone="brand" title="Apply for Premium" hint="আবেদনের সাথেই টাকা পাঠান। HTR 24 ঘণ্টার মধ্যে যাচাই করে WhatsApp-এ জানাবে; নিতে না পারলে পুরো টাকা ফেরত।" className="mt-5 scroll-mt-20">
@@ -148,40 +150,69 @@ function Apply({ me, missing, choices, busy }: {
           </div>
         </div>
       ) : null}
-      <Form method="post" className="mt-4 space-y-4">
+      {/* Three numbered steps on one screen (owner, 2026-11-11): salary, send, TrxID. The extras fold away. */}
+      <Form method="post" className="mt-4">
         <input type="hidden" name="intent" value="apply" />
-        <label className="block">
-          <span className="mb-1 block text-sm font-bold text-forest">Your minimum salary</span>
-          <span className="flex items-stretch gap-2">
-            <input name="min_salary" value={min} onChange={(e) => setMin(e.target.value)} inputMode="numeric" required placeholder="3000" disabled={!ready} className={`${inputClass} max-w-40 text-lg font-bold tabular-nums`} />
-            <span className={`flex flex-1 items-center rounded-xl px-4 text-sm font-bold ${n >= MIN_SALARY_FLOOR ? "bg-mango text-forest" : "bg-slate-100 text-slate-500"}`}>
-              {n >= MIN_SALARY_FLOOR ? <>Premium {taka(premiumPrice(n))}</> : `At least ${taka(MIN_SALARY_FLOOR)}`}
-            </span>
-          </span>
-          <span className="mt-1 block text-sm text-slate-500">এর কম বেতনের টিউশন নিতে বাধ্য নন। এটা আপনার Profile-এর Lowest salary-ও হবে।</span>
+        <ol className="space-y-6">
+          <Step n={1} title="Your minimum salary" sub="এর কম বেতনের টিউশন নিতে বাধ্য নন।">
+            <div className="flex items-stretch gap-2">
+              <input name="min_salary" value={min} onChange={(e) => setMin(e.target.value)} inputMode="numeric" required placeholder="3000" aria-label="Your minimum salary" disabled={!ready} className={`${inputClass} max-w-36 text-lg font-bold tabular-nums`} />
+              <span className={`flex flex-1 flex-col justify-center rounded-xl px-4 ${ok ? "bg-mango text-forest" : "bg-slate-100 text-slate-500"}`}>
+                {ok ? <><span className="text-xs font-bold">Premium price</span><span className="text-xl leading-tight font-extrabold tabular-nums">{taka(price)}</span></> : <span className="text-sm font-bold">At least {taka(MIN_SALARY_FLOOR)}</span>}
+              </span>
+            </div>
+            {ok && (
+              <details className="group mt-2">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-bold text-brand-700 [&::-webkit-details-marker]:hidden">এটা কি বাড়তি খরচ? না, দেখুন<ChevronDown size={16} className="transition-transform group-open:rotate-180" aria-hidden /></summary>
+                <FeeBar min={n} />
+              </details>
+            )}
+          </Step>
+          <Step n={2} title={ok ? `Send ${taka(price)}` : "Send the Premium price"} sub="bKash, Nagad বা Rocket থেকে।">
+            <PayNumber compact />
+          </Step>
+          <Step n={3} title="Write the TrxID" sub="টাকা পাঠানোর পর যে SMS আসে, তাতে TrxID থাকে।">
+            <PayFields amount={ok ? price : 0} disabled={!ready} from={me.phone} />
+          </Step>
+        </ol>
+
+        <details className="group mt-5 rounded-xl bg-cream ring-1 ring-brand-100">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 text-sm font-bold text-forest [&::-webkit-details-marker]:hidden">
+            <span className="min-w-0 flex-1 truncate">Matching tuition: {me.anywhere ? "anywhere" : `${choices.areas.length} ${choices.areas.length === 1 ? "area" : "areas"}`} · {choices.classes.length} {choices.classes.length === 1 ? "class" : "classes"}</span>
+            <ChevronDown size={16} className="shrink-0 text-slate-500 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+          <div className="px-4 pb-3">
+            <dl className="space-y-1.5 text-sm">
+              <div className="flex gap-2"><dt className="w-16 shrink-0 font-semibold text-slate-500">Areas</dt><dd className="text-slate-800">{me.anywhere ? "Anywhere in Rajshahi" : list(choices.areas.join(","), AREAS) || "—"}</dd></div>
+              <div className="flex gap-2"><dt className="w-16 shrink-0 font-semibold text-slate-500">Classes</dt><dd className="text-slate-800">{list(choices.classes.join(","), CLASS_LEVELS) || "—"}</dd></div>
+              <div className="flex gap-2"><dt className="w-16 shrink-0 font-semibold text-slate-500">Subjects</dt><dd className="text-slate-800">{[...new Set(choices.subjects.map((s) => labelOf(SUBJECTS, s.subject)))].join(", ") || "—"}</dd></div>
+            </dl>
+            <Link to="/me/profile#areas" className="mt-1 inline-flex min-h-10 items-center text-sm font-bold text-brand-700">Change in Profile</Link>
+          </div>
+        </details>
+        <label className="mt-4 flex min-h-11 items-start gap-3 text-sm leading-relaxed text-slate-700">
+          <input type="checkbox" name="terms" value="1" required disabled={!ready} className="mt-0.5 size-5 shrink-0 accent-forest" />
+          <span>আমার এলাকা, ক্লাস আর বিষয় ঠিক আছে। <a href="#promises" className="font-bold text-brand-700 underline">দুই পক্ষের প্রতিশ্রুতি</a> পড়েছি। বুঝেছি, Premium টিউশনের নিশ্চয়তা নয়; HTR সর্বাত্মক চেষ্টা করবে।</span>
         </label>
-        <FeeBar min={n} />
-        <div className="rounded-xl bg-cream p-4 ring-1 ring-brand-100">
-          <p className="text-xs font-extrabold tracking-wide text-brand-700 uppercase">A matching tuition is</p>
-          <dl className="mt-2 space-y-1.5 text-sm">
-            <div className="flex gap-2"><dt className="w-16 shrink-0 font-semibold text-slate-500">Areas</dt><dd className="text-slate-800">{me.anywhere ? "Anywhere in Rajshahi" : list(choices.areas.join(","), AREAS) || "—"}</dd></div>
-            <div className="flex gap-2"><dt className="w-16 shrink-0 font-semibold text-slate-500">Classes</dt><dd className="text-slate-800">{list(choices.classes.join(","), CLASS_LEVELS) || "—"}</dd></div>
-            <div className="flex gap-2"><dt className="w-16 shrink-0 font-semibold text-slate-500">Subjects</dt><dd className="text-slate-800">{[...new Set(choices.subjects.map((s) => labelOf(SUBJECTS, s.subject)))].join(", ") || "—"}</dd></div>
-          </dl>
-          <Link to="/me/profile#areas" className="mt-2 inline-flex min-h-10 items-center text-sm font-bold text-brand-700">Change in Profile</Link>
-        </div>
-        <label className="flex min-h-11 items-start gap-3 text-sm text-slate-700"><input type="checkbox" name="confirm" value="1" required disabled={!ready} className="mt-0.5 size-5 shrink-0 accent-forest" />আমার এলাকা, ক্লাস আর বিষয় ঠিক আছে।</label>
-        <label className="flex min-h-11 items-start gap-3 text-sm text-slate-700"><input type="checkbox" name="terms" value="1" required disabled={!ready} className="mt-0.5 size-5 shrink-0 accent-forest" />ওপরের কথা আর দুই পক্ষের প্রতিশ্রুতি পড়েছি। বুঝেছি, Premium টিউশনের নিশ্চয়তা নয়; HTR সর্বাত্মক চেষ্টা করবে।</label>
-        <div className="border-t border-brand-100 pt-4">
-          <p className="mb-2 text-sm font-bold text-forest">{n >= MIN_SALARY_FLOOR ? `Send ${taka(premiumPrice(n))} to` : "Send the Premium price to"}</p>
-          <PayNumber compact />
-          <div className="mt-3"><PayFields amount={n >= MIN_SALARY_FLOOR ? premiumPrice(n) : 0} disabled={!ready} /></div>
-        </div>
-        <button disabled={!ready || busy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-forest text-base font-extrabold text-cream hover:bg-brand-700 disabled:opacity-50">
+        <button disabled={!ready || busy} className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-forest text-base font-extrabold text-cream hover:bg-brand-700 disabled:opacity-50">
           <Crown size={18} className="text-mango" aria-hidden />I've paid · Apply
         </button>
+        <p className="mt-2 text-center text-sm text-slate-500">HTR নিতে না পারলে পুরো টাকা ফেরত।</p>
       </Form>
     </SectionCard>
+  );
+}
+
+/** One numbered step of the application: the number on mango, a line down to the next step. */
+function Step({ n, title, sub, children }: { n: number; title: string; sub?: string; children: React.ReactNode }) {
+  return (
+    <li className="relative pl-12">
+      <span aria-hidden className="absolute top-0 left-0 grid size-9 place-items-center rounded-full bg-mango text-base font-extrabold text-forest tabular-nums">{n}</span>
+      {n < 3 && <span aria-hidden className="absolute top-10 -bottom-5 left-[17px] w-0.5 rounded-full bg-brand-100" />}
+      <h3 className="pt-1 text-[17px] leading-tight font-extrabold text-forest">{title}</h3>
+      {sub && <p className="mt-0.5 mb-2.5 text-sm text-slate-500">{sub}</p>}
+      {children}
+    </li>
   );
 }
 
@@ -327,7 +358,7 @@ function PayNumber({ compact }: { compact?: boolean }) {
 }
 
 /** What the tutor sent: method, their number and the TrxID. The amount is the price, fixed. */
-function PayFields({ amount, disabled }: { amount: number; disabled?: boolean }) {
+function PayFields({ amount, disabled, from }: { amount: number; disabled?: boolean; from?: string | null }) {
   return (
     <div className="space-y-3">
       <fieldset disabled={disabled}>
@@ -340,7 +371,7 @@ function PayFields({ amount, disabled }: { amount: number; disabled?: boolean })
           ))}
         </div>
       </fieldset>
-      <label className="block"><span className="mb-1 block text-sm font-bold text-forest">Your number you sent from</span><input name="from" required disabled={disabled} inputMode="tel" placeholder="01XXXXXXXXX" className={inputClass} /></label>
+      <label className="block"><span className="mb-1 block text-sm font-bold text-forest">Your number you sent from</span><input name="from" required disabled={disabled} inputMode="tel" defaultValue={from ?? ""} placeholder="01XXXXXXXXX" className={inputClass} /></label>
       <label className="block"><span className="mb-1 block text-sm font-bold text-forest">TrxID</span><input name="trx" required disabled={disabled} autoCapitalize="characters" placeholder="9AB7C6D5E4" className={`${inputClass} uppercase`} /></label>
       <input type="hidden" name="amount" value={amount || ""} />
     </div>

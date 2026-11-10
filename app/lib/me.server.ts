@@ -10,7 +10,7 @@ import { AREAS, BANDS, CLASS_CHOICES, SUBJECTS, TRANSPORTS } from "./options";
 import { APPLY_NOTE_MAX, type PublicTuition } from "./tuition";
 import { cutPhones } from "./redact";
 import { openTuitions, visibleTuition } from "./tuitions.server";
-import { type Band, HABITS, type Level, MARK_EXAMS, type Student, markable, profileSteps } from "./profile";
+import { type Band, HABITS, type Level, MARK_EXAMS, MARK_MAX, type Student, markable, profileSteps } from "./profile";
 
 export type MyTutor = {
   id: number; code: number; full_name: string; gender: string | null; email: string | null; phone: string; alt_phone: string | null; institution: string | null; department: string | null;
@@ -513,14 +513,14 @@ export async function saveProfile(viewer: Viewer, me: MyTutor, form: FormData): 
       takes_tests: tick(tests), gives_homework: tick(homework), makes_notes: tick(notes), reports_guardian: tick(report) });
   }
   // Optional numbers: total marks, admission result, and marks in the subjects taught at SSC and HSC.
-  const short = (k: string, max: number) => String(form.get(k) ?? "").replace(/s+/g, " ").trim().slice(0, max) || null;
+  const short = (k: string, max: number) => String(form.get(k) ?? "").replace(/\s+/g, " ").trim().slice(0, max) || null;
   const marks: { exam: string; subject: string; marks: number }[] = [];
   for (const exam of MARK_EXAMS) {
     for (const subject of markable(subjects.filter(([band]) => band === exam).map(([, s]) => s))) {
       const v = String(form.get(`mk_${exam}_${subject}`) ?? "").trim();
       if (!v) continue;
       const n = Number(v);
-      if (!Number.isInteger(n) || n < 0 || n > 100) return "Subject marks are out of 100, e.g. 95.";
+      if (!Number.isInteger(n) || n < 0 || n > MARK_MAX[exam]) return `${exam.toUpperCase()} subject marks are out of ${MARK_MAX[exam]}, e.g. ${MARK_MAX[exam] - 10}.`;
       marks.push({ exam, subject, marks: n });
     }
   }

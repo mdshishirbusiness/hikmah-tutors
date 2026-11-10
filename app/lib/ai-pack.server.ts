@@ -86,7 +86,7 @@ export async function aiPack(code: number): Promise<{ text: string; count: numbe
         [a.institution || a.shortcode, a.department, a.session_year && `session ${a.session_year}`].filter(Boolean).join(", ") || "studies not given"].filter(Boolean).join(" · "),
       [(a.ssc_result || a.ssc_group) && `SSC ${[a.ssc_group, a.ssc_result && `GPA ${a.ssc_result}`, a.ssc_marks && `${a.ssc_marks} marks`].filter(Boolean).join(" ")}`,
         (a.hsc_result || a.hsc_group) && `HSC ${[a.hsc_group, a.hsc_result && `GPA ${a.hsc_result}`, a.hsc_marks && `${a.hsc_marks} marks`].filter(Boolean).join(" ")}`].filter(Boolean).join(" · "),
-      a.own_marks && `Own marks in this tuition's subjects: ${a.own_marks.split(",").map((m) => { const [k, n] = m.split(":"); return `${labelOf(SUBJECTS, k)} ${n}`; }).join(", ")}`,
+      a.own_marks && `Own marks in this tuition's subjects (an SSC subject is out of 100, an HSC subject out of 200): ${a.own_marks.split(",").map((m) => { const [k, n] = m.split(":"); return `${labelOf(SUBJECTS, k)} ${n}`; }).join(", ")}`,
       a.admission_result && `Admission test: ${scrub(a.admission_result)}`,
       a.location && `Lives in: ${scrub(a.location)}`,
       a.areas && `Areas they teach in: ${list(a.areas, AREAS)}`,

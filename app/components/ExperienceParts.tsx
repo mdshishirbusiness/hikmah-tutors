@@ -225,7 +225,7 @@ export function ExperienceChart({ form, bands, added }: { form: RefObject<HTMLFo
         </div>
       </div>
       <p className="border-t border-brand-50 bg-brand-50/50 px-4 py-2.5 text-xs text-slate-600 sm:px-5">
-        {total ? <><b className="text-forest">{years ? `${years} ${years === 1 ? "year" : "years"}` : "Add years"}</b> teaching · <b className="text-forest">{added}</b> {added === 1 ? "student" : "students"} with details below</>
+        {total ? <><b className="text-forest">{years ? `${years} ${years === 1 ? "year" : "years"}` : "Add years"}</b> teaching · <b className="text-forest">{added}</b> {added === 1 ? "student" : "students"} with details above</>
           : "নিচে প্রতিটি লেভেলে কতজনকে পড়িয়েছেন লিখুন, এখানে চার্ট হয়ে দেখাবে।"}
       </p>
     </section>

@@ -4,7 +4,6 @@
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 import { ArrowRight, MapPin, Plus, Trash2, Users } from "lucide-react";
-import { SectionCard } from "~/components/SectionCard";
 import { ClassOptions } from "~/components/RequestFields";
 import { AREAS, SUBJECTS, labelOf } from "~/lib/options";
 import { type Student, periodLabel } from "~/lib/profile";
@@ -30,7 +29,7 @@ export function StudentTimeline({ students, onRemove }: { students: Student[]; o
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="rounded-md bg-brand-50 px-2 py-0.5 text-sm font-extrabold text-forest">{classLabel(s.class_level, s.class_other)}</span>
+                    <span className="rounded-md bg-forest px-2.5 py-1 text-sm font-extrabold text-cream">{classLabel(s.class_level, s.class_other)}</span>
                     {area && <span className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700"><MapPin size={14} aria-hidden className="text-slate-400" />{area}</span>}
                   </p>
                   {s.started && <p className="mt-1 text-xs font-semibold text-slate-500 tabular-nums">{periodLabel(s.started, s.ended)}</p>}
@@ -46,8 +45,8 @@ export function StudentTimeline({ students, onRemove }: { students: Student[]; o
               </div>
               {subjects.length > 0 && <p className="mt-2 flex flex-wrap gap-1">{subjects.map((x) => <span key={x} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{x}</span>)}</p>}
               {(s.result_before || s.result_after) && (
-                <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-1.5 text-sm font-extrabold text-emerald-900 ring-1 ring-emerald-100">
-                  <span className="text-xs font-bold tracking-wide text-emerald-700 uppercase">Result</span>
+                <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-mango px-3 py-1.5 text-[15px] font-extrabold text-forest">
+                  <span className="text-xs font-bold tracking-wide text-forest/70 uppercase">Result</span>
                   <span className="tabular-nums">{s.result_before || "?"}</span><ArrowRight size={14} aria-hidden /><span className="tabular-nums">{s.result_after || "?"}</span>
                 </p>
               )}
@@ -94,14 +93,38 @@ export function StudentsCard({ students }: { students: Student[] }) {
   }
 
   const shown = students.filter((s) => !(remover.state !== "idle" && remover.formData?.get("id") === String(s.id)));
+  // What the tutor has really taught, each named once: classes first, then subjects.
+  const taught = [...new Set([
+    ...shown.map((s) => classLabel(s.class_level, s.class_other)),
+    ...shown.flatMap((s) => (s.subjects ?? "").split(",").filter(Boolean).map((k) => labelOf(SUBJECTS, k))),
+  ])];
   const toggle = (k: string) => setSubjects((l) => (l.includes(k) ? l.filter((x) => x !== k) : [...l, k]));
   const addPhrase = (p: string) => setImprovement((t) => (t.includes(p) ? t : t ? `${t.replace(/[।.\s]*$/, "")}। ${p}` : p));
 
   return (
-    <SectionCard id="students" icon={Users} tone="mango" title="Students you've taught" hint="নাম লিখবেন না। ক্লাস, এলাকা, কতদিন পড়িয়েছেন আর কী উন্নতি হয়েছে।"
-      aside={shown.length > 0 ? <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-extrabold text-forest shadow-sm ring-1 ring-brand-100 tabular-nums">{shown.length}</span> : undefined}>
+    // Its own look, apart from the form sections (owner, 2026-11-11): a forest band with the count, and what was taught
+    // (classes, subjects) picked out, so specific experience is the first thing read in this tab.
+    <section id="students" className="scroll-mt-32 overflow-hidden rounded-3xl bg-white shadow-card ring-1 ring-forest/15 target:ring-2 target:ring-brand-500">
+      <div className="relative overflow-hidden bg-forest px-4 pt-4 pb-4 text-cream sm:px-5">
+        <span aria-hidden className="absolute -top-16 -right-10 size-44 rounded-full bg-forest-mid" />
+        <div className="relative flex items-center gap-3">
+          <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-xl bg-mango text-forest"><Users size={21} /></span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold tracking-[0.14em] text-brand-200 uppercase">Real experience</p>
+            <h2 className="text-[19px] leading-tight font-extrabold tracking-tight">Students you've taught</h2>
+          </div>
+          {shown.length > 0 && <span className="shrink-0 text-[40px] leading-none font-extrabold tracking-tight text-mango tabular-nums" aria-label={`${shown.length} added`}>{shown.length}</span>}
+        </div>
+        {taught.length > 0 && (
+          <p className="relative mt-3 flex flex-wrap gap-1.5">
+            {taught.slice(0, 8).map((x) => <span key={x} className="rounded-full bg-white/10 px-2.5 py-1 text-[13px] font-bold ring-1 ring-white/15">{x}</span>)}
+            {taught.length > 8 && <span className="px-1 py-1 text-[13px] font-bold text-brand-200">+{taught.length - 8}</span>}
+          </p>
+        )}
+        <p className="relative mt-3 text-sm leading-relaxed text-brand-100">নাম লিখবেন না। ক্লাস, এলাকা, কতদিন পড়িয়েছেন আর কী উন্নতি হয়েছে।</p>
+      </div>
       {/* Keeps this panel's typing away from the Profile form's "unsaved changes" bar. */}
-      <div onChange={(e) => e.stopPropagation()} data-student-panel>
+      <div onChange={(e) => e.stopPropagation()} data-student-panel className="p-4 sm:p-5">
         {shown.length > 0 ? (
           <StudentTimeline students={shown} onRemove={(id) => remover.submit({ intent: "delete_student", id: String(id) }, { method: "post" })} />
         ) : !open && (
@@ -179,6 +202,6 @@ export function StudentsCard({ students }: { students: Student[] }) {
           </button>
         )}
       </div>
-    </SectionCard>
+    </section>
   );
 }

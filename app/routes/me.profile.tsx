@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, useActionData, useNavigation } from "react-router";
 import {
-  ArrowRight, Bike, BookOpen, Check, Clock, Eye, GraduationCap, Library, ListChecks, Lock, LogOut, MapPin, MessageCircle, NotebookPen, PauseCircle, PenLine,
+  ArrowRight, Bike, BookOpen, Check, Clock, Crown, Eye, GraduationCap, Library, ListChecks, Lock, LogOut, MapPin, MessageCircle, NotebookPen, PauseCircle, PenLine,
   PlayCircle, Presentation, Wallet,
 } from "lucide-react";
 import type { Route } from "./+types/me.profile";
@@ -18,7 +18,9 @@ import { SitePage } from "~/components/site";
 import { AreaField, ClassField, SalaryField, SubjectField, useClasses } from "~/components/TeachingFields";
 import { ChoiceChip, HtrChecked, Sheet, TutorBar } from "~/components/tutor";
 import { askLabel } from "~/lib/ask";
-import { creditReferral } from "~/lib/referral.server";
+import { creditReferral, walletBalance } from "~/lib/referral.server";
+import { premiumStatus } from "~/lib/premium.server";
+import { taka } from "~/lib/tuition";
 import { CONTACT, waLink } from "~/lib/contact";
 import { FREE_TIMES, freeLabel } from "~/lib/fit";
 import { guardianSummary } from "~/lib/whatsapp";
@@ -44,11 +46,11 @@ export function headers(_: Route.HeadersArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { viewer, me } = await requireTutor(request);
-  const [choices, levels, students, badges, marks, documents, uploads, checked, ask] = await Promise.all([
+  const [choices, levels, students, badges, marks, documents, uploads, checked, ask, wallet, premium] = await Promise.all([
     myChoices(me.id), myLevels(me.id), myStudents(me.id), tutorBadges(viewer, me), mySubjectMarks(me.id), myDocumentList(me.id), myUploads(me.id), htrChecked(me.id),
-    myAsk(me.id),
+    myAsk(me.id), walletBalance(me.id), premiumStatus(me.id),
   ]);
-  return { me, choices, levels, students, badges, marks, documents, uploads, checked, ask };
+  return { me, choices, levels, students, badges, marks, documents, uploads, checked, ask, wallet, premium, now: Math.floor(Date.now() / 1000) };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -161,13 +163,14 @@ function GuardianPreview({ me, choices, levels, bands }: { me: PreviewTutor; cho
   ].filter(Boolean) as { label: string; href: string }[];
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="mt-4 flex w-full items-center gap-3 rounded-2xl bg-forest p-4 text-left text-cream shadow-lift">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-mango text-forest"><Eye size={22} aria-hidden /></span>
+      {/* A quiet row (owner, 2026-11-11): the forest block now belongs to the Premium tile above. */}
+      <button type="button" onClick={() => setOpen(true)} className="mt-3 flex min-h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left shadow-ring transition-shadow hover:shadow-lift">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700"><Eye size={20} aria-hidden /></span>
         <span className="min-w-0 flex-1">
-          <span className="block font-extrabold">How guardians see you</span>
-          <span className="block text-sm text-brand-100">The summary HTR sends when you're shortlisted.</span>
+          <span className="block font-extrabold text-forest">How guardians see you</span>
+          <span className="block text-sm text-slate-500">The summary HTR sends when you're shortlisted.</span>
         </span>
-        <ArrowRight size={18} className="shrink-0 text-mango" aria-hidden />
+        <ArrowRight size={18} className="shrink-0 text-brand-600" aria-hidden />
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="How guardians see you">
         {bands.length > 1 && (
@@ -199,7 +202,32 @@ const sectionDone = (steps: ProgressStep[], id: string) => steps.some((s) => s.s
 /** "Kazla, Binodpur +3". */
 const firstFew = (labels: string[], n = 2) => labels.length ? `${labels.slice(0, n).join(", ")}${labels.length > n ? ` +${labels.length - n}` : ""}` : undefined;
 
-export default function Profile({ loaderData: { me, choices, levels, students, badges, marks, documents, uploads, checked, ask } }: Route.ComponentProps) {
+/**
+ * Wallet and Premium at the top of Profile (owner, 2026-11-11): the balance to tap into, and the Premium offer, or
+ * where the term stands once there is one.
+ */
+function MoneyTiles({ wallet, premium, now }: { wallet: number; premium: Route.ComponentProps["loaderData"]["premium"]; now: number }) {
+  const days = premium?.status === "active" && premium.ends_at ? Math.max(0, Math.ceil((premium.ends_at - now) / 86400)) : null;
+  return (
+    <div className="mt-5 grid grid-cols-2 gap-3">
+      <Link to="/me/wallet" className="group rounded-2xl bg-white p-4 shadow-ring transition-shadow hover:shadow-lift">
+        <span className="flex items-center gap-1.5 text-xs font-bold tracking-[0.12em] text-brand-700 uppercase"><Wallet size={14} aria-hidden />Wallet</span>
+        <span className="mt-1.5 block text-[28px] leading-none font-extrabold tracking-tight text-forest tabular-nums">{taka(wallet)}</span>
+        <span className="mt-2 flex items-center gap-1 text-sm font-semibold text-slate-600">Refer and earn<ArrowRight size={14} className="text-brand-600 transition-transform group-hover:translate-x-0.5" aria-hidden /></span>
+      </Link>
+      <Link to="/me/premium" className="group relative overflow-hidden rounded-2xl bg-forest p-4 text-cream shadow-ring transition-shadow hover:shadow-lift">
+        <span aria-hidden className="absolute -top-10 -right-8 size-24 rounded-full bg-forest-mid" />
+        <span className="relative flex items-center gap-1.5 text-xs font-bold tracking-[0.12em] text-mango uppercase"><Crown size={14} aria-hidden />Premium</span>
+        <span className="relative mt-1.5 block text-[22px] leading-[1.15] font-extrabold tracking-tight">
+          {days !== null ? <><span className="tabular-nums">{days}</span> days left</> : premium?.status === "accepted" ? `Pay ${taka(premium.price)}` : premium ? "HTR is checking" : "Be the first pick"}
+        </span>
+        <span className="relative mt-2 flex items-center gap-1 text-sm font-semibold text-brand-100">{premium ? "See your term" : "Apply in 3 steps"}<ArrowRight size={14} className="text-mango transition-transform group-hover:translate-x-0.5" aria-hidden /></span>
+      </Link>
+    </div>
+  );
+}
+
+export default function Profile({ loaderData: { me, choices, levels, students, badges, marks, documents, uploads, checked, ask, wallet, premium, now } }: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const nav = useNavigation();
   const busy = nav.state !== "idle";
@@ -291,6 +319,8 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
           </div>
         </header>
 
+        <MoneyTiles wallet={wallet} premium={premium} now={now} />
+
         {ask && (
           <section aria-label="HTR asked" className="mt-4 rounded-2xl bg-mango p-4 text-forest">
             <p className="font-extrabold">HTR asked you to add</p>
@@ -307,7 +337,7 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
 
         {actionData?.error && <p role="alert" className="mt-4 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
 
-        <Form method="post" id="availability" className={`mt-4 flex scroll-mt-24 items-center gap-4 rounded-2xl p-4 ${paused ? "bg-mango" : "bg-white shadow-ring"}`}>
+        <Form method="post" id="availability" className={`mt-3 flex scroll-mt-24 items-center gap-4 rounded-2xl p-4 ${paused ? "bg-mango" : "bg-white shadow-ring"}`}>
           <input type="hidden" name="intent" value="pause" />
           <input type="hidden" name="paused" value={paused ? "0" : "1"} />
           {paused ? <PauseCircle size={28} className="shrink-0 text-forest" aria-hidden /> : <PlayCircle size={28} className="shrink-0 text-brand-600" aria-hidden />}
@@ -367,8 +397,8 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
 
           <div {...panel("experience")}>
           <p className="text-sm text-slate-600">HTR এই অংশটাই সবার আগে পড়ে। যাদের পড়িয়েছেন তাদের কথা, আর প্রতিটি লেভেলে কীভাবে পড়ান।</p>
-          <ExperienceChart form={form} bands={bands} added={students.length} />
           <StudentsCard students={students} />
+          <ExperienceChart form={form} bands={bands} added={students.length} />
           {/* Habits asked once for every level (owner, 2026-11-09); a level can still differ, inside its own card. */}
           <SectionCard id="habits" icon={ListChecks} tone="cream" title="Your habits" hint="How often you do each. Counts for every level you teach." done={habitsAllDone}
             summary={HABITS.filter((h) => shared[h.col] && shared[h.col] !== h.no).map((h) => h.q).join(" · ") || undefined}>

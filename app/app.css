@@ -148,6 +148,13 @@
       transform: scale(0.6);
     }
   }
+  /* The voice note's sound bars while the owner's voice plays. */
+  --animate-eq: eq 0.9s ease-in-out infinite;
+  @keyframes eq {
+    50% {
+      transform: scaleY(0.35);
+    }
+  }
   /* One light sweep across the Premium pass when it appears. */
   --animate-shine: shine 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.5s both;
   @keyframes shine {

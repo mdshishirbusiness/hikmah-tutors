@@ -75,8 +75,8 @@ export async function applyPremium(viewer: Viewer, me: MyTutor, form: FormData):
   if (missing.length) return `Finish these in Profile first: ${missing.map((s) => s.label).join(", ")}.`;
   const min = Number(String(form.get("min_salary") ?? "").replace(/[^\d]/g, ""));
   if (!Number.isInteger(min) || min < MIN_SALARY_FLOOR || min > 100000) return `Minimum salary must be at least ৳${MIN_SALARY_FLOOR.toLocaleString("en-IN")}.`;
-  if (form.get("confirm") !== "1") return "Confirm that your areas, classes and subjects are right.";
-  if (form.get("terms") !== "1") return "Read and accept the terms.";
+  // One tick covers both (owner, 2026-11-11: fewer steps): the areas, classes and subjects are right, and the promises are read.
+  if (form.get("terms") !== "1") return "Tick the box: your details are right and you've read the promises.";
   // The tutor pays with the application (owner, 2026-11-05); HTR checks it and refunds anyone it can't take.
   const price = premiumPrice(min);
   const pay = readPayment(form, price);

@@ -6,7 +6,7 @@ import { Form, Link, NavLink, Outlet, type ShouldRevalidateFunctionArgs, useFetc
 import { InstallButton } from "~/components/InstallApp";
 import { ScrollRide } from "~/components/ScrollRide";
 import {
-  ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, GraduationCap, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, PhoneCall, Plus, Search, UserRound, Users, Wallet, X, Zap,
+  ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, GraduationCap, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, Mic, PhoneCall, Plus, Search, UserRound, Users, Wallet, X, Zap,
 } from "lucide-react";
 import type { Route } from "./+types/admin.layout";
 import { Avatar } from "~/components/Avatar";
@@ -59,6 +59,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     items: [
       { to: "/admin/insights", label: "Insights", icon: BarChart3 },
       { to: "/admin/review", label: "Review", icon: ListChecks, count: (c) => c.review },
+      { to: "/admin/voice", label: "Voice notes", icon: Mic },
     ],
   },
 ];
@@ -80,6 +81,7 @@ const MORE: Item[] = [
   { to: "/admin/guardians", label: "Guardians", icon: UserRound },
   { to: "/admin/insights", label: "Insights", icon: BarChart3 },
   { to: "/admin/review", label: "Review", icon: ListChecks, count: (c) => c.review },
+  { to: "/admin/voice", label: "Voice notes", icon: Mic },
 ];
 
 const Count = ({ n, hot, dark }: { n: number; hot?: boolean; dark?: boolean }) =>

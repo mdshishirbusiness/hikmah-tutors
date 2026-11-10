@@ -9,7 +9,7 @@ const SLOW_MS = 4000; // past this, a saved copy is shown while the net keeps tr
 const MAX_PAGES = 120;
 const MAX_FILES = 400;
 
-const NEVER = /^\/(api|docs|photos|auth|login|logout|dev|r|admin\/(search|followups|guardian-lookup|tuitions\/\d+\/ai))(\/|\.data|$)/;
+const NEVER = /^\/(api|docs|photos|voice|auth|login|logout|dev|r|admin\/(search|followups|guardian-lookup|tuitions\/\d+\/ai))(\/|\.data|$)/;
 const FILE = /^\/(assets|fonts|brand)\/|^\/(favicon\.ico|manifest\.webmanifest)$/;
 const WARM = "/admin/quick"; // the owner's call-time page is always ready
 const LOGO = "/brand/mark.webp"; // the "No internet" screen's logo: kept from install on, so it shows with no net

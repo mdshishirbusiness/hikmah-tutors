@@ -6,7 +6,7 @@ import { ChoiceChip } from "~/components/tutor";
 import { bandOf } from "~/lib/fit";
 import { BAND_SUBJECTS, SALARIES } from "~/lib/join";
 import { AREAS, CLASS_GROUPS, GROUPED_CLASSES, SUBJECTS, labelOf } from "~/lib/options";
-import { type Band, markable } from "~/lib/profile";
+import { type Band, MARK_MAX, markable } from "~/lib/profile";
 import { taka } from "~/lib/tuition";
 
 /** Anywhere, or the areas picked in one dropdown (most-asked first, search in English or Bangla). */
@@ -89,7 +89,7 @@ export function SubjectField({ picked, classes, onClasses, marks }: {
   );
 }
 
-/** The tutor's own marks in the subjects they teach at this level, out of 100. Folded until asked for. */
+/** The tutor's own marks in the subjects they teach at this level: SSC out of 100, HSC out of 200. Folded until asked for. */
 function SubjectMarks({ exam, subjects, marks }: { exam: "ssc" | "hsc"; subjects: string[]; marks: Record<string, number> }) {
   const has = subjects.some((s) => marks[`${exam}:${s}`] !== undefined);
   const [open, setOpen] = useState(has);
@@ -101,12 +101,13 @@ function SubjectMarks({ exam, subjects, marks }: { exam: "ssc" | "hsc"; subjects
         <button type="button" onClick={() => setOpen(true)} className="min-h-11 text-sm font-bold text-brand-700">+ Your own {name} marks in these <span className="font-normal text-slate-500">(optional)</span></button>
       ) : (
         <div className="rounded-xl bg-brand-50/60 p-3">
-          <p className="text-sm font-bold text-forest">Your {name} marks <span className="font-normal text-slate-500">· out of 100, optional</span></p>
+          <p className="text-sm font-bold text-forest">Your {name} marks <span className="font-normal text-slate-500">· out of {MARK_MAX[exam]}, optional</span></p>
+          {exam === "hsc" && <p className="mt-0.5 text-sm text-slate-500">দুই পত্র মিলিয়ে 200-এর মধ্যে লিখুন, যেমন 185।</p>}
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {subjects.map((s) => (
               <label key={s} className="flex min-h-11 items-center gap-2 rounded-xl bg-white px-3 ring-1 ring-brand-100 focus-within:ring-2 focus-within:ring-brand-300">
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700">{labelOf(SUBJECTS, s)}</span>
-                <input name={`mk_${exam}_${s}`} type="number" inputMode="numeric" min={0} max={100} defaultValue={marks[`${exam}:${s}`] ?? ""} placeholder="–"
+                <input name={`mk_${exam}_${s}`} type="number" inputMode="numeric" min={0} max={MARK_MAX[exam]} defaultValue={marks[`${exam}:${s}`] ?? ""} placeholder="–"
                   aria-label={`${name} ${labelOf(SUBJECTS, s)} marks`} className="w-12 bg-transparent text-right text-base font-extrabold text-forest tabular-nums outline-none" />
               </label>
             ))}

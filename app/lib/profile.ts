@@ -58,6 +58,8 @@ export const written = (s: string | null | undefined, min = 40) => (s ?? "").tri
  * SSC marks beside SSC subjects, HSC marks beside HSC ones. "All subjects" picks and Quran have no exam mark.
  */
 export const MARK_EXAMS = ["ssc", "hsc"] as const;
+/** Full marks of one subject: an HSC subject is two papers of 100 (owner, 2026-11-11). */
+export const MARK_MAX: Record<(typeof MARK_EXAMS)[number], number> = { ssc: 100, hsc: 200 };
 export const markable = (subjects: string[]) => subjects.filter((s) => !s.startsWith("all") && s !== "quran");
 
 /** All four habit questions answered (old ticks alone don't count: the tutor is asked how often). */
