@@ -1186,3 +1186,6 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
 - **HSC subject marks are out of 200** (owner, 2026-11-11: two papers per subject); SSC stays out of 100 (migration
   0032). HSC marks saved before this were typed as out of 100; the admin label now says "of 200", so an old low number
   may be an old entry.
+- **See more on an applicant** (owner, 2026-11-11): the applicant panel cuts the written answers to four lines and shows
+  two students. A "See more" button (key C) opens all of it: full "How they teach" and "A student they helped", every
+  student. "See less" folds it back.

@@ -261,6 +261,17 @@ function CheckSummary({ row, band, code, subjects }: { row: Row; band: string | 
 function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; guardianPhone: string | null; onMoved: (to: string) => void }) {
   const { a, fit, strength } = row;
   const [allStudents, setAllStudents] = useState(false);
+  // "Complete" view (key C): every student and the full written answers, nothing cut short.
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (e.key === "c" || e.key === "C") setFull((v) => !v);
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, []);
   const fetcher = useFetcher<{ error?: string | null }>();
   const busy = fetcher.state !== "idle";
   const pending = fetcher.formData?.get("to");
@@ -343,12 +354,16 @@ function Detail({ t, row, guardianPhone, onMoved }: { t: TuitionFull; row: Row; 
 
         {(a.level || a.students.length > 0) ? (
           <section aria-label="Experience" className="space-y-3">
-            {a.level && <LevelSummary level={a.level} compact />}
+            <button type="button" onClick={() => setFull((v) => !v)} aria-pressed={full} title="Press C"
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold ${full ? "bg-forest text-cream" : "bg-white text-forest shadow-ring"}`}>
+              {full ? "See less" : "See more"}<kbd className="hidden rounded bg-black/10 px-1.5 text-xs sm:inline">C</kbd>
+            </button>
+            {a.level && <LevelSummary level={a.level} compact={!full} />}
             {a.students.length > 0 && (
               <div>
                 <p className="mb-2 text-xs font-bold tracking-wide text-slate-500 uppercase">Students they've taught · {a.students.length}</p>
-                <StudentTimeline students={allStudents ? a.students : a.students.slice(0, 2)} />
-                {a.students.length > 2 && !allStudents && (
+                <StudentTimeline students={allStudents || full ? a.students : a.students.slice(0, 2)} />
+                {a.students.length > 2 && !allStudents && !full && (
                   <button type="button" onClick={() => setAllStudents(true)} className="mt-2 min-h-10 text-sm font-bold text-brand-700">Show all {a.students.length}</button>
                 )}
               </div>
