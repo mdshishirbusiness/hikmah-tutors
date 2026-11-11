@@ -25,3 +25,5 @@ worker-configuration.d.ts
 !/design/inspiration/README.md
 !/design/inspiration/hts-confirmation-progress.jpg
 !/design/inspiration/icon-fact-rows.png
+# Ad creatives: stock and AI images carry licence terms, so the whole folder stays on the owner's PC (owner, 2026-11-11).
+/design/ads/

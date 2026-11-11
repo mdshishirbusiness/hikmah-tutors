@@ -585,6 +585,9 @@ and track tuitions. The owner gave permission for the whole job. Choices Claude 
   for Facebook and WhatsApp groups (public facts and the apply link only). Tabs: Applicants · Details · History.
 - **New tuition** can be typed straight in on a laptop (guardian found or added by phone), saved as a draft or
   published at once. Quick Pad stays the fastest way during a call.
+  - (owner, 2026-11-11) Quick Pad stays: it works offline during a call and keeps guardians who never become a
+    tuition. A tuition typed into New tuition also writes a lead, already Posted and linked to the tuition
+    (`leadForTuition` in `admin.server.ts`), so Leads, the source donut and the funnel count every guardian.
 - **Today** keeps the ordered to-do list (2026-11-04) and adds four weekly numbers with trends, posted against booked
   by week, the 30-day funnel and top areas. **Insights** has the 26-week view. Charts are plain HTML/CSS (no library),
   emerald and amber checked for colour-blind separation, with values on hover and a table view.

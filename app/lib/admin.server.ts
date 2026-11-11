@@ -533,12 +533,36 @@ export async function createTuition(form: FormData, actorId: number | null): Pro
   details.set("status", "draft");
   details.delete("is_public");
   const error = await updateTuition(made, details, actorId);
+  await leadForTuition(made, at);
   if (error) return { code: made, error };
   if (form.get("publish") === "1") {
     const problem = await setTuitionState(made, "publish", actorId);
     if (problem) return { code: made, error: `Saved as a draft. ${problem}` };
   }
   return { code: made };
+}
+
+/**
+ * A tuition typed straight in also counts as a lead (owner, 2026-11-11), already Posted and linked both ways, so Leads,
+ * the lead-source donut and the funnel see every guardian, as if it had come through Quick Pad and "Post as tuition".
+ */
+async function leadForTuition(code: number, at: number) {
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO leads (client_id, phone, guardian_name, class_level, medium, student_gender, tutor_gender, subjects, area, address,
+                          salary, days_per_week, lead_source, status, created_at, synced_at, status_at, guardian_id, tuition_code,
+                          class_other, subject_other, time_of_day, time_from, time_to, session_minutes, tutor_from, requirement_keys)
+       SELECT 'tuition-' || t.code, g.phone, COALESCE(p.guardian_label, g.name), t.class_level, NULLIF(t.medium, ''), t.student_gender,
+              t.tutor_gender_pref, NULLIF(t.subjects, ''), t.area, p.exact_address, t.salary_amount, t.days_per_week, p.lead_source,
+              'posted', ?, ?, ?, g.id, t.code, t.class_other, t.subject_other, t.time_of_day, t.time_from, t.time_to,
+              t.session_minutes, NULLIF(t.tutor_from, ''), NULLIF(t.requirement_keys, '')
+       FROM tuitions t JOIN tuition_private p ON p.tuition_code = t.code JOIN guardians g ON g.id = p.guardian_id
+       WHERE t.code = ?
+       ON CONFLICT (client_id) DO NOTHING`,
+    ).bind(at, at, at, code),
+    env.DB.prepare(`UPDATE tuition_private SET lead_id = (SELECT id FROM leads WHERE client_id = 'tuition-' || ?) WHERE tuition_code = ? AND lead_id IS NULL`)
+      .bind(code, code),
+  ]);
 }
 
 function audit(actorId: number | null, action: string, entityType: string, entityId: string, meta: unknown) {
