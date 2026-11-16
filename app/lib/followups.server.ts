@@ -31,10 +31,12 @@ const SELECT = `SELECT f.id, f.kind, f.ref_id, f.due_at, f.note, f.done_at, f.ou
   LEFT JOIN tuitions t ON f.kind = 'tuition' AND t.code = f.ref_id`;
 
 /** Open follow-ups due by the end of today (Dhaka), oldest first; plus how many are planned later. */
-export async function dueFollowups() {
+/** createdBy: a moderator sees only the follow-ups they set (owner, 2026-11-16); the owner sees all. */
+export async function dueFollowups(createdBy: number | null = null) {
+  const mineOnly = createdBy === null ? "" : ` AND f.created_by = ${Math.trunc(createdBy)}`;
   const [due, later] = await Promise.all([
-    env.DB.prepare(`${SELECT} WHERE f.done_at IS NULL AND f.due_at <= ? ORDER BY f.due_at LIMIT 50`).bind(endOfDhakaDay()).all<Followup>(),
-    env.DB.prepare(`SELECT count(*) n FROM followups WHERE done_at IS NULL AND due_at > ?`).bind(endOfDhakaDay()).first<{ n: number }>(),
+    env.DB.prepare(`${SELECT} WHERE f.done_at IS NULL AND f.due_at <= ?${mineOnly} ORDER BY f.due_at LIMIT 50`).bind(endOfDhakaDay()).all<Followup>(),
+    env.DB.prepare(`SELECT count(*) n FROM followups f WHERE f.done_at IS NULL AND f.due_at > ?${mineOnly}`).bind(endOfDhakaDay()).first<{ n: number }>(),
   ]);
   return { due: due.results, later: later?.n ?? 0 };
 }

@@ -30,13 +30,13 @@ export function headers(_: Route.HeadersArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   const viewer = await getViewer(request);
   if (!viewer) return { signedIn: false as const };
-  if (viewer.role === "owner") throw redirect("/admin/batches");
+  if (viewer.role !== "tutor") throw redirect("/admin/batches");
   return { signedIn: true as const, ...(await myBatchApplication(viewer)) };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   const viewer = await getViewer(request);
-  if (!viewer || viewer.role === "owner") throw new Response("Sign-in needed", { status: 401 });
+  if (!viewer || viewer.role !== "tutor") throw new Response("Sign-in needed", { status: 401 });
   const origin = request.headers.get("Origin");
   if (origin && origin !== new URL(request.url).origin) throw new Response("Not allowed", { status: 403 });
   const error = await saveBatchApplication(viewer, await request.formData());

@@ -1192,3 +1192,52 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
 - **See more on an applicant** (owner, 2026-11-11): the applicant panel cuts the written answers to four lines and shows
   two students. A "See more" button (key C) opens all of it: full "How they teach" and "A student they helped", every
   student. "See less" folds it back.
+
+## 2026-11-12 (voice made with ElevenLabs)
+
+- **HTR's voice is made with ElevenLabs in the owner's cloned voice** (owner, 2026-11-12: "high-quality ElevenLabs").
+  The clips never say the owner's name (owner: "no need to tell my name"); they speak as Hikmah Tutors. Lines live in
+  `scripts/voice/lines.mjs` (spoken Bangla, numbers as words, the rizq/no-guarantee wording on Premium);
+  `scripts/voice/make.mjs` makes them with Eleven v3 and puts them on the site (`--upload synthetic` to try,
+  `--upload remote` for the live site, run by the owner in the Terminal panel). Files land in `voice-out/` (not in git).
+- **One account makes every clip** (`ACCOUNT` in lines.mjs, now key 11 of the owner's 11 ElevenLabs accounts in
+  `.dev.vars`): each account has its own copy of the clone and they sound a little different, so changing the account
+  means remaking all clips.
+- **Parts of a page get their own clip** (owner chose "floating + parts"): a "Listen" pill beside a heading or field,
+  never auto (`VOICE_SPOTS` in `app/lib/voice.ts`, `VoiceSpot` in `VoiceNote.tsx`): the three Premium steps, Fees "If
+  the guardian stops", Registration documents, Wallet "Refer a tutor", Profile "How you teach", "A student you helped"
+  and "About you", and the note when applying. Only one voice plays at a time. New spots are one line in VOICE_SPOTS.
+- **Eleven v4, explain fully, in the owner's way of talking** (owner, 2026-11-12, after the first round: "these are not
+  my voice", chime and quality disliked). He picked v4 of four models on the same line (v3 followed the clone least).
+  Clips are ElevenLabs' own file, not re-encoded. Long is fine when it helps understanding (pages ~40–55 s, parts
+  ~15–50 s). Style taken from his own recording: the listener's problem first, steps ("প্রথমে… এরপর… তারপর… আর
+  শেষে…"), a "যেমন" example with numbers, English words people use, a clear next step. "A student you helped" asks for
+  from when to when, how they were at the start, what the tutor did, the result and improvement, their speciality, as
+  detailed as they can, with no student names or numbers.
+- **No chime; a very low background sound on some clips, never music** (owner: chime disliked; "somewhere" low
+  effects are fine): a quiet morning street with a distant rickshaw bell (Home, How it works, Find a tutor) and a quiet
+  study room (Profile, its writing parts, Batch), set ~22 dB under the voice. Money and rules clips stay voice only.
+
+## 2026-11-16 (moderators)
+- **Moderators: staff the owner hires to run daily work** (owner: "a moderator will post and do everything"). Replaces
+  "Owner only for now" above; Coordinator and Verifier fold into this one role with switches. The owner adds a Gmail at
+  `/admin/team` (no Cloudflare step); the person signs in with Google and lands on the admin. Remove ends it at once
+  (their sessions are deleted too). Several moderators are allowed. A Gmail that belongs to a tutor can't be a
+  moderator, so nobody selects themself; the account form refuses a moderator's Gmail for a tutor in the same way.
+- **What a moderator may do, by switch** (owner took the proposed defaults): Leads (Quick Pad, leads, guardians, with
+  the guardian's phone, because they call guardians), Tuitions (new, edit, post, applicants up to Selected, placements,
+  follow-ups), Tutors (profiles and flags, without NID or documents), Batch teachers: on by default. Call list
+  (ratings), Documents (sign-up and upload approval, NID and document views) and Copy for AI: off by default.
+- **Always the owner's alone:** Money, Premium, Insights, Review (sheet import), Voice notes, Team; moving an
+  applicant to or from Confirmed (the fee is charged there); a tutor's phone, Gmail, referrer and removing a document.
+  Moderators never delete: they close, cancel or mark Not now, which the owner can undo.
+- **Every moderator action is in the audit log** under their own user, and each time a moderator opens a page with
+  guardian contacts (leads, guardians, tuitions, lookup) the view is logged. `/admin/team` shows each moderator's
+  recent activity.
+- **A moderator sees only their own tuitions** (owner, 2026-11-16: "with two or three moderators, each handles the ten
+  tuitions given to them"). A tuition a moderator makes (New tuition, or posting a lead) is theirs; the owner gives or
+  takes back tuitions on the tuition page (Moderator: Only me / a name) or by codes on `/admin/team`. Lists, Today,
+  counts, search, applications, placements, check-ins and Copy for AI are all limited to them, and another tuition's
+  page answers "not one of yours". Unassigned and imported tuitions stay the owner's. Leads stay one shared pool
+  until posted. Follow-ups: a moderator sees the ones they set. Removing a moderator gives their tuitions back.
+  Stored as `tuition_private.staff_id` (private table, never on the board).

@@ -6,7 +6,7 @@ import { Avatar } from "~/components/Avatar";
 import { APPLICATION_TONE, Badge, Empty, PageHead, Pager, StageTabs, ago, num } from "~/components/admin";
 import { ADMIN_PAGE_SIZE, APPLICATION_STATUS } from "~/lib/admin-labels";
 import { listApplications } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff, scopeOf } from "~/lib/auth.server";
 import { AREAS, CLASS_LEVELS, labelOf } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
@@ -14,11 +14,11 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  const viewer = await requireStaff(request, "tuitions");
   const sp = new URL(request.url).searchParams;
   // Open tuitions by default (owner, 2026-11-06): old applications are a rare look, and reading them all costs ~10k D1 rows.
   const f = { status: sp.get("status") ?? "", open: sp.get("open") !== "0", page: Number(sp.get("page")) || 1 };
-  return { ...(await listApplications(f)), f };
+  return { ...(await listApplications(f, scopeOf(viewer))), f };
 }
 
 const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical" };

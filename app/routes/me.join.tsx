@@ -31,7 +31,7 @@ export function headers(_: Route.HeadersArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const viewer = await requireUser(request);
-  if (viewer.role === "owner") throw redirect("/admin");
+  if (viewer.role !== "tutor") throw redirect("/admin");
   const me = await tutorForUser(viewer.id);
   // Checked tutors (every tutor from the sheet, too) change details through HTR, not here.
   if (me && me.review_status === "approved") throw redirect(safeNext(new URL(request.url).searchParams.get("next")) ?? "/me");
@@ -44,7 +44,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   const viewer = await requireUser(request);
-  if (viewer.role === "owner") throw redirect("/admin");
+  if (viewer.role !== "tutor") throw redirect("/admin");
   const me = await tutorForUser(viewer.id);
   if (me && me.review_status === "approved") throw redirect("/me");
   const form = await request.formData();

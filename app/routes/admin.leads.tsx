@@ -5,7 +5,7 @@ import { ArrowUpRight, MapPin, Plus } from "lucide-react";
 import type { Route } from "./+types/admin.leads";
 import { Badge, ContactButtons, Empty, FilterPill, PageHead, ago, num, primaryButton, type Tone } from "~/components/admin";
 import { listLeads, moveLead, postLeadAsTuition } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff, scopeOf } from "~/lib/auth.server";
 import { usePendingCount } from "~/lib/lead-queue";
 import { AREAS, LEAD_SOURCES, MEDIUMS, STATUSES, STUDENT_GENDERS, TIMES_OF_DAY, TUTOR_GENDERS, labelOf } from "~/lib/options";
 import { tutorFromLabel } from "~/lib/fit";
@@ -18,18 +18,18 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  await requireStaff(request, "leads");
   const sp = new URL(request.url).searchParams;
   const status = sp.get("status") ?? "new";
   return { status, ...(await listLeads(status === "all" ? "" : status)) };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const viewer = await requireAdmin(request);
+  const viewer = await requireStaff(request, "leads");
   const form = await request.formData();
   const id = Number(form.get("id"));
   if (form.get("intent") === "post") {
-    const code = await postLeadAsTuition(id, viewer?.id ?? null);
+    const code = await postLeadAsTuition(id, viewer?.id ?? null, scopeOf(viewer));
     if (!code) return { error: "Lead not found." };
     throw redirect(`/admin/tuitions/${code}`);
   }

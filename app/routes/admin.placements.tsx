@@ -8,7 +8,7 @@ import { Avatar } from "~/components/Avatar";
 import { PageHead, ago, num, when } from "~/components/admin";
 import { StatTile } from "~/components/charts";
 import { type Placed, checkIn, placementsBoard } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff, scopeOf } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
 import { AREAS, CLASS_LEVELS, labelOf } from "~/lib/options";
 import { taka } from "~/lib/tuition";
@@ -18,14 +18,14 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
-  return { ...(await placementsBoard()), now: Math.floor(Date.now() / 1000) };
+  const viewer = await requireStaff(request, "tuitions");
+  return { ...(await placementsBoard(scopeOf(viewer))), now: Math.floor(Date.now() / 1000) };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const viewer = await requireAdmin(request);
+  const viewer = await requireStaff(request, "tuitions");
   const form = await request.formData();
-  return { error: await checkIn(Number(form.get("id")), String(form.get("day")), form.get("paid") === "1", String(form.get("note") ?? ""), viewer?.id ?? null) };
+  return { error: await checkIn(Number(form.get("id")), String(form.get("day")), form.get("paid") === "1", String(form.get("note") ?? ""), viewer?.id ?? null, scopeOf(viewer)) };
 }
 
 const where = (c: string, a: string) => `${labelOf(CLASS_LEVELS, c)} · ${labelOf(AREAS, a)}`;

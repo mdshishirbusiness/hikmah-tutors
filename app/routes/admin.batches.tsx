@@ -5,7 +5,7 @@ import { ArrowUpRight, Copy, Laptop, PlayCircle } from "lucide-react";
 import type { Route } from "./+types/admin.batches";
 import { Badge, ContactButtons, Empty, PageHead, StageTabs, ago, inputClass, num, primaryButton, safeUrl, secondaryButton, type Tone } from "~/components/admin";
 import { Toast, useShare } from "~/components/site";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff } from "~/lib/auth.server";
 import {
   BATCH_APPLY, BATCH_DAYS, BATCH_INTERNET, BATCH_MODES, BATCH_SETUP, BATCH_STATUSES, BATCH_SUBJECTS, BATCH_TIMES, BATCH_TOOLS, BATCH_TRACKS, onlineReady, splitKeys,
 } from "~/lib/batch";
@@ -17,7 +17,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  await requireStaff(request, "batches");
   const sp = new URL(request.url).searchParams;
   const pick = (name: string, list: Option[]) => (list.some((o) => o.key === sp.get(name)) ? sp.get(name)! : "");
   const filters = {
@@ -31,7 +31,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const viewer = await requireAdmin(request);
+  const viewer = await requireStaff(request, "batches");
   const form = await request.formData();
   return { error: await updateBatchApplication(Number(form.get("id")), form, viewer?.id ?? null), id: Number(form.get("id")) };
 }

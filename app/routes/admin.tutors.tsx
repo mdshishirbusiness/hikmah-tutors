@@ -8,7 +8,7 @@ import { Avatar } from "~/components/Avatar";
 import { Badge, Empty, PageHead, StageTabs, ago, num } from "~/components/admin";
 import { ADMIN_PAGE_SIZE } from "~/lib/admin-labels";
 import { type AdminTutorRow, currentNotice, endNotice, listTutors, setNotice } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff } from "~/lib/auth.server";
 import { AREAS, BANDS, SUBJECTS } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
@@ -16,7 +16,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  await requireStaff(request, "tutors");
   const sp = new URL(request.url).searchParams;
   const f = {
     q: sp.get("q")?.trim() ?? "", gender: sp.get("gender") ?? "", subject: sp.get("subject") ?? "", band: sp.get("band") ?? "", page: Number(sp.get("page")) || 1,
@@ -27,7 +27,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const viewer = await requireAdmin(request);
+  const viewer = await requireStaff(request, "tutors");
   const form = await request.formData();
   if (form.get("intent") === "end") {
     await endNotice(viewer?.id ?? null);

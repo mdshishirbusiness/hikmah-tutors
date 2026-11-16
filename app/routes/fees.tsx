@@ -2,6 +2,7 @@ import type { Route } from "./+types/fees";
 import { FeeBox } from "~/components/FeeBox";
 import { PageShell } from "~/components/site";
 import { feeDisplay, taka } from "~/lib/tuition";
+import { VoiceSpot } from "~/components/VoiceNote";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -21,7 +22,10 @@ function Refund() {
   const cases = [0, salary / 2, salary];
   return (
     <section className="rounded-2xl border border-brand-100 bg-white p-5">
-      <h2 className="text-lg font-bold text-forest">If the guardian stops the tuition</h2>
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="pt-2 text-lg font-bold text-forest">If the guardian stops the tuition</h2>
+        <VoiceSpot spot="fees-stop" className="shrink-0" />
+      </div>
       <p className="mt-1 text-sm text-slate-700 sm:text-base">
         অভিভাবক নিজে টিউশন বন্ধ করলে এবং দোষ টিউটরের না হলে:
       </p>

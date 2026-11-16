@@ -12,6 +12,7 @@ import { premiumStatus } from "~/lib/premium.server";
 import { REFERRAL_PERCENT, REFERRAL_RATES, referralLink } from "~/lib/referral";
 import { myReferredTutors, walletBalance, walletEntries } from "~/lib/referral.server";
 import { taka } from "~/lib/tuition";
+import { VoiceSpot } from "~/components/VoiceNote";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Wallet · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
@@ -70,7 +71,10 @@ export default function WalletPage({ loaderData: { code, balance, entries, refer
         )}
 
         <section aria-label="Refer a tutor" className="mt-4 overflow-hidden rounded-3xl bg-brand-700 p-5 text-cream">
-          <h1 className="flex items-center gap-2 text-2xl font-extrabold"><UserPlus size={22} aria-hidden />Refer a tutor</h1>
+          <div className="flex items-start justify-between gap-2">
+            <h1 className="flex items-center gap-2 pt-2 text-2xl font-extrabold"><UserPlus size={22} aria-hidden />Refer a tutor</h1>
+            <VoiceSpot spot="wallet-how" dark className="shrink-0" />
+          </div>
           <p className="mt-1 text-[15px] leading-relaxed text-cream/85">বন্ধুকে link পাঠান, অথবা রেজিস্ট্রেশনের সময় আপনার কোড দিতে বলুন। তাঁর profile {REFERRAL_PERCENT}% পূরণ হলে আর HTR কথা বলে check করলে আপনার wallet-এ টাকা আসবে।</p>
           <div className="mt-4 space-y-2">
             <CopyLine label="Your link" value={link} />

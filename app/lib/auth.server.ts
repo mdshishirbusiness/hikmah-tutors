@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { redirect } from "react-router";
 import { GOOGLE_TOKEN_URL, checkIdToken, decodeJwtPayload, googleAuthUrl, isOwnerEmail, safeNext } from "./google-auth";
+import { DEFAULT_PERMS, type Perm, parsePerms } from "./staff";
 
 type AuthEnv = {
   GOOGLE_CLIENT_ID?: string;
@@ -11,7 +12,11 @@ type AuthEnv = {
 };
 const authEnv = env as unknown as AuthEnv;
 
-export type Viewer = { id: number; email: string; name: string | null; role: "owner" | "tutor" };
+/** role "moderator" is not stored on users: it comes from a live row in `staff` (migration 0034). */
+export type Viewer = { id: number; email: string; name: string | null; role: "owner" | "moderator" | "tutor"; perms: Perm[]; staffId?: number };
+
+/** The tuitions a viewer may see: null = all (owner, dev bypass), else the moderator's staff id (owner, 2026-11-16). */
+export const scopeOf = (viewer: Viewer | null): number | null => (viewer?.role === "moderator" ? viewer.staffId ?? -1 : null);
 
 const SESSION_COOKIE = "hikmah_session";
 const FLOW_COOKIE = "hikmah_google_flow";
@@ -40,9 +45,15 @@ function cookie(request: Request, name: string, value: string, maxAge: number) {
 export async function getViewer(request: Request): Promise<Viewer | null> {
   const token = readCookie(request, SESSION_COOKIE);
   if (!token) return null;
-  return env.DB.prepare(
-    `SELECT u.id, u.email, u.name, u.role FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?`,
-  ).bind(await hashToken(token), now()).first<Viewer>();
+  const row = await env.DB.prepare(
+    `SELECT u.id, u.email, u.name, u.role, st.perms AS staff_perms, st.id AS staff_id
+     FROM sessions s JOIN users u ON u.id = s.user_id LEFT JOIN staff st ON st.email = u.email AND st.removed_at IS NULL
+     WHERE s.token_hash = ? AND s.expires_at > ?`,
+  ).bind(await hashToken(token), now()).first<{ id: number; email: string; name: string | null; role: "owner" | "tutor"; staff_perms: string | null; staff_id: number | null }>();
+  if (!row) return null;
+  const { staff_perms, staff_id, ...user } = row;
+  if (user.role !== "owner" && staff_id !== null) return { ...user, role: "moderator", perms: parsePerms(staff_perms), staffId: staff_id };
+  return { ...user, perms: [] };
 }
 
 /** Browsers send Origin on form posts. A post from another site is refused even if the cookie came along. */
@@ -58,15 +69,41 @@ function refuseOrLogin(request: Request): never {
   throw redirect(`/login?next=${encodeURIComponent(url.pathname.replace(/\.data$/, "") + url.search)}`);
 }
 
-/** Every /admin loader and action must await this. Returns null only on the temporary dev bypass. */
+/** Owner-only pages and steps (Money, Premium, Insights, Review, Voice, Team). Returns null only on the dev bypass. */
 export async function requireAdmin(request: Request): Promise<Viewer | null> {
   checkSameOrigin(request);
   const viewer = await getViewer(request);
   if (viewer) {
-    if (viewer.role !== "owner") throw new Response("This page is for the admin only", { status: 403 });
+    if (viewer.role !== "owner") throw new Response("This page is for the owner only", { status: 403 });
     return viewer;
   }
   // A production build is always locked: import.meta.env.DEV is false there, whatever the variables say.
+  if (import.meta.env.DEV && authEnv.DEV_ADMIN === "1") return null;
+  refuseOrLogin(request);
+}
+
+// Pages that show guardian phones: each look by a moderator is logged (owner, 2026-11-16).
+const CONTACT_PERMS = new Set<Perm>(["leads", "tuitions"]);
+
+/**
+ * Every admin page a moderator may open calls this with its switch ("any" = all staff, e.g. Today and search).
+ * The owner passes everything. Returns null only on the dev bypass, like requireAdmin.
+ */
+export async function requireStaff(request: Request, need: Perm | "any"): Promise<Viewer | null> {
+  checkSameOrigin(request);
+  const viewer = await getViewer(request);
+  if (viewer) {
+    if (viewer.role === "owner") return viewer;
+    if (viewer.role !== "moderator" || (need !== "any" && !viewer.perms.includes(need))) {
+      throw new Response(viewer.role === "moderator" ? "Your moderator access doesn't include this page. Ask the owner." : "This page is for the admin only", { status: 403 });
+    }
+    if (need !== "any" && CONTACT_PERMS.has(need) && (request.method === "GET" || request.method === "HEAD")) {
+      const url = new URL(request.url);
+      await env.DB.prepare(`INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, created_at) VALUES (?, 'staff_viewed', 'page', ?, ?)`)
+        .bind(viewer.id, url.pathname.replace(/\.data$/, "") + url.search, now()).run();
+    }
+    return viewer;
+  }
   if (import.meta.env.DEV && authEnv.DEV_ADMIN === "1") return null;
   refuseOrLogin(request);
 }
@@ -80,7 +117,7 @@ export async function requireUser(request: Request): Promise<Viewer> {
 
 // A tutor lands on the board once set up (owner, 2026-11-04); the setup page sends them there when it is done.
 // A tutor's Home sends a new account to registration and an unfinished one to first sign-in.
-export const homeFor = (viewer: Viewer) => (viewer.role === "owner" ? "/admin" : "/me");
+export const homeFor = (viewer: Pick<Viewer, "role">) => (viewer.role === "tutor" ? "/me" : "/admin");
 
 /**
  * `npm run dev` only: sign in as a synthetic test tutor (code 99000 and up, added by staff), so the tutor pages can be
@@ -103,6 +140,24 @@ export async function devSignInAsTutor(request: Request, code: number) {
   ]);
   const next = safeNext(new URL(request.url).searchParams.get("next")) ?? "/me/setup";
   return redirect(next, { headers: { "Set-Cookie": cookie(request, SESSION_COOKIE, token, SESSION_SECONDS), "Cache-Control": "no-store" } });
+}
+
+/** `npm run dev` only: /dev/staff/1 signs in as a synthetic moderator (staff1@dev.test) with the default switches. */
+export async function devSignInAsStaff(request: Request, n: number) {
+  if (!import.meta.env.DEV || !Number.isInteger(n) || n < 1 || n > 99) throw new Response("Not found", { status: 404 });
+  const t = now();
+  const email = `staff${n}@dev.test`;
+  const user = await env.DB.prepare(
+    `INSERT INTO users (google_sub, email, name, role, created_at, last_login_at) VALUES (?, ?, ?, 'tutor', ?, ?)
+     ON CONFLICT (google_sub) DO UPDATE SET last_login_at = excluded.last_login_at RETURNING id`,
+  ).bind(`dev-staff-${n}`, email, `Test moderator ${n}`, t, t).first<{ id: number }>();
+  if (!user) throw new Response("Not found", { status: 404 });
+  const token = randomToken();
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO staff (email, name, perms, created_at, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT (email) DO NOTHING`).bind(email, `Test moderator ${n}`, DEFAULT_PERMS.join(","), t, t),
+    env.DB.prepare(`INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)`).bind(await hashToken(token), user.id, t, t + SESSION_SECONDS),
+  ]);
+  return redirect("/admin", { headers: { "Set-Cookie": cookie(request, SESSION_COOKIE, token, SESSION_SECONDS), "Cache-Control": "no-store" } });
 }
 
 /** `npm run dev` only: /dev/new/1 signs in as a new Google account with no tutor record, to try registration. */
@@ -177,24 +232,28 @@ export async function finishGoogleSignIn(request: Request) {
 
   const t = now();
   const role = isOwnerEmail(identity.email, authEnv.OWNER_EMAILS) ? "owner" : "tutor";
-  let user: Viewer | null = null;
+  let user: Pick<Viewer, "id" | "email" | "name" | "role"> | null = null;
   try {
     user = await env.DB.prepare(
       `INSERT INTO users (google_sub, email, name, role, created_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT (google_sub) DO UPDATE SET email = excluded.email, name = excluded.name, role = excluded.role, last_login_at = excluded.last_login_at
        RETURNING id, email, name, role`,
-    ).bind(identity.sub, identity.email, identity.name, role, t, t).first<Viewer>();
+    ).bind(identity.sub, identity.email, identity.name, role, t, t).first<Pick<Viewer, "id" | "email" | "name" | "role">>();
   } catch {
     // The email already belongs to another Google account's user row. Never merge them silently.
   }
   if (!user) return failed(request);
+  const staff = role === "owner" ? null : await env.DB.prepare(`SELECT id FROM staff WHERE email = ? AND removed_at IS NULL`).bind(identity.email).first();
+  if (staff) user = { ...user, role: "moderator" };
 
   const token = randomToken();
   await env.DB.batch([
     env.DB.prepare(`DELETE FROM sessions WHERE expires_at <= ?`).bind(t),
     env.DB.prepare(`INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)`).bind(await hashToken(token), user.id, t, t + SESSION_SECONDS),
     // The form collected this email from the tutor's Google account, and the unique index allows one tutor per email.
-    env.DB.prepare(`UPDATE tutors SET user_id = ?, claim_status = 'claimed', updated_at = ? WHERE email = ? AND user_id IS NULL AND deleted_at IS NULL`).bind(user.id, t, identity.email),
+    // A moderator's Gmail is never linked to a tutor record.
+    env.DB.prepare(`UPDATE tutors SET user_id = ?1, claim_status = 'claimed', updated_at = ?2 WHERE email = ?3 AND user_id IS NULL AND deleted_at IS NULL
+      AND NOT EXISTS (SELECT 1 FROM staff WHERE email = ?3 AND removed_at IS NULL)`).bind(user.id, t, identity.email),
     env.DB.prepare(`INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, created_at) VALUES (?, 'signed_in', 'user', ?, ?)`).bind(user.id, String(user.id), t),
   ]);
 

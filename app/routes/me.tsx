@@ -33,7 +33,7 @@ export function headers(_: Route.HeadersArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const viewer = await requireUser(request);
-  if (viewer.role === "owner") throw redirect("/admin");
+  if (viewer.role !== "tutor") throw redirect("/admin");
   const me = await tutorForUser(viewer.id);
   if (!me) throw redirect("/me/join"); // a Google account with no tutor record registers first
   if (!me.setup_done_at) throw redirect("/me/setup?next=/me");

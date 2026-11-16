@@ -9,7 +9,7 @@ import { Avatar } from "~/components/Avatar";
 import { SectionCard } from "~/components/SectionCard";
 import { PageHead, ago, num } from "~/components/admin";
 import { ChoiceChip } from "~/components/tutor";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff } from "~/lib/auth.server";
 import { askLabel, askMessage, missingItems } from "~/lib/ask";
 import { callTutor, logAsk, logCall, saveCheck } from "~/lib/calls.server";
 import { creditReferral } from "~/lib/referral.server";
@@ -35,14 +35,14 @@ const backOf = (request: Request) => {
 };
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  await requireStaff(request, "calls");
   const found = await callTutor(Number(params.code));
   if (!found) throw data("Tutor not found", { status: 404 });
   return { ...found, back: backOf(request), site: new URL(request.url).origin, now: Math.floor(Date.now() / 1000) };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const viewer = await requireAdmin(request);
+  const viewer = await requireStaff(request, "calls");
   const found = await callTutor(Number(params.code));
   if (!found) throw data("Tutor not found", { status: 404 });
   const form = await request.formData();

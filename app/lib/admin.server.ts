@@ -27,6 +27,37 @@ async function count(sql: string, ...args: unknown[]): Promise<number> {
 
 const ACTIVE_APPLICATIONS = `('submitted', 'under_review', 'shortlisted', 'trial_arranged')`;
 
+/**
+ * A moderator sees only the tuitions given to them (owner, 2026-11-16). Scope = their staff id, or null for the owner.
+ * `mine` adds the filter to a query; the id comes from the database, never from the request.
+ */
+export type Scope = number | null;
+const mine = (codeExpr: string, scope: Scope) =>
+  scope === null ? "" : ` AND ${codeExpr} IN (SELECT tuition_code FROM tuition_private WHERE staff_id = ${Math.trunc(scope)})`;
+
+export async function inScope(code: number, scope: Scope): Promise<boolean> {
+  if (scope === null) return true;
+  return !!(await env.DB.prepare(`SELECT 1 FROM tuition_private WHERE tuition_code = ? AND staff_id = ?`).bind(code, scope).first());
+}
+
+export async function tuitionStaff(code: number): Promise<number | null> {
+  return (await env.DB.prepare(`SELECT staff_id FROM tuition_private WHERE tuition_code = ?`).bind(code).first<{ staff_id: number | null }>())?.staff_id ?? null;
+}
+
+/** Owner: give tuitions to a moderator (staffId) or take them back (null). Returns how many changed. */
+export async function assignTuitions(codes: number[], staffId: number | null, actorId: number | null): Promise<number> {
+  const list = [...new Set(codes.filter((c) => Number.isInteger(c) && c > 0))].slice(0, 200);
+  if (!list.length) return 0;
+  const t = now();
+  const marks = list.map(() => "?").join(",");
+  const res = await env.DB.prepare(
+    `UPDATE tuition_private SET staff_id = ?, updated_at = ? WHERE tuition_code IN (${marks})
+       AND (? IS NULL OR EXISTS (SELECT 1 FROM staff WHERE id = ? AND removed_at IS NULL))`,
+  ).bind(staffId, t, ...list, staffId, staffId).run();
+  if (res.meta.changes) await audit(actorId, "tuitions_assigned", "staff", staffId === null ? "owner" : String(staffId), { codes: list }).run();
+  return res.meta.changes ?? 0;
+}
+
 /** Parts of the whole for Today's donuts (owner, 2026-11-05): where leads came from, and what happened to tuitions
  * posted in the last 90 days. */
 export async function mix(days = 90) {
@@ -42,12 +73,12 @@ export async function mix(days = 90) {
   return { sources, outcomes, days };
 }
 
-export async function dashboard() {
+export async function dashboard(scope: Scope = null) {
   const [open, publicNow, waiting, tutors, leads, held] = await Promise.all([
-    count(`SELECT count(*) n FROM tuitions WHERE status IN ('available', 'processing')`),
-    count(`SELECT count(*) n FROM tuitions WHERE is_public = 1 AND status IN ('available', 'processing')`),
+    count(`SELECT count(*) n FROM tuitions WHERE status IN ('available', 'processing')${mine("code", scope)}`),
+    count(`SELECT count(*) n FROM tuitions WHERE is_public = 1 AND status IN ('available', 'processing')${mine("code", scope)}`),
     count(`SELECT count(*) n FROM applications WHERE status = 'submitted'
-           AND tuition_code IN (SELECT code FROM tuitions WHERE status IN ('available', 'processing'))`),
+           AND tuition_code IN (SELECT code FROM tuitions WHERE status IN ('available', 'processing'))${mine("tuition_code", scope)}`),
     count(`SELECT count(*) n FROM tutors WHERE deleted_at IS NULL`),
     count(`SELECT count(*) n FROM leads WHERE status = 'new'`),
     reviewCounts().then((c) => c.tutors + c.tuitions + c.held),
@@ -56,7 +87,7 @@ export async function dashboard() {
 }
 
 /** The admin's to-do list, most urgent first. Steps that come with the tutor's own ticks (3-hour call, demo, confirm) join later. */
-export async function todayList() {
+export async function todayList(scope: Scope = null) {
   const [leads, applications, drafts, selected, tutorConfirmed, checkins, newTutors] = await Promise.all([
     all<{ id: number; status: string; class_level: string; area: string; guardian_name: string | null; created_at: number }>(
       `SELECT id, status, class_level, area, guardian_name, created_at FROM leads WHERE status IN ('new', 'called') ORDER BY status = 'new' DESC, created_at LIMIT 20`,
@@ -64,26 +95,26 @@ export async function todayList() {
     all<{ code: number; class_level: string; area: string; waiting: number; oldest: number }>(
       `SELECT t.code, t.class_level, t.area, count(*) waiting, min(a.created_at) oldest
        FROM applications a JOIN tuitions t ON t.code = a.tuition_code
-       WHERE a.status = 'submitted' AND t.status IN ('available', 'processing')
+       WHERE a.status = 'submitted' AND t.status IN ('available', 'processing')${mine("t.code", scope)}
        GROUP BY t.code ORDER BY oldest LIMIT 20`,
     ),
     all<{ code: number; class_level: string; area: string; created_at: number | null }>(
       `SELECT t.code, t.class_level, t.area, p.created_at FROM tuitions t LEFT JOIN tuition_private p ON p.tuition_code = t.code
-       WHERE t.status = 'draft' ORDER BY t.code DESC LIMIT 20`,
+       WHERE t.status = 'draft'${mine("t.code", scope)} ORDER BY t.code DESC LIMIT 20`,
     ),
     // Selected tutors who have not ticked Called: flagged after 3 hours, never dropped (owner, 2026-11-04).
     all<{ code: number; class_level: string; area: string; tutor_code: number | null; selected_at: number }>(
       `SELECT a.tuition_code code, t.class_level, t.area, tu.code tutor_code,
               (SELECT max(e.created_at) FROM application_events e WHERE e.application_id = a.id AND e.to_status = 'trial_arranged') selected_at
        FROM applications a JOIN tuitions t ON t.code = a.tuition_code LEFT JOIN tutors tu ON tu.id = a.tutor_id
-       WHERE a.status = 'trial_arranged' AND a.called_at IS NULL ORDER BY selected_at LIMIT 20`,
+       WHERE a.status = 'trial_arranged' AND a.called_at IS NULL${mine("a.tuition_code", scope)} ORDER BY selected_at LIMIT 20`,
     ),
     // Confirmed by the tutor's own tick in the last 7 days: the admin checks with the guardian and can undo it.
     all<{ code: number; class_level: string; area: string; tutor_code: number | null; confirmed_at: number }>(
       `SELECT a.tuition_code code, t.class_level, t.area, tu.code tutor_code, e.created_at confirmed_at
        FROM application_events e JOIN applications a ON a.id = e.application_id JOIN users u ON u.id = e.actor_user_id
        JOIN tuitions t ON t.code = a.tuition_code LEFT JOIN tutors tu ON tu.id = a.tutor_id
-       WHERE e.to_status = 'confirmed' AND u.role = 'tutor' AND a.status = 'confirmed' AND e.created_at > unixepoch() - 7 * 86400
+       WHERE e.to_status = 'confirmed' AND u.role = 'tutor' AND a.status = 'confirmed' AND e.created_at > unixepoch() - 7 * 86400${mine("a.tuition_code", scope)}
        ORDER BY e.created_at DESC LIMIT 20`,
     ),
     // Check-in calls due (owner, 2026-11-04): day 7 and day 30 after Confirmed.
@@ -91,7 +122,7 @@ export async function todayList() {
       `SELECT pl.id, pl.tuition_code code, t.class_level, t.area, CASE WHEN pl.checkin7_at IS NULL THEN 7 ELSE 30 END day, pl.confirmed_at
        FROM placements pl JOIN tuitions t ON t.code = pl.tuition_code
        WHERE pl.status IN ('confirmed', 'joined') AND pl.confirmed_at > unixepoch() - 75 * 86400
-         AND ((pl.checkin7_at IS NULL AND pl.confirmed_at <= unixepoch() - 7 * 86400) OR (pl.checkin30_at IS NULL AND pl.confirmed_at <= unixepoch() - 30 * 86400))
+         AND ((pl.checkin7_at IS NULL AND pl.confirmed_at <= unixepoch() - 7 * 86400) OR (pl.checkin30_at IS NULL AND pl.confirmed_at <= unixepoch() - 30 * 86400))${mine("pl.tuition_code", scope)}
        ORDER BY pl.confirmed_at LIMIT 20`,
     ),
     // Registrations on the site waiting for the owner's check, oldest first.
@@ -146,7 +177,7 @@ export async function moveLead(id: number, to: string, actorId: number | null): 
 }
 
 /** Makes a hidden draft tuition from a lead and returns its code. The admin finishes the public wording in the editor. */
-export async function postLeadAsTuition(id: number, actorId: number | null): Promise<number | null> {
+export async function postLeadAsTuition(id: number, actorId: number | null, scope: Scope = null): Promise<number | null> {
   const l = await env.DB.prepare(`SELECT * FROM leads WHERE id = ?`).bind(id).first<AdminLead & { guardian_id: number | null }>();
   if (!l) return null;
   const t = now();
@@ -165,9 +196,9 @@ export async function postLeadAsTuition(id: number, actorId: number | null): Pro
       // Everything the Quick Pad took down carries over (review step 3), so the admin only checks the wording.
       l.class_other, l.subject_other, l.time_of_day, l.time_from, l.time_to, l.session_minutes, l.tutor_from ?? "", l.requirement_keys ?? ""),
     env.DB.prepare(
-      `INSERT INTO tuition_private (tuition_code, guardian_id, guardian_label, exact_address, lead_source, private_notes, lead_id, created_at, updated_at)
-       VALUES (${code}, (SELECT id FROM guardians WHERE phone = ?), ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(l.phone, l.guardian_name, l.address, l.lead_source, notes || null, id, t, t),
+      `INSERT INTO tuition_private (tuition_code, guardian_id, guardian_label, exact_address, lead_source, private_notes, lead_id, staff_id, created_at, updated_at)
+       VALUES (${code}, (SELECT id FROM guardians WHERE phone = ?), ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(l.phone, l.guardian_name, l.address, l.lead_source, notes || null, id, scope, t, t),
     env.DB.prepare(`UPDATE leads SET status = 'posted', status_at = ?, tuition_code = ${code}, guardian_id = (SELECT id FROM guardians WHERE phone = ?) WHERE id = ?`)
       .bind(t, l.phone, id),
     env.DB.prepare(`INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, meta_json, created_at) VALUES (?, 'tuition_from_lead', 'tuition', ${code}, ?, ?)`)
@@ -184,8 +215,8 @@ export type AdminTuitionRow = {
   fresh?: number; review?: number; short?: number; selected?: number; accepting_applications?: number; guardian?: string | null;
 };
 
-export async function listTuitions(f: { q: string; status: string; visibility: string; page: number }) {
-  const where = ["1 = 1"];
+export async function listTuitions(f: { q: string; status: string; visibility: string; page: number }, scope: Scope = null) {
+  const where = [`1 = 1${mine("t.code", scope)}`];
   const args: unknown[] = [];
   if (f.status) { where.push("t.status = ?"); args.push(f.status); }
   if (f.visibility === "public") where.push("t.is_public = 1");
@@ -213,7 +244,7 @@ export async function listTuitions(f: { q: string; status: string; visibility: s
        ${from} ORDER BY t.code DESC LIMIT ? OFFSET ?`,
       ...args, PAGE_SIZE, pageOffset(f.page),
     ),
-    all<{ status: string; n: number }>(`SELECT status, count(*) n FROM tuitions GROUP BY status`),
+    all<{ status: string; n: number }>(`SELECT status, count(*) n FROM tuitions WHERE 1 = 1${mine("code", scope)} GROUP BY status`),
   ]);
   return { total, items, statuses: Object.fromEntries(statuses.map((s) => [s.status, s.n])) as Record<string, number> };
 }
@@ -503,7 +534,8 @@ export async function setTuitionState(code: number, op: string, actorId: number 
  * A tuition typed straight in by the admin (owner, 2026-11-04: "post the tuition when a new guardian comes"): the
  * guardian is found or added by phone, and the tuition is saved as a draft or published at once.
  */
-export async function createTuition(form: FormData, actorId: number | null): Promise<{ code?: number; error?: string }> {
+/** scope: a moderator's staff id; the tuition they make is theirs (owner, 2026-11-16). */
+export async function createTuition(form: FormData, actorId: number | null, scope: Scope = null): Promise<{ code?: number; error?: string }> {
   const text = (name: string) => String(form.get(name) ?? "").trim();
   const phone = text("guardian_phone").replace(/[\s-]/g, "").replace(/^\+?88/, "");
   if (!/^01[3-9]\d{8}$/.test(phone)) return { error: "Enter the guardian's phone (01XXXXXXXXX)." };
@@ -520,9 +552,9 @@ export async function createTuition(form: FormData, actorId: number | null): Pro
        SELECT COALESCE(MAX(code), 0) + 1, 'draft', 0, 'other', '', '', '', 'unspecified', 3, 'any' FROM tuitions`,
     ),
     env.DB.prepare(
-      `INSERT INTO tuition_private (tuition_code, guardian_id, guardian_label, exact_address, lead_source, private_notes, created_at, updated_at)
-       VALUES (${code}, (SELECT id FROM guardians WHERE phone = ?), ?, ?, ?, ?, ?, ?)`,
-    ).bind(phone, text("guardian_name") || null, text("exact_address") || null, source || null, text("private_notes") || null, at, at),
+      `INSERT INTO tuition_private (tuition_code, guardian_id, guardian_label, exact_address, lead_source, private_notes, staff_id, created_at, updated_at)
+       VALUES (${code}, (SELECT id FROM guardians WHERE phone = ?), ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(phone, text("guardian_name") || null, text("exact_address") || null, source || null, text("private_notes") || null, scope, at, at),
     env.DB.prepare(`INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, meta_json, created_at) VALUES (?, 'tuition_created', 'tuition', ${code}, '{}', ?)`).bind(actorId, at),
   ]);
   const made = (await env.DB.prepare(`SELECT MAX(code) code FROM tuitions`).first<{ code: number }>())?.code;
@@ -629,9 +661,11 @@ export async function guardianStatus(token: string): Promise<GuardianStatus | nu
   return { ...t, selected: selected ?? null };
 }
 
-export async function moveApplication(id: number, to: string, reason: string, actorId: number | null): Promise<string | null> {
+/** opts.moderator: a moderator may move applicants up to Selected; Confirmed and its undo carry the fee (owner only). */
+export async function moveApplication(id: number, to: string, reason: string, actorId: number | null, opts?: { moderator?: boolean; code?: number }): Promise<string | null> {
   const app = await env.DB.prepare(`SELECT id, tuition_code, tutor_id, status FROM applications WHERE id = ?`).bind(id).first<{ id: number; tuition_code: number; tutor_id: number | null; status: string }>();
-  if (!app) return "Application not found.";
+  if (!app || (opts?.code !== undefined && app.tuition_code !== opts.code)) return "Application not found.";
+  if (opts?.moderator && (to === "confirmed" || app.status === "confirmed")) return "Only the owner can confirm a tutor or undo a confirm (the fee is charged there).";
   const t = now();
   const steps = [
     env.DB.prepare(`UPDATE applications SET status = ?, updated_at = ? WHERE id = ?`).bind(to, t, id),
@@ -819,8 +853,8 @@ export async function getGuardian(id: number) {
 
 // ---------- Applications ----------
 
-export async function listApplications(f: { status: string; open: boolean; page: number }) {
-  const where = ["1 = 1"];
+export async function listApplications(f: { status: string; open: boolean; page: number }, scope: Scope = null) {
+  const where = [`1 = 1${mine("a.tuition_code", scope)}`];
   const args: unknown[] = [];
   if (f.status) { where.push("a.status = ?"); args.push(f.status); }
   if (f.open) where.push(`t.status IN ('available', 'processing')`);
@@ -961,16 +995,16 @@ export async function resolveFlaggedTutor(rowId: number, email: string, actorId:
 // ---------- Shell: sidebar counts and search ----------
 
 /** The small numbers beside the admin's menu items: what is waiting in each place. */
-export async function navCounts() {
+export async function navCounts(scope: Scope = null) {
   const row = await env.DB.prepare(
     `SELECT (SELECT count(*) FROM leads WHERE status = 'new') leads,
             (SELECT count(*) FROM applications a JOIN tuitions t ON t.code = a.tuition_code
-              WHERE a.status = 'submitted' AND t.status IN ('available', 'processing')) applications,
-            (SELECT count(*) FROM tuitions WHERE status IN ('available', 'processing')) open,
-            (SELECT count(*) FROM applications WHERE status = 'trial_arranged') selected,
+              WHERE a.status = 'submitted' AND t.status IN ('available', 'processing')${mine("a.tuition_code", scope)}) applications,
+            (SELECT count(*) FROM tuitions WHERE status IN ('available', 'processing')${mine("code", scope)}) open,
+            (SELECT count(*) FROM applications WHERE status = 'trial_arranged'${mine("tuition_code", scope)}) selected,
             (SELECT count(*) FROM tutors WHERE review_status = 'waiting' AND review_status <> 'approved' AND deleted_at IS NULL) new_tutors, -- the <> lets SQLite use the partial index tutors_review
             (SELECT count(DISTINCT tutor_id) FROM tutor_uploads WHERE status = 'pending') uploads,
-            (SELECT count(*) FROM followups WHERE done_at IS NULL AND due_at <= unixepoch()) followups,
+            (SELECT count(*) FROM followups WHERE done_at IS NULL AND due_at <= unixepoch()${scope === null ? "" : ` AND created_by = (SELECT u.id FROM users u JOIN staff st ON st.email = u.email WHERE st.id = ${Math.trunc(scope)})`}) followups,
             (SELECT count(*) FROM premium_members WHERE status IN ('applied', 'paid')
                OR (refund_due_at IS NOT NULL AND refund_sent_at IS NULL)) premium,
             (SELECT count(*) FROM batch_applications WHERE status = 'new') batches`,
@@ -982,7 +1016,7 @@ export async function navCounts() {
 export type SearchHit = { kind: "tuition" | "tutor" | "guardian" | "lead"; to: string; title: string; sub: string; photo?: { code: number; has: boolean } };
 
 /** One box for everything (admin search): a tuition or tutor code, a name, a phone number or an area. */
-export async function globalSearch(raw: string): Promise<SearchHit[]> {
+export async function globalSearch(raw: string, scope: Scope = null): Promise<SearchHit[]> {
   const q = raw.trim();
   if (q.length < 2 && !/^\d+$/.test(q)) return [];
   const digits = q.replace(/\D/g, "");
@@ -993,7 +1027,7 @@ export async function globalSearch(raw: string): Promise<SearchHit[]> {
     all<{ code: number; status: string; class_level: string; area: string; salary_amount: number | null }>(
       `SELECT t.code, t.status, t.class_level, t.area, t.salary_amount FROM tuitions t
        LEFT JOIN tuition_private p ON p.tuition_code = t.code LEFT JOIN guardians g ON g.id = p.guardian_id
-       WHERE t.code = ? ${phone ? "OR g.phone LIKE ?" : ""} ORDER BY t.code DESC LIMIT 5`,
+       WHERE (t.code = ? ${phone ? "OR g.phone LIKE ?" : ""})${mine("t.code", scope)} ORDER BY t.code DESC LIMIT 5`,
       code, ...(phone ? [phone] : []),
     ),
     all<{ code: number; full_name: string; institution: string | null; department: string | null; photo_key: string | null }>(
@@ -1164,6 +1198,7 @@ export async function setTutorAccount(id: number, form: FormData, actorId: numbe
     const user = await env.DB.prepare(`SELECT u.id, u.role, (SELECT code FROM tutors WHERE user_id = u.id AND deleted_at IS NULL) tutor_code FROM users u WHERE u.email = ?`)
       .bind(email).first<{ id: number; role: string; tutor_code: number | null }>();
     if (user?.role === "owner") return { error: "This is an admin Gmail." };
+    if (await env.DB.prepare(`SELECT 1 FROM staff WHERE email = ? AND removed_at IS NULL`).bind(email).first()) return { error: "This Gmail is a moderator's. A tutor needs a different Gmail." };
     if (user?.tutor_code) return { error: `This Gmail is linked to T-${user.tutor_code}.` };
     linkTo = user?.id ?? null;
   }
@@ -1203,7 +1238,7 @@ export type Placed = {
 };
 
 /** Check-in calls after Confirmed (owner, 2026-11-04): day 7 and day 30, each due until it is ticked. */
-export async function placementsBoard() {
+export async function placementsBoard(scope: Scope = null) {
   const [inProgress, placed] = await Promise.all([
     all<InProgress>(
       `SELECT a.id application_id, a.tuition_code, t.class_level, t.area, t.salary_amount, t.salary_kind, u.code tutor_code, u.full_name name, u.photo_key,
@@ -1211,14 +1246,14 @@ export async function placementsBoard() {
               (SELECT max(e.created_at) FROM application_events e WHERE e.application_id = a.id AND e.to_status = 'trial_arranged') selected_at
        FROM applications a JOIN tuitions t ON t.code = a.tuition_code LEFT JOIN tutors u ON u.id = a.tutor_id
        LEFT JOIN tuition_private p ON p.tuition_code = t.code LEFT JOIN guardians g ON g.id = p.guardian_id
-       WHERE a.status = 'trial_arranged' ORDER BY selected_at DESC LIMIT 100`,
+       WHERE a.status = 'trial_arranged'${mine("a.tuition_code", scope)} ORDER BY selected_at DESC LIMIT 100`,
     ),
     all<Placed>(
       `SELECT pl.id, pl.tuition_code, t.class_level, t.area, pl.agreed_salary, t.salary_amount, pl.confirmed_at, pl.checkin7_at, pl.checkin30_at, pl.first_salary_at, pl.checkin_note,
               u.code tutor_code, u.full_name name, u.photo_key, g.phone guardian_phone, COALESCE(p.guardian_label, g.name) guardian
        FROM placements pl JOIN tuitions t ON t.code = pl.tuition_code LEFT JOIN tutors u ON u.id = pl.tutor_id
        LEFT JOIN tuition_private p ON p.tuition_code = t.code LEFT JOIN guardians g ON g.id = p.guardian_id
-       WHERE pl.status IN ('confirmed', 'joined') AND pl.confirmed_at > ? ORDER BY pl.confirmed_at DESC LIMIT 200`,
+       WHERE pl.status IN ('confirmed', 'joined') AND pl.confirmed_at > ?${mine("pl.tuition_code", scope)} ORDER BY pl.confirmed_at DESC LIMIT 200`,
       now() - 75 * 86400,
     ),
   ]);
@@ -1229,8 +1264,9 @@ export async function placementsBoard() {
 }
 
 /** Ticks a check-in call. Day 30 with "salary paid" also records the first salary (PRD BR-SAL-001). */
-export async function checkIn(id: number, day: string, salaryPaid: boolean, note: string, actorId: number | null): Promise<string | null> {
+export async function checkIn(id: number, day: string, salaryPaid: boolean, note: string, actorId: number | null, scope: Scope = null): Promise<string | null> {
   if (day !== "7" && day !== "30") return "Unknown check-in.";
+  if (scope !== null && !(await env.DB.prepare(`SELECT 1 FROM placements pl WHERE pl.id = ?${mine("pl.tuition_code", scope)}`).bind(id).first())) return "This tuition isn't one of yours.";
   const column = day === "7" ? "checkin7_at" : "checkin30_at";
   const t = now();
   await env.DB.batch([

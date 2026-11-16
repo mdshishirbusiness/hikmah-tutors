@@ -29,6 +29,7 @@ export default [
   route("batch/apply", "routes/batch.apply.tsx"),
   route("dev/tutor/:code", "routes/dev.tutor.$code.ts"),
   route("dev/new/:n", "routes/dev.new.$n.ts"),
+  route("dev/staff/:n", "routes/dev.staff.$n.ts"),
   route("admin/quick", "routes/admin.quick.tsx"),
   layout("routes/admin.layout.tsx", [
     route("admin", "routes/admin.home.tsx"),
@@ -50,6 +51,7 @@ export default [
     route("admin/premium", "routes/admin.premium.tsx"),
     route("admin/batches", "routes/admin.batches.tsx"),
     route("admin/voice", "routes/admin.voice.tsx"),
+    route("admin/team", "routes/admin.team.tsx"),
   ]),
   route("admin/search", "routes/admin.search.ts"),
   route("admin/tuitions/:code/ai", "routes/admin.tuitions.$code.ai.ts"),

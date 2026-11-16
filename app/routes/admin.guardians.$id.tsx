@@ -5,7 +5,7 @@ import { Badge, Card, ContactButtons, PageHead, inputClass, num, TUITION_TONE } 
 import { TUITION_STATUS } from "~/lib/admin-labels";
 import { NotesPanel } from "~/components/FollowUps";
 import { getGuardian, setFlag } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff } from "~/lib/auth.server";
 import { followupsFor } from "~/lib/followups.server";
 import { AREAS, CLASS_LEVELS, labelOf } from "~/lib/options";
 
@@ -14,14 +14,14 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  await requireStaff(request, "leads");
   const found = await getGuardian(Number(params.id) || -1);
   if (!found) throw data("Guardian not found", { status: 404 });
   return { ...found, follow: await followupsFor("guardian", found.guardian.id) };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const viewer = await requireAdmin(request);
+  const viewer = await requireStaff(request, "leads");
   const form = await request.formData();
   return { error: await setFlag("guardian", Number(params.id) || -1, form.get("intent") === "clear" ? "" : String(form.get("reason") ?? ""), viewer?.id ?? null) };
 }

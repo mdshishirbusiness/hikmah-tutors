@@ -6,6 +6,8 @@ import { Form, Link, useNavigation } from "react-router";
 import {
   ArrowLeft, BadgeCheck, CalendarClock, Check, ChevronDown, Copy, Crown, Hourglass, ListChecks, ReceiptText, ShieldCheck, TriangleAlert, Wallet,
 } from "lucide-react";
+import { VoiceSpot } from "~/components/VoiceNote";
+import type { VoiceSpotKey } from "~/lib/voice";
 import type { Route } from "./+types/me.premium";
 import { inputClass } from "~/components/admin";
 import { BenefitTiles, FeeBar, HowItWorks, MemberPass, Patience, RankDemo } from "~/components/PremiumParts";
@@ -154,7 +156,7 @@ function Apply({ me, missing, choices, busy }: {
       <Form method="post" className="mt-4">
         <input type="hidden" name="intent" value="apply" />
         <ol className="space-y-6">
-          <Step n={1} title="Your minimum salary" sub="এর কম বেতনের টিউশন নিতে বাধ্য নন।">
+          <Step n={1} voice="premium-salary" title="Your minimum salary" sub="এর কম বেতনের টিউশন নিতে বাধ্য নন।">
             <div className="flex items-stretch gap-2">
               <input name="min_salary" value={min} onChange={(e) => setMin(e.target.value)} inputMode="numeric" required placeholder="3000" aria-label="Your minimum salary" disabled={!ready} className={`${inputClass} max-w-36 text-lg font-bold tabular-nums`} />
               <span className={`flex flex-1 flex-col justify-center rounded-xl px-4 ${ok ? "bg-mango text-forest" : "bg-slate-100 text-slate-500"}`}>
@@ -168,10 +170,10 @@ function Apply({ me, missing, choices, busy }: {
               </details>
             )}
           </Step>
-          <Step n={2} title={ok ? `Send ${taka(price)}` : "Send the Premium price"} sub="bKash, Nagad বা Rocket থেকে।">
+          <Step n={2} voice="premium-pay" title={ok ? `Send ${taka(price)}` : "Send the Premium price"} sub="bKash, Nagad বা Rocket থেকে।">
             <PayNumber compact />
           </Step>
-          <Step n={3} title="Write the TrxID" sub="টাকা পাঠানোর পর যে SMS আসে, তাতে TrxID থাকে।">
+          <Step n={3} voice="premium-trxid" title="Write the TrxID" sub="টাকা পাঠানোর পর যে SMS আসে, তাতে TrxID থাকে।">
             <PayFields amount={ok ? price : 0} disabled={!ready} from={me.phone} />
           </Step>
         </ol>
@@ -204,12 +206,15 @@ function Apply({ me, missing, choices, busy }: {
 }
 
 /** One numbered step of the application: the number on mango, a line down to the next step. */
-function Step({ n, title, sub, children }: { n: number; title: string; sub?: string; children: React.ReactNode }) {
+function Step({ n, title, sub, voice, children }: { n: number; title: string; sub?: string; voice?: VoiceSpotKey; children: React.ReactNode }) {
   return (
     <li className="relative pl-12">
       <span aria-hidden className="absolute top-0 left-0 grid size-9 place-items-center rounded-full bg-mango text-base font-extrabold text-forest tabular-nums">{n}</span>
       {n < 3 && <span aria-hidden className="absolute top-10 -bottom-5 left-[17px] w-0.5 rounded-full bg-brand-100" />}
-      <h3 className="pt-1 text-[17px] leading-tight font-extrabold text-forest">{title}</h3>
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="pt-1 text-[17px] leading-tight font-extrabold text-forest">{title}</h3>
+        {voice && <VoiceSpot spot={voice} className="-mt-1.5 shrink-0" />}
+      </div>
       {sub && <p className="mt-0.5 mb-2.5 text-sm text-slate-500">{sub}</p>}
       {children}
     </li>

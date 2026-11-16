@@ -9,7 +9,7 @@ import { PageHead, inputClass } from "~/components/admin";
 import { PastGuardianFind, draftFrom } from "~/components/PastGuardian";
 import { Group, Label, TuitionFields, type TuitionDraft } from "~/components/TuitionFields";
 import { createTuition } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff, scopeOf } from "~/lib/auth.server";
 import { LEAD_SOURCES } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
@@ -17,14 +17,14 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  await requireStaff(request, "tuitions");
   return null;
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const viewer = await requireAdmin(request);
+  const viewer = await requireStaff(request, "tuitions");
   const form = await request.formData();
-  const { code, error } = await createTuition(form, viewer?.id ?? null);
+  const { code, error } = await createTuition(form, viewer?.id ?? null, scopeOf(viewer));
   if (code && !error) throw redirect(`/admin/tuitions/${code}${form.get("publish") === "1" ? "" : "?tab=details"}`);
   if (code) throw redirect(`/admin/tuitions/${code}?tab=details`);
   return data({ error }, { status: 400 });

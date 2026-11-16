@@ -6,7 +6,7 @@ import type { Route } from "./+types/admin.tuitions";
 import { Badge, Empty, Money, PageHead, Pager, StageTabs, ago, num, TUITION_TONE } from "~/components/admin";
 import { ADMIN_PAGE_SIZE, TUITION_STATUS } from "~/lib/admin-labels";
 import { type AdminTuitionRow, listTuitions } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff, scopeOf } from "~/lib/auth.server";
 import { AREAS, CLASS_LEVELS, SUBJECTS, labelOf } from "~/lib/options";
 
 export function meta(_: Route.MetaArgs) {
@@ -14,10 +14,10 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  const viewer = await requireStaff(request, "tuitions");
   const sp = new URL(request.url).searchParams;
   const f = { q: sp.get("q")?.trim() ?? "", status: sp.get("status") ?? "", visibility: sp.get("visibility") ?? "", page: Number(sp.get("page")) || 1 };
-  return { ...(await listTuitions(f)), f };
+  return { ...(await listTuitions(f, scopeOf(viewer))), f };
 }
 
 /** Four little counts in step colours; empty steps fade. */

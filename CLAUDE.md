@@ -13,7 +13,10 @@ Today everything lives in a Google Sheet ("Hikmah Tutors Mastersheet Tuition"); 
 React Router v8 (framework mode, SSR) · TypeScript · Tailwind CSS v4 · Cloudflare Workers + D1 + R2 · Google login (planned).
 Judge options by the quality of the result (speed, security, correctness, upkeep), not by how hard they are to build.
 D1 has no Row Level Security: every loader/action checks the viewer; append-only tables and status transitions are
-enforced with SQLite triggers. Roles: Owner only for now.
+enforced with SQLite triggers. Roles: Owner and Moderators (migration 0034, owner 2026-11-16). Owner-only pages call
+`requireAdmin`; pages a moderator may open call `requireStaff(request, perm)` (switches in `app/lib/staff.ts`, Team page
+`/admin/team`). A moderator sees only their own tuitions (`tuition_private.staff_id`): pass `scopeOf(viewer)` to every
+tuition query in `admin.server.ts` (`mine()`/`inScope`). Try it in dev at `/dev/staff/1`.
 
 ## Never
 - Use the Towfique HSC Cloudflare account. Hikmah has its own account (`account_id` in `wrangler.jsonc`). Run
@@ -81,6 +84,8 @@ enforced with SQLite triggers. Roles: Owner only for now.
   `batch.server.ts`; apply at `/batch/apply` (any Google account), review at `/admin/batches`.
 - Owner's voice clips (migration 0033): pages that can have one in `app/lib/voice.ts`, uploads in `voice.server.ts`
   (`/admin/voice`), the floating player `app/components/VoiceNote.tsx` (mounted in `root.tsx`), audio at `/voice/:slot`.
+  Short clips on parts of a page (`VOICE_SPOTS`, the `VoiceSpot` pill). Clips are made with ElevenLabs by
+  `scripts/voice/make.mjs` from `scripts/voice/lines.mjs` (keys in `.dev.vars`, never printed; no owner name in clips).
 - Admin pieces: `app/components/Applicants.tsx` (applicant table/board/detail), `charts.tsx` (no chart library),
   `TuitionFields.tsx` (new and edit tuition), `Avatar.tsx` (private photos via `/photos/tutor/:code`).
 - Database changes: a new numbered file in `migrations/`, then `npm run db:migrate:local` (and `db:migrate` for the

@@ -54,7 +54,7 @@ export async function myProfile(userId: number) {
 /** Who is looking at a public page: a visitor (both null), any signed-in account, and its tutor record if it has one. */
 export async function optionalTutor(request: Request): Promise<{ viewer: Viewer | null; me: MyTutor | null }> {
   const viewer = await getViewer(request);
-  return { viewer, me: viewer && viewer.role !== "owner" ? await tutorForUser(viewer.id) : null };
+  return { viewer, me: viewer && viewer.role === "tutor" ? await tutorForUser(viewer.id) : null };
 }
 
 export async function tutorForUser(userId: number) {
@@ -614,7 +614,7 @@ export async function referTuition(viewer: Viewer, me: MyTutor, form: FormData):
 export async function headerViewer(request: Request): Promise<{ role: "owner" | "tutor"; name: string | null; code: number | null; photo: boolean } | null> {
   const viewer = await getViewer(request);
   if (!viewer) return null;
-  if (viewer.role === "owner") return { role: "owner", name: viewer.name, code: null, photo: false };
+  if (viewer.role !== "tutor") return { role: "owner", name: viewer.name, code: null, photo: false }; // staff: the header links to Admin
   const t = await env.DB.prepare(`SELECT code, full_name, photo_key FROM tutors WHERE user_id = ? AND deleted_at IS NULL`).bind(viewer.id)
     .first<{ code: number; full_name: string; photo_key: string | null }>();
   return { role: "tutor", name: t?.full_name ?? viewer.name, code: t?.code ?? null, photo: !!t?.photo_key };

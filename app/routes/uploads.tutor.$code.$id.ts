@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import type { Route } from "./+types/uploads.tutor.$code.$id";
-import { getViewer, requireAdmin } from "~/lib/auth.server";
+import { getViewer, requireStaff } from "~/lib/auth.server";
 import { uploadFile } from "~/lib/uploads.server";
 
 // A photo or document a tutor sent for checking (owner, 2026-11-06). Only the admin and the tutor themself may see it;
@@ -10,7 +10,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const viewer = await getViewer(request);
   const up = Number.isInteger(code) && Number.isInteger(id) ? await uploadFile(code, id) : null;
   const own = viewer?.role === "tutor" && up?.user_id === viewer.id;
-  const admin = own ? null : await requireAdmin(request);
+  const admin = own ? null : await requireStaff(request, "docs");
   const object = up?.status === "pending" ? await env.PHOTOS.get(up.r2_key) : null;
   if (!up || !object) throw new Response("Not found", { status: 404 });
   if (!own && up.kind !== "photo") {

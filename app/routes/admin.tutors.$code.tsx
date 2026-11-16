@@ -14,7 +14,8 @@ import { NotesPanel } from "~/components/FollowUps";
 import { getTutor, reviewTutor, setFlag, setTutorAccount } from "~/lib/admin.server";
 import { followupsFor } from "~/lib/followups.server";
 import { decideUpload, pendingUploads, removeDocument } from "~/lib/uploads.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff } from "~/lib/auth.server";
+import { can, isOwner } from "~/lib/staff";
 import { fixReferrer, referralAdmin } from "~/lib/referral.server";
 import { waLink } from "~/lib/contact";
 import { DOC_LABELS, UNIVERSITIES } from "~/lib/join";
@@ -26,19 +27,27 @@ export function meta({ params }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  const viewer = await requireStaff(request, "tutors");
   const found = await getTutor(Number(params.code) || -1);
   if (!found) throw data("Tutor not found", { status: 404 });
   const [follow, uploads, referral] = await Promise.all([followupsFor("tutor", found.tutor.id), pendingUploads(found.tutor.id), referralAdmin(found.tutor.id)]);
-  return { ...found, follow, uploads, referral };
+  // A moderator without Documents sees no NID, documents or uploads to approve (owner, 2026-11-16).
+  const docs = can(viewer, "docs");
+  return { ...found, documents: docs ? found.documents : [], uploads: docs ? uploads : [], follow, referral, owner: isOwner(viewer), canDocs: docs };
 }
 
+// Steps that stay the owner's (phone, Gmail, referrer, removing a document) and the ones that need Documents.
+const OWNER_INTENTS = new Set(["account", "referrer", "remove_doc"]);
+const DOC_INTENTS = new Set(["approve", "fix", "approve_upload", "decline_upload"]);
+
 export async function action({ request, params }: Route.ActionArgs) {
-  const viewer = await requireAdmin(request);
+  const viewer = await requireStaff(request, "tutors");
   const found = await getTutor(Number(params.code) || -1);
   if (!found) throw data("Tutor not found", { status: 404 });
   const form = await request.formData();
   const intent = form.get("intent");
+  if (OWNER_INTENTS.has(String(intent)) && !isOwner(viewer)) return { error: "Only the owner can change this." };
+  if (DOC_INTENTS.has(String(intent)) && !can(viewer, "docs")) return { error: "Your moderator access doesn't include approvals. Ask the owner." };
   if (intent === "approve" || intent === "fix") return { error: await reviewTutor(found.tutor.id, intent, String(form.get("note") ?? ""), viewer?.id ?? null) };
   if (intent === "account") return await setTutorAccount(found.tutor.id, form, viewer?.id ?? null);
   if (intent === "approve_upload" || intent === "decline_upload") {
@@ -59,7 +68,7 @@ const UNI: Record<string, string> = { ru: "RU", ruet: "RUET", medical: "Medical"
 const LEVEL_KINDS = new Set(["junior_strategy", "junior_experience", "ssc_strategy", "ssc_experience", "hsc_strategy", "hsc_experience", "special_skills", "demo_video"]);
 const ghost = "inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring hover:bg-brand-50";
 
-export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, documents, areas, classes, follow, uploads, referral }, actionData }: Route.ComponentProps) {
+export default function AdminTutor({ loaderData: { tutor: t, subjects, statements, applications, placements, levels, students, documents, areas, classes, follow, uploads, referral, owner, canDocs }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const facebook = safeUrl(t.facebook_url);
   const reached = (s: string[]) => applications.filter((a) => s.includes(a.status)).length;
@@ -75,7 +84,7 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
     <>
       <PageHead back={{ to: "/admin/tutors", label: "Tutors" }} eyebrow={`T-${t.code}`} title={t.full_name} />
       {actionData?.error && <p role="alert" className="mb-4 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-900">{actionData.error}</p>}
-      {t.review_status !== "approved" && (
+      {t.review_status !== "approved" && canDocs && (
         // A registration made on the site (owner, 2026-11-04): check the photo and details, then approve or ask for a fix.
         <section className="mb-5 rounded-2xl bg-mango p-5 text-forest">
           <p className="flex items-center gap-2 text-lg font-extrabold"><UserPlus size={20} aria-hidden />{t.review_status === "waiting" ? "New tutor: check this registration" : "Asked to fix"}</p>
@@ -102,11 +111,11 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
                 </span>
                 <span className="flex shrink-0 gap-1.5">
                   <DocViewer src={`/docs/tutor/${t.code}/${d.id}`} title={`T-${t.code} · ${d.kind === "nid" ? "NID" : DOC_LABELS.find((l) => l.key === d.label)?.label ?? "Document"}`} className={ghost}>View</DocViewer>
-                  <Form method="post" onSubmit={(e) => { if (!confirm("Remove this document? The file is deleted.")) e.preventDefault(); }}>
+                  {owner && <Form method="post" onSubmit={(e) => { if (!confirm("Remove this document? The file is deleted.")) e.preventDefault(); }}>
                     <input type="hidden" name="intent" value="remove_doc" />
                     <input type="hidden" name="id" value={d.id} />
                     <button disabled={busy} aria-label="Remove document" className="grid size-11 place-items-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-60"><Trash2 size={16} aria-hidden /></button>
-                  </Form>
+                  </Form>}
                 </span>
               </li>
             ))}
@@ -234,7 +243,7 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
               ["Registered", when(t.registered_at)], ["Email", t.email],
             ]} />
           </Card>
-          <AccountCard t={t} busy={busy} />
+          {owner && <AccountCard t={t} busy={busy} />}
           {actionData && "done" in actionData && actionData.done && (
             <p role="status" className="flex items-start gap-2 rounded-xl bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-900"><Check size={16} className="mt-0.5 shrink-0" aria-hidden />{actionData.done}</p>
           )}
@@ -254,7 +263,7 @@ export default function AdminTutor({ loaderData: { tutor: t, subjects, statement
             {referral.by ? (
               <p className="mt-2 text-sm">Referred by <Link to={`/admin/tutors/${referral.by.code}`} className="font-semibold text-brand-700 hover:underline">T-{referral.by.code} · {referral.by.full_name}</Link>{referral.by.credited ? " · credit given" : ""}</p>
             ) : <p className="mt-2 text-sm text-slate-500">Not referred by a tutor.</p>}
-            {!referral.by?.credited && (
+            {owner && !referral.by?.credited && (
               <Form method="post" className="mt-2 flex gap-2">
                 <input type="hidden" name="intent" value="referrer" />
                 <input name="ref" defaultValue={referral.by ? String(referral.by.code) : ""} inputMode="numeric" maxLength={8} placeholder="Code, or empty to clear" aria-label="Referrer's tutor code" className={`${inputClass} min-h-11 flex-1 text-sm`} />

@@ -6,12 +6,13 @@ import { Form, Link, NavLink, Outlet, type ShouldRevalidateFunctionArgs, useFetc
 import { InstallButton } from "~/components/InstallApp";
 import { ScrollRide } from "~/components/ScrollRide";
 import {
-  ArrowUpRight, BarChart3, Crown, ClipboardList, FileText, GraduationCap, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, Mic, PhoneCall, Plus, Search, UserRound, Users, Wallet, X, Zap,
+  ArrowUpRight, BarChart3, ShieldCheck, Crown, ClipboardList, FileText, GraduationCap, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, Mic, PhoneCall, Plus, Search, UserRound, Users, Wallet, X, Zap,
 } from "lucide-react";
 import type { Route } from "./+types/admin.layout";
 import { Avatar } from "~/components/Avatar";
 import { type SearchHit, navCounts } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff, scopeOf } from "~/lib/auth.server";
+import { type Perm, can } from "~/lib/staff";
 
 // Applies to every admin page below: private data must never sit in a shared cache.
 export function headers(_: Route.HeadersArgs) {
@@ -19,8 +20,14 @@ export function headers(_: Route.HeadersArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const viewer = await requireAdmin(request);
-  return { counts: await navCounts(), name: viewer?.name ?? "Admin" };
+  const viewer = await requireStaff(request, "any");
+  // What this person may open: everything for the owner, a moderator's switches otherwise (owner, 2026-11-16).
+  const allowed = [...ALL_PERMS].filter((p) => can(viewer, p));
+  const owner = !viewer || viewer.role === "owner";
+  const all = await navCounts(scopeOf(viewer));
+  // Badges only for what this person may act on.
+  const counts = owner ? all : { ...all, premium: 0, review: 0, new_tutors: can(viewer, "docs") ? all.new_tutors : 0, uploads: can(viewer, "docs") ? all.uploads : 0 };
+  return { counts, name: viewer?.name ?? "Admin", owner, allowed };
 }
 
 // The sidebar counts refresh after every save and on every page change, not on filter or tab changes.
@@ -30,36 +37,41 @@ export function shouldRevalidate({ currentUrl, nextUrl, formMethod, defaultShoul
 }
 
 type Counts = Awaited<ReturnType<typeof navCounts>>;
-type Item = { to: string; label: string; icon: typeof Inbox; end?: boolean; count?: (c: Counts) => number; hot?: boolean };
+// need: the switch a moderator must have, or "owner" for the owner's own pages; none = every staff member.
+type Item = { to: string; label: string; icon: typeof Inbox; end?: boolean; count?: (c: Counts) => number; hot?: boolean; need?: Perm | "owner" };
+const ALL_PERMS: Perm[] = ["leads", "tuitions", "tutors", "batches", "calls", "docs", "ai"];
+type Access = { owner: boolean; allowed: Perm[] };
+const allows = (a: Access, need?: Perm | "owner") => !need || a.owner || (need !== "owner" && a.allowed.includes(need));
 
 const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: "Work",
     items: [
       { to: "/admin", label: "Today", icon: LayoutDashboard, end: true, count: (c) => c.followups, hot: true },
-      { to: "/admin/leads", label: "Leads", icon: Inbox, count: (c) => c.leads, hot: true },
-      { to: "/admin/tuitions", label: "Tuitions", icon: ClipboardList, count: (c) => c.open },
-      { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications, hot: true },
-      { to: "/admin/placements", label: "Placements", icon: Handshake, count: (c) => c.selected },
-      { to: "/admin/money", label: "Money", icon: Wallet },
+      { to: "/admin/leads", label: "Leads", icon: Inbox, count: (c) => c.leads, hot: true, need: "leads" },
+      { to: "/admin/tuitions", label: "Tuitions", icon: ClipboardList, count: (c) => c.open, need: "tuitions" },
+      { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications, hot: true, need: "tuitions" },
+      { to: "/admin/placements", label: "Placements", icon: Handshake, count: (c) => c.selected, need: "tuitions" },
+      { to: "/admin/money", label: "Money", icon: Wallet, need: "owner" },
     ],
   },
   {
     title: "People",
     items: [
-      { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors + c.uploads, hot: true },
-      { to: "/admin/calls", label: "Call list", icon: PhoneCall },
-      { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true },
-      { to: "/admin/batches", label: "Batch teachers", icon: GraduationCap, count: (c) => c.batches, hot: true },
-      { to: "/admin/guardians", label: "Guardians", icon: UserRound },
+      { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors + c.uploads, hot: true, need: "tutors" },
+      { to: "/admin/calls", label: "Call list", icon: PhoneCall, need: "calls" },
+      { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true, need: "owner" },
+      { to: "/admin/batches", label: "Batch teachers", icon: GraduationCap, count: (c) => c.batches, hot: true, need: "batches" },
+      { to: "/admin/guardians", label: "Guardians", icon: UserRound, need: "leads" },
     ],
   },
   {
     title: "Insights",
     items: [
-      { to: "/admin/insights", label: "Insights", icon: BarChart3 },
-      { to: "/admin/review", label: "Review", icon: ListChecks, count: (c) => c.review },
-      { to: "/admin/voice", label: "Voice notes", icon: Mic },
+      { to: "/admin/insights", label: "Insights", icon: BarChart3, need: "owner" },
+      { to: "/admin/review", label: "Review", icon: ListChecks, count: (c) => c.review, need: "owner" },
+      { to: "/admin/voice", label: "Voice notes", icon: Mic, need: "owner" },
+      { to: "/admin/team", label: "Team", icon: ShieldCheck, need: "owner" },
     ],
   },
 ];
@@ -67,21 +79,22 @@ const GROUPS: { title: string; items: Item[] }[] = [
 // The phone's bottom bar (owner, 2026-11-04): daily work one thumb-tap away; the rest sits under More.
 const TABS: Item[] = [
   { to: "/admin", label: "Today", icon: LayoutDashboard, end: true, count: (c) => c.followups, hot: true },
-  { to: "/admin/leads", label: "Leads", icon: Inbox, count: (c) => c.leads, hot: true },
-  { to: "/admin/tuitions", label: "Tuitions", icon: ClipboardList },
-  { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors + c.uploads, hot: true },
+  { to: "/admin/leads", label: "Leads", icon: Inbox, count: (c) => c.leads, hot: true, need: "leads" },
+  { to: "/admin/tuitions", label: "Tuitions", icon: ClipboardList, need: "tuitions" },
+  { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors + c.uploads, hot: true, need: "tutors" },
 ];
 const MORE: Item[] = [
-  { to: "/admin/calls", label: "Call list", icon: PhoneCall },
-  { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications },
-  { to: "/admin/placements", label: "Placements", icon: Handshake, count: (c) => c.selected },
-  { to: "/admin/money", label: "Money", icon: Wallet },
-  { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true },
-  { to: "/admin/batches", label: "Batch teachers", icon: GraduationCap, count: (c) => c.batches, hot: true },
-  { to: "/admin/guardians", label: "Guardians", icon: UserRound },
-  { to: "/admin/insights", label: "Insights", icon: BarChart3 },
-  { to: "/admin/review", label: "Review", icon: ListChecks, count: (c) => c.review },
-  { to: "/admin/voice", label: "Voice notes", icon: Mic },
+  { to: "/admin/calls", label: "Call list", icon: PhoneCall, need: "calls" },
+  { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications, need: "tuitions" },
+  { to: "/admin/placements", label: "Placements", icon: Handshake, count: (c) => c.selected, need: "tuitions" },
+  { to: "/admin/money", label: "Money", icon: Wallet, need: "owner" },
+  { to: "/admin/premium", label: "Premium", icon: Crown, count: (c) => c.premium, hot: true, need: "owner" },
+  { to: "/admin/batches", label: "Batch teachers", icon: GraduationCap, count: (c) => c.batches, hot: true, need: "batches" },
+  { to: "/admin/guardians", label: "Guardians", icon: UserRound, need: "leads" },
+  { to: "/admin/insights", label: "Insights", icon: BarChart3, need: "owner" },
+  { to: "/admin/review", label: "Review", icon: ListChecks, count: (c) => c.review, need: "owner" },
+  { to: "/admin/voice", label: "Voice notes", icon: Mic, need: "owner" },
+  { to: "/admin/team", label: "Team", icon: ShieldCheck, need: "owner" },
 ];
 
 const Count = ({ n, hot, dark }: { n: number; hot?: boolean; dark?: boolean }) =>
@@ -174,10 +187,12 @@ function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void })
 
 // ---------- New menu ----------
 
-function NewMenu({ dark }: { dark?: boolean }) {
+function NewMenu({ dark, access }: { dark?: boolean; access: Access }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   useEffect(() => setOpen(false), [pathname]);
+  const lead = allows(access, "leads"), tuition = allows(access, "tuitions");
+  if (!lead && !tuition) return null;
   return (
     <div className="relative">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-colors ${dark ? "bg-mango text-forest hover:bg-mango-deep" : "bg-forest text-cream"}`}>
@@ -187,8 +202,8 @@ function NewMenu({ dark }: { dark?: boolean }) {
         <>
           <button type="button" aria-label="Close" onClick={() => setOpen(false)} className="fixed inset-0 z-40 cursor-default" />
           <div className="absolute inset-x-0 top-full z-50 mt-2 animate-rise rounded-2xl bg-white p-1.5 text-forest shadow-lift">
-            <Link to="/admin/quick" className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold hover:bg-brand-50"><Zap size={18} className="text-brand-600" aria-hidden />New lead (call)</Link>
-            <Link to="/admin/tuitions/new" className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold hover:bg-brand-50"><ClipboardList size={18} className="text-brand-600" aria-hidden />New tuition</Link>
+            {lead && <Link to="/admin/quick" className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold hover:bg-brand-50"><Zap size={18} className="text-brand-600" aria-hidden />New lead (call)</Link>}
+            {tuition && <Link to="/admin/tuitions/new" className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold hover:bg-brand-50"><ClipboardList size={18} className="text-brand-600" aria-hidden />New tuition</Link>}
           </div>
         </>
       )}
@@ -198,7 +213,7 @@ function NewMenu({ dark }: { dark?: boolean }) {
 
 // ---------- shell ----------
 
-function Sidebar({ counts, onSearch }: { counts: Counts; onSearch: () => void }) {
+function Sidebar({ counts, onSearch, access }: { counts: Counts; onSearch: () => void; access: Access }) {
   const link = ({ isActive }: { isActive: boolean }) =>
     `group relative flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors ${isActive ? "bg-white/10 text-white" : "text-brand-100/80 hover:bg-white/5 hover:text-white"}`;
   return (
@@ -214,10 +229,10 @@ function Sidebar({ counts, onSearch }: { counts: Counts; onSearch: () => void })
         <button type="button" onClick={onSearch} className="flex min-h-11 w-full items-center gap-2.5 rounded-xl bg-white/5 px-3 text-sm text-brand-100/80 ring-1 ring-white/10 transition-colors hover:bg-white/10">
           <Search size={17} aria-hidden />Search<kbd className="ml-auto rounded-md bg-white/10 px-1.5 text-[11px] font-semibold">Ctrl K</kbd>
         </button>
-        <NewMenu dark />
+        <NewMenu dark access={access} />
       </div>
       <nav aria-label="Admin" className="mt-4 flex-1 space-y-5 overflow-y-auto px-3 pb-4 scroll-thin">
-        {GROUPS.map((g) => (
+        {GROUPS.map((g) => ({ ...g, items: g.items.filter((n) => allows(access, n.need)) })).filter((g) => g.items.length).map((g) => (
           <div key={g.title}>
             <p className="mb-1 px-3 text-[11px] font-bold tracking-[0.14em] text-brand-200/70 uppercase">{g.title}</p>
             {g.items.map((n) => (
@@ -246,16 +261,18 @@ function Sidebar({ counts, onSearch }: { counts: Counts; onSearch: () => void })
   );
 }
 
-function PhoneBars({ counts, onSearch }: { counts: Counts; onSearch: () => void }) {
+function PhoneBars({ counts, onSearch, access }: { counts: Counts; onSearch: () => void; access: Access }) {
   const { pathname, search } = useLocation();
   // Pages with their own sticky Save bar: the + button would sit on top of it.
   const saveBar = pathname === "/admin/tuitions/new" || (/^\/admin\/tuitions\/\d+$/.test(pathname) && new URLSearchParams(search).get("tab") === "details");
   const [more, setMore] = useState(false);
   useEffect(() => setMore(false), [pathname]);
-  const moreActive = MORE.some((m) => pathname.startsWith(m.to));
+  const more_ = MORE.filter((m) => allows(access, m.need));
+  const tabs = TABS.filter((t) => allows(access, t.need));
+  const moreActive = more_.some((m) => pathname.startsWith(m.to));
   const tab = (on: boolean) => `flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-colors ${on ? "text-forest" : "text-slate-500"}`;
   const pill = (on: boolean) => `relative flex h-7 w-12 items-center justify-center rounded-full transition-colors ${on ? "bg-brand-100" : ""}`;
-  const moreCount = (counts.applications > 0 ? 1 : 0) + (counts.review > 0 ? 1 : 0);
+  const moreCount = (allows(access, "tuitions") && counts.applications > 0 ? 1 : 0) + (access.owner && counts.review > 0 ? 1 : 0);
   return (
     <>
       <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-brand-100/70 bg-cream/90 px-4 backdrop-blur-md lg:hidden">
@@ -272,7 +289,7 @@ function PhoneBars({ counts, onSearch }: { counts: Counts; onSearch: () => void 
       {more && <button type="button" aria-label="Close" onClick={() => setMore(false)} className="fixed inset-0 z-30 animate-fade bg-forest/30 lg:hidden" />}
       {more && (
         <div id="admin-more" className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 animate-sheet rounded-2xl bg-white p-2 shadow-lift lg:hidden">
-          {MORE.map((m) => (
+          {more_.map((m) => (
             <Link key={m.to} to={m.to} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-forest hover:bg-brand-50">
               <m.icon size={18} className="text-brand-600" aria-hidden />{m.label}{m.count && <Count n={m.count(counts)} />}
             </Link>
@@ -284,11 +301,11 @@ function PhoneBars({ counts, onSearch }: { counts: Counts; onSearch: () => void 
           </Form>
         </div>
       )}
-      {!saveBar && <Link to="/admin/quick" aria-label="New lead" className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 flex size-14 items-center justify-center rounded-2xl bg-mango text-forest shadow-lift transition-transform duration-150 active:scale-95 lg:hidden">
+      {!saveBar && allows(access, "leads") && <Link to="/admin/quick" aria-label="New lead" className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 flex size-14 items-center justify-center rounded-2xl bg-mango text-forest shadow-lift transition-transform duration-150 active:scale-95 lg:hidden">
         <Plus size={26} strokeWidth={2.5} aria-hidden />
       </Link>}
       <nav aria-label="Admin" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-brand-100 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => tab(isActive)}>
             {({ isActive }) => (
               <>
@@ -313,7 +330,8 @@ function PhoneBars({ counts, onSearch }: { counts: Counts; onSearch: () => void 
   );
 }
 
-export default function AdminLayout({ loaderData: { counts } }: Route.ComponentProps) {
+export default function AdminLayout({ loaderData: { counts, owner, allowed } }: Route.ComponentProps) {
+  const access: Access = { owner, allowed };
   const [search, setSearch] = useState(false);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -328,8 +346,8 @@ export default function AdminLayout({ loaderData: { counts } }: Route.ComponentP
   }, []);
   return (
     <div className="min-h-dvh bg-[#f7f8f4]">
-      <Sidebar counts={counts} onSearch={() => setSearch(true)} />
-      <PhoneBars counts={counts} onSearch={() => setSearch(true)} />
+      <Sidebar counts={counts} onSearch={() => setSearch(true)} access={access} />
+      <PhoneBars counts={counts} onSearch={() => setSearch(true)} access={access} />
       {/* On a computer there is no top bar to ride, so the line runs alone along the top of the page. */}
       <div className="fixed top-0 right-0 left-64 z-30 hidden lg:block"><ScrollRide bare /></div>
       <div className="lg:pl-64">

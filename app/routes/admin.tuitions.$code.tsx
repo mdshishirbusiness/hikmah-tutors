@@ -10,8 +10,10 @@ import { ApplicantWorkspace, copyText } from "~/components/Applicants";
 import { Badge, Money, PageHead, ago, num, primaryButton, when, TUITION_TONE } from "~/components/admin";
 import { TuitionFields } from "~/components/TuitionFields";
 import { APPLICATION_STATUS, TUITION_STATUS, publishGaps } from "~/lib/admin-labels";
-import { getTuition, markAllSeen, markSeen, moveApplication, newGuardianLink, setTuitionState, updateTuition } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { assignTuitions, getTuition, inScope, markAllSeen, markSeen, moveApplication, newGuardianLink, setTuitionState, tuitionStaff, updateTuition } from "~/lib/admin.server";
+import { isOwner } from "~/lib/staff";
+import { listStaff } from "~/lib/staff.server";
+import { requireStaff, scopeOf } from "~/lib/auth.server";
 import { waLink } from "~/lib/contact";
 import { tutorFromLabel } from "~/lib/fit";
 import { AREAS, CLASS_LEVELS, LEAD_SOURCES, MEDIUMS, STUDENT_GENDERS, SUBJECTS, labelOf } from "~/lib/options";
@@ -25,10 +27,15 @@ export function meta({ params }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAdmin(request);
-  const found = await getTuition(Number(params.code) || -1);
+  const viewer = await requireStaff(request, "tuitions");
+  const code = Number(params.code) || -1;
+  // A moderator opens only the tuitions given to them (owner, 2026-11-16).
+  if (!(await inScope(code, scopeOf(viewer)))) throw data("This tuition isn't one of yours. Ask the owner.", { status: 404 });
+  const found = await getTuition(code);
   if (!found) throw data("Tuition not found", { status: 404 });
-  return { ...found, origin: new URL(request.url).origin };
+  const owner = isOwner(viewer);
+  const [staffId, team] = owner ? await Promise.all([tuitionStaff(code), listStaff()]) : [null, []];
+  return { ...found, origin: new URL(request.url).origin, owner, staffId, team: team.map((s) => ({ id: s.id, name: s.name || s.email })) };
 }
 
 // Picking an applicant, a tab or a sort only changes the address; the data is already here.
@@ -38,12 +45,19 @@ export function shouldRevalidate({ currentUrl, nextUrl, formMethod, defaultShoul
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const viewer = await requireAdmin(request);
+  const viewer = await requireStaff(request, "tuitions");
   const code = Number(params.code) || -1;
+  if (!(await inScope(code, scopeOf(viewer)))) throw data("This tuition isn't one of yours. Ask the owner.", { status: 404 });
   const form = await request.formData();
   const intent = form.get("intent");
+  if (intent === "assign") {
+    if (!isOwner(viewer)) return { error: "Only the owner can give a tuition to a moderator.", saved: false, note: "" };
+    const to = Number(form.get("staff")) || null;
+    await assignTuitions([code], to, viewer?.id ?? null);
+    return { error: null, saved: true, note: to ? "Given to the moderator." : "Back with you only." };
+  }
   if (intent === "move") {
-    const error = await moveApplication(Number(form.get("id")), String(form.get("to")), String(form.get("reason") ?? ""), viewer?.id ?? null);
+    const error = await moveApplication(Number(form.get("id")), String(form.get("to")), String(form.get("reason") ?? ""), viewer?.id ?? null, { moderator: viewer?.role === "moderator", code });
     return { error, saved: false, note: "" };
   }
   if (intent === "seen") {
@@ -137,7 +151,25 @@ const HISTORY_WORD: Record<string, string> = {
   tuition_cancel: "Cancelled", tuition_reopen: "Re-opened",
 };
 
-export default function AdminTuition({ loaderData: { tuition: t, priv, applicants, placements, history, origin }, actionData }: Route.ComponentProps) {
+/** Owner only (owner, 2026-11-16): which moderator looks after this tuition. Saves on change. */
+function ModeratorPick({ staffId, team }: { staffId: number | null; team: { id: number; name: string }[] }) {
+  const fetcher = useFetcher();
+  if (!team.length) return null;
+  const value = fetcher.formData ? String(fetcher.formData.get("staff") ?? "") : String(staffId ?? "");
+  return (
+    <fetcher.Form method="post" className="mt-3 border-t border-rose-100 pt-3">
+      <input type="hidden" name="intent" value="assign" />
+      <label htmlFor="mod-pick" className="text-[11px] font-bold tracking-wide text-slate-500 uppercase">Moderator</label>
+      <select id="mod-pick" name="staff" value={value} onChange={(e) => fetcher.submit(e.currentTarget.form)}
+        className="mt-1 block min-h-11 w-full rounded-xl bg-white px-3 text-sm font-semibold text-forest shadow-ring outline-none focus:ring-2 focus:ring-forest">
+        <option value="">Only me</option>
+        {team.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+      </select>
+    </fetcher.Form>
+  );
+}
+
+export default function AdminTuition({ loaderData: { tuition: t, priv, applicants, placements, history, origin, owner, staffId, team }, actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
   const [sp] = useSearchParams();
   const tab = sp.get("tab") ?? (t.status === "draft" ? "details" : "applicants");
@@ -247,6 +279,7 @@ export default function AdminTuition({ loaderData: { tuition: t, priv, applicant
             </div>
             {guardianPhone && t.status !== "closed" && t.status !== "cancelled" && <StatusLink code={t.code} phone={guardianPhone} />}
             {priv?.guardian_id && <Link to={`/admin/guardians/${priv.guardian_id}`} className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-brand-700">Their other tuitions →</Link>}
+            {owner && priv && <ModeratorPick staffId={staffId} team={team} />}
             {placements.length > 0 && (
               <div className="mt-3 border-t border-rose-100 pt-3">
                 <p className="text-[11px] font-bold tracking-wide text-slate-500 uppercase">Placed tutor</p>

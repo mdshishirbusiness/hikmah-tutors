@@ -8,7 +8,8 @@ import { PageHead, num } from "~/components/admin";
 import { BarList, CHART, ColumnChart, Donut, StatTile } from "~/components/charts";
 import { FollowupRow } from "~/components/FollowUps";
 import { dashboard, mix, pulse, todayList } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff, scopeOf } from "~/lib/auth.server";
+import { can, isOwner } from "~/lib/staff";
 import { agoBn } from "~/lib/dhaka";
 import { dueFollowups } from "~/lib/followups.server";
 import { premiumWaiting } from "~/lib/premium.server";
@@ -19,9 +20,14 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
-  const [counts, list, p, follow, parts, premium] = await Promise.all([dashboard(), todayList(), pulse(12), dueFollowups(), mix(), premiumWaiting()]);
-  return { counts, list, p, follow, parts, premium, now: Math.floor(Date.now() / 1000) };
+  const viewer = await requireStaff(request, "any");
+  // A moderator's Today holds only their tuitions and their switches; the charts and Premium stay the owner's (owner, 2026-11-16).
+  const scope = scopeOf(viewer), owner = isOwner(viewer);
+  const [counts, all, p, follow, parts, premium] = await Promise.all([
+    dashboard(scope), todayList(scope), owner ? pulse(12) : null, dueFollowups(owner ? null : viewer!.id), owner ? mix() : null, owner ? premiumWaiting() : null,
+  ]);
+  const list = { ...all, leads: can(viewer, "leads") ? all.leads : [], newTutors: can(viewer, "docs") ? all.newTutors : [] };
+  return { counts: owner ? counts : { ...counts, held: 0 }, list, p, follow, parts, premium, owner, now: Math.floor(Date.now() / 1000) };
 }
 
 const OUTCOME: Record<string, string> = { booked: "Booked", open: "Still open", cancelled: "Cancelled", closed: "Closed unfilled", draft: "Hidden" };
@@ -74,7 +80,7 @@ function greeting() {
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-export default function AdminHome({ loaderData: { counts: c, list, p, follow, parts, premium, now } }: Route.ComponentProps) {
+export default function AdminHome({ loaderData: { counts: c, list, p, follow, parts, premium, owner, now } }: Route.ComponentProps) {
   const calls: Task[] = list.leads.filter((l) => l.status === "new").map((l) => ({
     key: `lead-${l.id}`, to: "/admin/leads", icon: PhoneCall, tone: "bg-mango text-forest",
     title: `${l.guardian_name || "New guardian"}: ${where(l.class_level, l.area)}`, sub: `নতুন লিড · ${agoBn(l.created_at)}`, late: late(l.created_at, 2),
@@ -109,7 +115,7 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
   }));
   const review: Task[] = c.held > 0 ? [{ key: "review", to: "/admin/review", icon: ListChecks, tone: "bg-amber-100 text-amber-900", title: `To review: ${num(c.held)}`, sub: "শিট থেকে আসা টিউটর, টিউশন ও সারি দেখুন" }] : [];
   // Premium (part E): new applications, payments to check, refunds owed (red once 7 days have passed).
-  const premiumTasks: Task[] = [
+  const premiumTasks: Task[] = !premium ? [] : [
     premium.applied > 0 && { key: "pr-applied", to: "/admin/premium?tab=applied", icon: Crown, tone: "bg-mango text-forest", title: `Premium: ${premium.applied} new ${premium.applied === 1 ? "application" : "applications"}`, sub: "24 ঘণ্টার মধ্যে গ্রহণ বা না করুন" },
     premium.paid > 0 && { key: "pr-paid", to: "/admin/premium?tab=payment", icon: Crown, tone: "bg-forest text-mango", title: `Premium: check ${premium.paid} ${premium.paid === 1 ? "payment" : "payments"}`, sub: "bKash/Nagad/Rocket-এ TrxID মিলিয়ে Verify করুন" },
     premium.refunds > 0 && { key: "pr-refund", to: "/admin/premium?tab=ended", icon: Crown, tone: premium.refunds_late ? "bg-rose-100 text-rose-900" : "bg-amber-100 text-amber-900", title: `Premium: ${premium.refunds} ${premium.refunds === 1 ? "refund" : "refunds"} to send`, sub: "7 দিনের মধ্যে একই নম্বরে পাঠান", late: premium.refunds_late > 0 && "7 দিন পার" },
@@ -118,16 +124,12 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
   const nothing = !premiumTasks.length && !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length && !checkins.length && !newTutors.length && !follow.due.length;
 
   const date = new Date(now * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", weekday: "long", day: "numeric", month: "long" });
-  const weekLabel = (i: number) => new Date((now - (p.weeks - i) * 7 * 86400 + 86400) * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short" });
-  const flow = p.posted.map((n, i) => ({ label: weekLabel(i), full: `Week from ${weekLabel(i)}`, posted: n, booked: p.booked[i] }));
-  const f = p.funnel ?? { posted: 0, applied: 0, shortlisted: 0, selected: 0, booked: 0 };
-
   return (
     <>
       <PageHead
         eyebrow={date}
         title={greeting()}
-        sub="আজকের কাজ উপরে, সপ্তাহের হিসাব পাশে।"
+        sub={owner ? "আজকের কাজ উপরে, সপ্তাহের হিসাব পাশে।" : "আপনার tuition-গুলোর আজকের কাজ।"}
         action={
           <>
             <Link to="/admin/quick" className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white px-4 text-sm font-bold text-forest shadow-ring hover:bg-brand-50"><Plus size={16} aria-hidden />Lead</Link>
@@ -136,12 +138,19 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {!p ? (
+        // A moderator's own numbers (owner, 2026-11-16): only the tuitions given to them.
+        <div className="grid grid-cols-3 gap-3">
+          <StatTile label="My open tuitions" value={num(c.open)} to="/admin/tuitions" />
+          <StatTile label="On the board" value={num(c.publicNow)} to="/admin/tuitions?visibility=public" />
+          <StatTile label="New applications" value={num(c.waiting)} to="/admin/applications?status=submitted&open=1" />
+        </div>
+      ) : <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="New leads this week" value={num(thisWeek(p.leads))} delta={delta(p.leads)} deltaLabel="vs last week" trend={p.leads} to="/admin/leads" />
         <StatTile label="Applications this week" value={num(thisWeek(p.applications))} delta={delta(p.applications)} deltaLabel="vs last week" trend={p.applications} to="/admin/applications" />
         <StatTile label="Booked this week" value={num(thisWeek(p.booked))} delta={delta(p.booked)} deltaLabel="vs last week" trend={p.booked} to="/admin/placements" />
         <StatTile label="Open on the board" value={num(p.open)} note={p.bookHours !== null ? `Typical time to book: ${p.bookHours < 48 ? `${p.bookHours} h` : `${Math.round(p.bookHours / 24)} days`}` : undefined} to="/admin/tuitions?status=available" />
-      </div>
+      </div>}
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
         <main className="space-y-6">
@@ -165,6 +174,18 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
           <Section title="Review" tasks={review} />
         </main>
 
+        {p && parts && <OwnerCharts p={p} parts={parts} now={now} />}
+      </div>
+    </>
+  );
+}
+
+/** The week's pulse beside Today: the owner's alone. */
+function OwnerCharts({ p, parts, now }: { p: Awaited<ReturnType<typeof pulse>>; parts: Awaited<ReturnType<typeof mix>>; now: number }) {
+  const weekLabel = (i: number) => new Date((now - (p.weeks - i) * 7 * 86400 + 86400) * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short" });
+  const flow = p.posted.map((n, i) => ({ label: weekLabel(i), full: `Week from ${weekLabel(i)}`, posted: n, booked: p.booked[i] }));
+  const f = p.funnel ?? { posted: 0, applied: 0, shortlisted: 0, selected: 0, booked: 0 };
+  return (
         <aside className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
             <div className="rounded-2xl bg-white p-5 shadow-ring">
@@ -197,7 +218,5 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
             <Link to="/admin/insights" className="mt-4 inline-flex min-h-10 items-center text-sm font-semibold text-brand-700 hover:underline">More in Insights →</Link>
           </div>
         </aside>
-      </div>
-    </>
   );
 }

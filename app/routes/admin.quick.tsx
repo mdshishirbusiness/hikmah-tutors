@@ -10,7 +10,7 @@ import type { Route } from "./+types/admin.quick";
 import { AddressDetails, AreaPicker, ClassPicker, MediumPicker, RequirementPicker, SessionPicker, SubjectPicker, TimePicker, TutorPicker } from "~/components/RequestFields";
 import { ChoiceChip } from "~/components/tutor";
 import { ScrollRide } from "~/components/ScrollRide";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff } from "~/lib/auth.server";
 import { type LeadErrors, leadFromForm, parseLead } from "~/lib/lead";
 import { flushPending, saveLead, usePendingCount } from "~/lib/lead-queue";
 import { DAYS_PER_WEEK, LEAD_SOURCES, SALARY_PRESETS, STUDENT_GENDERS } from "~/lib/options";
@@ -21,7 +21,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  await requireStaff(request, "leads");
   return null;
 }
 

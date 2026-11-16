@@ -6,7 +6,7 @@ import type { Route } from "./+types/admin.calls";
 import { Avatar } from "~/components/Avatar";
 import { Badge, Empty, PageHead, StageTabs, ago, num } from "~/components/admin";
 import { ADMIN_PAGE_SIZE } from "~/lib/admin-labels";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff } from "~/lib/auth.server";
 import { type CallRow, type Question, callList, checkedCount, editQuestion, questions } from "~/lib/calls.server";
 import { telLink } from "~/lib/contact";
 import { BANDS, SUBJECTS, labelOf } from "~/lib/options";
@@ -18,7 +18,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  await requireStaff(request, "calls");
   const sp = new URL(request.url).searchParams;
   const tab = sp.get("tab") === "questions" ? "questions" : "list";
   if (tab === "questions") return { tab, qs: await questions(), list: null, f: null, checked: 0 };
@@ -32,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdmin(request);
+  await requireStaff(request, "calls");
   return { error: await editQuestion(await request.formData()) };
 }
 

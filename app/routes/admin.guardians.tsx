@@ -3,14 +3,14 @@ import type { Route } from "./+types/admin.guardians";
 import { Badge, Empty, PageHead, Pager, num, inputClass, primaryButton } from "~/components/admin";
 import { ADMIN_PAGE_SIZE } from "~/lib/admin-labels";
 import { listGuardians } from "~/lib/admin.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireStaff } from "~/lib/auth.server";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Guardians · Admin" }, { name: "robots", content: "noindex" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  await requireStaff(request, "leads");
   const sp = new URL(request.url).searchParams;
   const f = { q: sp.get("q")?.trim() ?? "", page: Number(sp.get("page")) || 1 };
   return { ...(await listGuardians(f)), f };

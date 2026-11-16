@@ -23,6 +23,7 @@ import { MEDIUMS, MODES, STUDENT_GENDERS, SUBJECTS, labelOf } from "~/lib/option
 import { classLabel, requirementLabels } from "~/lib/request";
 import { APPLY_NOTE_MAX, type PublicTuition, feeDisplay, formatDate, scheduleNote, taka } from "~/lib/tuition";
 import { visibleTuition } from "~/lib/tuitions.server";
+import { VoiceSpot } from "~/components/VoiceNote";
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Tuition not found · Hikmah Tutors" }];
@@ -48,7 +49,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const view = ready ? await applyView(ready, code) : null;
   const t = view?.t ?? (code > 0 ? await visibleTuition(code) : null);
   if (!t) throw data("Tuition not found", { status: 404 });
-  const who = !viewer ? "visitor" : viewer.role === "owner" ? "owner" : !me ? "join" : !ready ? "setup" : "tutor";
+  const who = !viewer ? "visitor" : viewer.role !== "tutor" ? "owner" : !me ? "join" : !ready ? "setup" : "tutor";
   const band = bandOf(t.class_level);
   const level = ready && view && band ? (await myLevels(ready.id)).find((l) => l.band === band) : undefined;
   // The Premium reminder: checked tutors with no Premium term (the 3-day gap is kept on the phone).
@@ -294,6 +295,8 @@ export default function TuitionWindow({ loaderData: { t, who, now, fit, applied,
                 <span><span className="font-semibold">You're paused.</span> Applying turns pause off, so HTR can send you tuitions again.</span>
               </p>
             )}
+            {/* Outside the label: a button inside it would take the label's focus from the note. */}
+            <div className="flex justify-end empty:hidden"><VoiceSpot spot="apply-note" /></div>
             <label className={`block scroll-mt-20 rounded-2xl bg-white p-4 ring-1 transition-shadow ${asked && !note.trim() ? "ring-2 ring-brand-500" : "ring-brand-100"}`}>
               <span className="block text-lg leading-snug font-bold text-forest">
                 Anything for HTR about this tuition?{" "}

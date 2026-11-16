@@ -35,6 +35,7 @@ import { StudentsCard } from "~/components/StudentsCard";
 import { ProfileUploads } from "~/components/ProfileUploads";
 import { myDocumentList, myUploads, sendUpload, withdrawUpload } from "~/lib/uploads.server";
 import { ExperienceChart, GuidedText, HabitQuestions, LevelHabits, type HabitAnswers, sharedHabits } from "~/components/ExperienceParts";
+import { VoiceSpot } from "~/components/VoiceNote";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Profile · Hikmah Tutors" }, { name: "robots", content: "noindex" }];
@@ -115,8 +116,8 @@ function LevelCard({ band, level, done, shared, next }: { band: Band; level?: Le
           <input name={p("years")} type="number" inputMode="decimal" min={0} max={40} step={0.5} defaultValue={level?.years ?? ""} placeholder="e.g. 1.5" className={inputClass} />
         </label>
       </div>
-      <GuidedText name={p("approach")} kind="approach" band={band} label="How you teach at this level" initial={level?.approach ?? ""} />
-      <GuidedText name={p("story")} kind="story" band={band} label="A student you helped" optional initial={level?.story ?? ""} rows={3} />
+      <GuidedText name={p("approach")} kind="approach" band={band} label="How you teach at this level" voice="profile-teach" initial={level?.approach ?? ""} />
+      <GuidedText name={p("story")} kind="story" band={band} label="A student you helped" voice="profile-story" optional initial={level?.story ?? ""} rows={3} />
       <LevelHabits band={band} level={level} shared={shared} />
       <a href={next.href} className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-forest px-5 text-sm font-bold text-cream transition-colors duration-150 hover:bg-brand-700">
         Next: {next.label}<ArrowRight size={16} aria-hidden />
@@ -472,6 +473,7 @@ export default function Profile({ loaderData: { me, choices, levels, students, b
           </SectionCard>
 
           <SectionCard id="about" icon={PenLine} tone="brand" title="About you" done={done("about")} summary={me.about?.trim() || undefined} hint="Two or three lines HTR can share with guardians: how you teach, what you're good at.">
+            <VoiceSpot spot="profile-about" className="mb-2" />
             <textarea name="about" rows={4} maxLength={500} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="e.g. I explain with examples and give a short test every week." className={`${inputClass} py-3`} />
             <Count value={about} max={500} />
             <label className="mt-2 block">
