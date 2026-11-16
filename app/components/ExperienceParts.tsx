@@ -7,6 +7,8 @@ import { Check, ChevronDown, Plus } from "lucide-react";
 import { inputClass } from "~/components/admin";
 import { ChoiceChip } from "~/components/tutor";
 import { type Band, HABITS, type HabitCol, type Level, bandShort } from "~/lib/profile";
+import { VoiceSpot } from "~/components/VoiceNote";
+import type { VoiceSpotKey } from "~/lib/voice";
 
 // ---------- Writing help ----------
 
@@ -52,8 +54,8 @@ function depth(text: string) {
   return { level, word: ["", "A start", "Good", "Detailed"][level], tip };
 }
 
-export function GuidedText({ name, kind, band, label, optional, initial, max = 2000, rows = 4 }: {
-  name: string; kind: Kind; band: Band; label: string; optional?: boolean; initial: string; max?: number; rows?: number;
+export function GuidedText({ name, kind, band, label, optional, initial, max = 2000, rows = 4, voice }: {
+  name: string; kind: Kind; band: Band; label: string; optional?: boolean; initial: string; max?: number; rows?: number; voice?: VoiceSpotKey;
 }) {
   const [text, setText] = useState(initial);
   const [example, setExample] = useState(false);
@@ -74,7 +76,8 @@ export function GuidedText({ name, kind, band, label, optional, initial, max = 2
   return (
     <div className="mt-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-bold text-slate-600">{label}{optional && <span className="font-normal text-slate-400"> (optional)</span>}</span>
+        <span className="min-w-0 flex-1 text-xs font-bold text-slate-600">{label}{optional && <span className="font-normal text-slate-400"> (optional)</span>}</span>
+        {voice && <VoiceSpot spot={voice} className="shrink-0" />}
         <button type="button" onClick={() => setExample((e) => !e)} aria-expanded={example} className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-bold whitespace-nowrap text-brand-700 hover:bg-brand-50">
           Example<ChevronDown size={14} aria-hidden className={`transition-transform duration-200 motion-reduce:transition-none ${example ? "rotate-180" : ""}`} />
         </button>

@@ -27,3 +27,8 @@ worker-configuration.d.ts
 !/design/inspiration/icon-fact-rows.png
 # Ad creatives: stock and AI images carry licence terms, so the whole folder stays on the owner's PC (owner, 2026-11-11).
 /design/ads/
+
+# ElevenLabs voice clips made by scripts/voice/make.mjs (uploaded to R2, not kept in git)
+/voice-out/
+# Background beds for voice clips: licence terms unknown, kept on the owner's PC
+/scripts/voice/*.mp3

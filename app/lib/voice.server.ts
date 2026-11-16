@@ -1,11 +1,11 @@
 // The owner's voice clips (migration 0033). Public to hear, the owner alone uploads (the admin page calls requireAdmin
 // before any function that writes). Files live in R2 under voice/.
 import { env } from "cloudflare:workers";
-import { VOICE_MAX_BYTES, VOICE_SLOTS, VOICE_TYPES, type VoiceClip, type VoiceSlot } from "./voice";
+import { ALL_VOICE, VOICE_MAX_BYTES, VOICE_TYPES, type VoiceClip, type VoiceSlot } from "./voice";
 
 type Row = { slot: VoiceSlot; r2_key: string; mime: string; bytes: number; autoplay: number; updated_at: number };
 const now = () => Math.floor(Date.now() / 1000);
-const isSlot = (v: unknown): v is VoiceSlot => VOICE_SLOTS.some((s) => s.key === v);
+const isSlot = (v: unknown): v is VoiceSlot => ALL_VOICE.some((s) => s.key === v);
 
 const FRESH_MS = 60_000;
 let loadedAt = 0;

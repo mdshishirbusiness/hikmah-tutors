@@ -5,6 +5,7 @@ import { FileImage, Plus, Trash2 } from "lucide-react";
 import { DocViewer } from "~/components/DocViewer";
 import { ACADEMIC_DOCS_MAX, DOC_LABELS } from "~/lib/join";
 import { shrinkDoc } from "~/lib/images";
+import { VoiceSpot } from "~/components/VoiceNote";
 
 export type ExistingDoc = { id: number; kind: "academic" | "nid"; label: string | null };
 
@@ -62,6 +63,7 @@ export function JoinDocuments({ code, existing, error, nidError }: { code: numbe
 
   return (
     <div>
+      <VoiceSpot spot="join-docs" className="mb-2" />
       <p className="text-sm text-slate-600">At least one is needed. A student ID card is best; if you don't have one yet, send an admission slip, result sheet or certificate. You can add more to strengthen your profile.</p>
       <p className="mt-1 text-sm text-slate-500">কমপক্ষে একটি শিক্ষা-সংক্রান্ত ডকুমেন্টের ছবি দিন। শুধু HTR দেখবে, গার্ডিয়ান বা অন্য কেউ নয়।</p>
 
