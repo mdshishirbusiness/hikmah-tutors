@@ -1165,9 +1165,15 @@ export async function setTutorAccount(id: number, form: FormData, actorId: numbe
   // The other personal details: empty clears; years are four digits; the Facebook link must be a web address.
   const details: (string | number | null)[] = [];
   for (const f of TUTOR_DETAIL_FIELDS) {
-    const v = text(f.key, f.max);
+    let v = text(f.key, f.max);
     if ("year" in f && v && !/^(19|20)\d{2}$/.test(v)) return { error: `${f.label}: write a year like 2021.` };
-    if ("url" in f && v && !/^https?:\/\/\S+$/i.test(v)) return { error: `${f.label}: paste the full link (https://…).` };
+    // Tutors often write "facebook.com/name", "www.fb.com/…" or just the user name: add https:// (and facebook.com/
+    // for a bare name) instead of blocking the whole save. Only text with spaces (a name, a sentence) is refused.
+    if ("url" in f && v && !/^https?:\/\//i.test(v)) {
+      const s = v.replace(/^\/+/, "");
+      if (!/\s/.test(s)) v = `https://${s.includes(".") || f.key !== "facebook_url" ? s : `facebook.com/${s}`}`.slice(0, f.max);
+    }
+    if ("url" in f && v && !/^https?:\/\/\S+$/i.test(v)) return { error: `${f.label}: "${v}" is not a link. Paste the full link (https://…), or leave it empty.` };
     details.push(v ? ("year" in f ? Number(v) : v) : null);
   }
   const name = text("full_name", 80);
