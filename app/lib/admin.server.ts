@@ -1007,10 +1007,11 @@ export async function navCounts(scope: Scope = null) {
             (SELECT count(*) FROM followups WHERE done_at IS NULL AND due_at <= unixepoch()${scope === null ? "" : ` AND created_by = (SELECT u.id FROM users u JOIN staff st ON st.email = u.email WHERE st.id = ${Math.trunc(scope)})`}) followups,
             (SELECT count(*) FROM premium_members WHERE status IN ('applied', 'paid')
                OR (refund_due_at IS NOT NULL AND refund_sent_at IS NULL)) premium,
-            (SELECT count(*) FROM batch_applications WHERE status = 'new') batches`,
-  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number; uploads: number; followups: number; premium: number; batches: number }>();
+            (SELECT count(*) FROM batch_applications WHERE status = 'new') batches,
+            (SELECT count(*) FROM wa_chats WHERE (needs_human IS NOT NULL OR (unread > 0 AND ai_paused_until > unixepoch()))${scope === null ? "" : ` AND (staff_id IS NULL OR staff_id = ${Math.trunc(scope)})`}) chats`,
+  ).first<{ leads: number; applications: number; open: number; selected: number; new_tutors: number; uploads: number; followups: number; premium: number; batches: number; chats: number }>();
   const review = await reviewCounts();
-  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0, uploads: 0, followups: 0, premium: 0, batches: 0 }), review: review.tutors + review.tuitions + review.held };
+  return { ...(row ?? { leads: 0, applications: 0, open: 0, selected: 0, new_tutors: 0, uploads: 0, followups: 0, premium: 0, batches: 0, chats: 0 }), review: review.tutors + review.tuitions + review.held };
 }
 
 export type SearchHit = { kind: "tuition" | "tutor" | "guardian" | "lead"; to: string; title: string; sub: string; photo?: { code: number; has: boolean } };

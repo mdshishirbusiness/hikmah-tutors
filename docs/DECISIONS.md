@@ -1241,3 +1241,54 @@ Context: competitor research in `docs/research/competitors-2026-10-19.md`.
   page answers "not one of yours". Unassigned and imported tuitions stay the owner's. Leads stay one shared pool
   until posted. Follow-ups: a moderator sees the ones they set. Removing a moderator gives their tuitions back.
   Stored as `tuition_private.staff_id` (private table, never on the board).
+
+## 2026-11-18 (WhatsApp Cloud API, AI replies, Inbox)
+- **The main business number joins WhatsApp Cloud API by coexistence** (owner, 2026-11-18): guardians have saved that
+  number and call it, so no second number. The WhatsApp Business app stays on the owner's phone (calls, groups); the
+  laptop uses WhatsApp Web or our own Inbox (Windows WhatsApp Desktop is unlinked by coexistence). Costs the app's
+  broadcast lists (read-only) and app-side greeting/away/quick replies/labels for API chats; the app must be opened at
+  least every 13 days. The 180-day history sync is not used: old chats stay on the phone only.
+- **Through YCloud's free plan** ("Connect with Facebook", the account stays in Hikmah's own Meta business portfolio),
+  not by becoming a Meta Tech Provider (2–4 weeks, irreversible, unconfirmed for self-onboarding) and not a paid BSP
+  (360dialog ~€49/month) or Kapso (free plan caps 2,000 messages incl. incoming and keeps messages forever). YCloud's
+  global webhook sends incoming messages and the phone app's echoes to our Worker (`YCloud-Signature`, HMAC-SHA256 of
+  `timestamp.body`); we send through YCloud's API. No markup on Meta fees. Keys live only in Cloudflare secrets.
+- **Everything else is ours, on Cloudflare Workers + D1** (owner): webhook, AI, Admin Inbox and alerts. No SaaS inbox
+  (WATI, respond.io, WhatChimp). Messages pass through YCloud and Meta by necessity; guardian messages also go to the
+  Anthropic API (owner approved, Q5) with phone numbers and full addresses cut out first. That is a deliberate
+  exception to "no real data in a third-party tool", for production replies only; the paid API does not train on it.
+- **AI model: Claude Haiku 5.5** (owner): each request sends the style guide, Hikmah's facts and only the last ~20
+  messages, so a request stays far under 100K tokens (the price step). Budget ৳1,000–1,500/month for WhatsApp + AI;
+  past the cap the AI stops and every chat goes to people.
+- **What the AI does** (owner): guardians — greet, collect class, area, subjects, time, salary and tutor wanted, then
+  save a lead (source `whatsapp`) and say the team will call. Tutors — answer how to apply, Premium and fees from the
+  site's rules, with links. It never sets a salary or fee, names or promises a tutor, gives any guardian's contact or
+  address, decides about payments, or guarantees anything; those go to a moderator. It talks only about Hikmah's work.
+  Guardian promises are the 2026-11-10 ones (free for guardians, 2 demo days, a replacement tutor at no cost).
+- **Sounds like a person, never lies about it** (owner): natural, non-robotic replies with no "I am a bot" banner;
+  if someone sincerely asks whether they are talking to a person, it says this is Hikmah's assistant and hands the
+  chat to a person at once (Anthropic's rule and Meta's "don't mislead, easy way to a human").
+- **Style from the owner, not from Claude's guesses** (owner): a Hikmah style guide built from the owner's own answers
+  to 15–20 common questions, the site's texts (posts, voice clip lines, Premium rules) and public research on how
+  Bangladeshi tuition media talk. The owner approves it; the AI answers only from it and the site's facts.
+- **People first when they are in the chat** (owner): after the owner or a moderator replies (phone app or Inbox),
+  the AI sends nothing in that chat for 12 hours and only shows a suggested reply to send with one tap. The Inbox has
+  a "Resume AI" button. The AI answers 24 hours; 23:00–08:00 it says the team will call in the morning.
+- **Voice messages** (owner): the AI asks politely for text and the chat goes to a moderator. No transcription yet.
+- **Alerts** (owner took the table): call request, complaint or anger → owner's personal WhatsApp (utility template,
+  ~$0.004) + push, at once, except at night (push only); salary/fee haggling or a question the AI can't answer →
+  push and a red mark in the Inbox; new lead → push; no reply from a person in 30 minutes → owner's WhatsApp; a daily
+  summary by email (Cloudflare `send_email`, free). The alert number is set by the owner in Settings, not in code.
+- **Moderators get an "Inbox" switch** (owner): they see unassigned chats and their own; the owner sees all.
+- **Keep chat text 12 months, voice and images (R2) 90 days**; leads and tuitions stay as before (owner).
+- **Order** (owner): step 1 webhook, Inbox, guardian intake to lead, alerts; step 2 tutor answers and follow-up
+  reminders. Broadcast is dropped for now (marketing messages ~৳10 each); if it returns: opt-in only, STOP in every
+  message, at most twice a month per person.
+- **The Inbox looks and feels like WhatsApp** (owner, 2026-11-19: "যেন মনে হয় আমি WhatsApp চালাচ্ছি"): WhatsApp's
+  colours, chat list with chips (All, Unread, Needs you, Mine), bubbles with tails and ticks, date chips, a round send
+  button, a ⋮ menu for Take / Resume AI / Done / Save as lead; full screen on a phone, two panes on a computer like
+  WhatsApp Web. An exception to the logo palette for this one screen; no WhatsApp logo or artwork. WhatsApp is a tab in
+  the phone's bottom bar and its waiting chats head the Today page, for the owner and moderators with the switch.
+- **WhatsApp only for now** (owner, 2026-11-19): Messenger and Instagram DMs are not joined to the Inbox yet (they would
+  need Meta App Review and Business Verification, and the Page's Meta Business AI turned off). The Page keeps Meta's
+  Business AI. Revisit once WhatsApp runs well.

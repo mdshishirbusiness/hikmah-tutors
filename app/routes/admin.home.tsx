@@ -2,7 +2,7 @@
 // with their trend, posted against booked by week, the funnel and where demand is. Phone: numbers, then the to-do
 // list, then the charts.
 import { Link } from "react-router";
-import { BadgeCheck, ChevronRight, Crown, ClipboardList, FilePen, FileText, Inbox, ListChecks, PhoneCall, PhoneMissed, Plus, UserPlus } from "lucide-react";
+import { BadgeCheck, ChevronRight, Crown, ClipboardList, FilePen, FileText, Inbox, ListChecks, MessageCircle, PhoneCall, PhoneMissed, Plus, UserPlus } from "lucide-react";
 import type { Route } from "./+types/admin.home";
 import { PageHead, num } from "~/components/admin";
 import { BarList, CHART, ColumnChart, Donut, StatTile } from "~/components/charts";
@@ -14,6 +14,7 @@ import { agoBn } from "~/lib/dhaka";
 import { dueFollowups } from "~/lib/followups.server";
 import { premiumWaiting } from "~/lib/premium.server";
 import { AREAS, CLASS_LEVELS, LEAD_SOURCES, labelOf } from "~/lib/options";
+import { listChats } from "~/lib/wa.server";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Today · Admin" }, { name: "robots", content: "noindex" }];
@@ -23,11 +24,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   const viewer = await requireStaff(request, "any");
   // A moderator's Today holds only their tuitions and their switches; the charts and Premium stay the owner's (owner, 2026-11-16).
   const scope = scopeOf(viewer), owner = isOwner(viewer);
-  const [counts, all, p, follow, parts, premium] = await Promise.all([
+  const staffId = viewer?.role === "moderator" ? viewer.staffId ?? -1 : null;
+  const [counts, all, p, follow, parts, premium, wa] = await Promise.all([
     dashboard(scope), todayList(scope), owner ? pulse(12) : null, dueFollowups(owner ? null : viewer!.id), owner ? mix() : null, owner ? premiumWaiting() : null,
+    can(viewer, "inbox") ? listChats("waiting", staffId, staffId) : null, // WhatsApp chats waiting for a person (owner, 2026-11-19)
   ]);
   const list = { ...all, leads: can(viewer, "leads") ? all.leads : [], newTutors: can(viewer, "docs") ? all.newTutors : [] };
-  return { counts: owner ? counts : { ...counts, held: 0 }, list, p, follow, parts, premium, owner, now: Math.floor(Date.now() / 1000) };
+  return { counts: owner ? counts : { ...counts, held: 0 }, list, p, follow, parts, premium, owner, now: Math.floor(Date.now() / 1000), chats: wa?.chats ?? [] };
 }
 
 const OUTCOME: Record<string, string> = { booked: "Booked", open: "Still open", cancelled: "Cancelled", closed: "Closed unfilled", draft: "Hidden" };
@@ -80,7 +83,12 @@ function greeting() {
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-export default function AdminHome({ loaderData: { counts: c, list, p, follow, parts, premium, owner, now } }: Route.ComponentProps) {
+export default function AdminHome({ loaderData: { counts: c, list, p, follow, parts, premium, owner, now, chats } }: Route.ComponentProps) {
+  const whatsapp: Task[] = chats.map((x) => ({
+    key: `wa-${x.id}`, to: `/admin/inbox/${x.id}`, icon: MessageCircle, tone: x.urgent ? "bg-rose-600 text-white" : "bg-[#d9fdd3] text-[#0b5c3b]",
+    title: `${x.name ?? x.phone ?? "WhatsApp"}${x.needs_human ? `: ${x.needs_human}` : ""}`, sub: `${x.last_text ?? ""} · ${agoBn(x.last_in_at)}`.replace(/^ · /, ""),
+    late: !!x.last_in_at && late(x.last_in_at, 0.5) ? "৩০ মিনিট পার" : false,
+  }));
   const calls: Task[] = list.leads.filter((l) => l.status === "new").map((l) => ({
     key: `lead-${l.id}`, to: "/admin/leads", icon: PhoneCall, tone: "bg-mango text-forest",
     title: `${l.guardian_name || "New guardian"}: ${where(l.class_level, l.area)}`, sub: `নতুন লিড · ${agoBn(l.created_at)}`, late: late(l.created_at, 2),
@@ -121,7 +129,7 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
     premium.refunds > 0 && { key: "pr-refund", to: "/admin/premium?tab=ended", icon: Crown, tone: premium.refunds_late ? "bg-rose-100 text-rose-900" : "bg-amber-100 text-amber-900", title: `Premium: ${premium.refunds} ${premium.refunds === 1 ? "refund" : "refunds"} to send`, sub: "7 দিনের মধ্যে একই নম্বরে পাঠান", late: premium.refunds_late > 0 && "7 দিন পার" },
     premium.ending > 0 && { key: "pr-ending", to: "/admin/premium?tab=ending", icon: Crown, tone: "bg-sky-100 text-sky-900", title: `Premium: ${premium.ending} ending in 5 days`, sub: "রিফান্ড না আরও 90 দিন, জেনে নিন" },
   ].filter(Boolean) as Task[];
-  const nothing = !premiumTasks.length && !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length && !checkins.length && !newTutors.length && !follow.due.length;
+  const nothing = !whatsapp.length && !premiumTasks.length && !calls.length && !toPost.length && !applications.length && !drafts.length && !review.length && !notCalled.length && !confirmed.length && !checkins.length && !newTutors.length && !follow.due.length;
 
   const date = new Date(now * 1000).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", weekday: "long", day: "numeric", month: "long" });
   return (
@@ -164,6 +172,7 @@ export default function AdminHome({ loaderData: { counts: c, list, p, follow, pa
               <ul className="space-y-2">{follow.due.map((f) => <FollowupRow key={f.id} f={f} />)}</ul>
             </section>
           )}
+          <Section title="WhatsApp" hint="এই চ্যাটগুলো মানুষের উত্তরের অপেক্ষায়।" tasks={whatsapp} more={{ to: "/admin/inbox", label: "Open WhatsApp" }} />
           <Section title="Premium" tasks={premiumTasks} more={{ to: "/admin/premium", label: "Premium" }} />
           <Section title="Call" hint="নতুন গার্ডিয়ান: 2 ঘণ্টার মধ্যে কল করুন।" tasks={calls} more={{ to: "/admin/leads", label: "All leads" }} />
           <Section title="Selected tutors" hint="সিলেক্ট হওয়া টিউটর 3 ঘণ্টার মধ্যে গার্ডিয়ানকে কল করবে; কনফার্ম হলে গার্ডিয়ানের সাথে মিলিয়ে নিন।" tasks={[...confirmed, ...notCalled]} more={{ to: "/admin/placements", label: "Placements" }} />

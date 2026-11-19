@@ -45,5 +45,21 @@
 			"binding": "PHOTOS",
 			"bucket_name": "hikmah-photos"
 		}
+	],
+	/**
+	 * WhatsApp Inbox (owner, 2026-11-18): every 5 minutes, unanswered chats alert the owner; 16:00 UTC = 22:00 Dhaka,
+	 * the nightly summary email and the retention clean-up (workers/app.ts → app/lib/alerts.server.ts).
+	 */
+	"triggers": {
+		"crons": ["*/5 * * * *", "0 16 * * *"]
+	},
+	/**
+	 * The nightly summary email to the owner (first of OWNER_EMAILS), from alerts@hikmahtutor.com. Needs Email Routing
+	 * on for hikmahtutor.com and the owner's address verified there, once, in the Cloudflare dashboard.
+	 */
+	"send_email": [
+		{
+			"name": "EMAIL"
+		}
 	]
 }

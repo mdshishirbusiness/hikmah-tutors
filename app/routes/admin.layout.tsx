@@ -6,7 +6,7 @@ import { Form, Link, NavLink, Outlet, type ShouldRevalidateFunctionArgs, useFetc
 import { InstallButton } from "~/components/InstallApp";
 import { ScrollRide } from "~/components/ScrollRide";
 import {
-  ArrowUpRight, BarChart3, ShieldCheck, Crown, ClipboardList, FileText, GraduationCap, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, Mic, PhoneCall, Plus, Search, UserRound, Users, Wallet, X, Zap,
+  ArrowUpRight, BarChart3, ShieldCheck, Crown, ClipboardList, FileText, GraduationCap, Handshake, Inbox, LayoutDashboard, ListChecks, LogOut, Menu, MessageCircle, Mic, PhoneCall, Plus, Search, UserRound, Users, Wallet, X, Zap,
 } from "lucide-react";
 import type { Route } from "./+types/admin.layout";
 import { Avatar } from "~/components/Avatar";
@@ -39,7 +39,7 @@ export function shouldRevalidate({ currentUrl, nextUrl, formMethod, defaultShoul
 type Counts = Awaited<ReturnType<typeof navCounts>>;
 // need: the switch a moderator must have, or "owner" for the owner's own pages; none = every staff member.
 type Item = { to: string; label: string; icon: typeof Inbox; end?: boolean; count?: (c: Counts) => number; hot?: boolean; need?: Perm | "owner" };
-const ALL_PERMS: Perm[] = ["leads", "tuitions", "tutors", "batches", "calls", "docs", "ai"];
+const ALL_PERMS: Perm[] = ["leads", "inbox", "tuitions", "tutors", "batches", "calls", "docs", "ai"];
 type Access = { owner: boolean; allowed: Perm[] };
 const allows = (a: Access, need?: Perm | "owner") => !need || a.owner || (need !== "owner" && a.allowed.includes(need));
 
@@ -49,6 +49,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     items: [
       { to: "/admin", label: "Today", icon: LayoutDashboard, end: true, count: (c) => c.followups, hot: true },
       { to: "/admin/leads", label: "Leads", icon: Inbox, count: (c) => c.leads, hot: true, need: "leads" },
+      { to: "/admin/inbox", label: "WhatsApp", icon: MessageCircle, count: (c) => c.chats, hot: true, need: "inbox" },
       { to: "/admin/tuitions", label: "Tuitions", icon: ClipboardList, count: (c) => c.open, need: "tuitions" },
       { to: "/admin/applications", label: "Applications", icon: FileText, count: (c) => c.applications, hot: true, need: "tuitions" },
       { to: "/admin/placements", label: "Placements", icon: Handshake, count: (c) => c.selected, need: "tuitions" },
@@ -80,6 +81,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
 const TABS: Item[] = [
   { to: "/admin", label: "Today", icon: LayoutDashboard, end: true, count: (c) => c.followups, hot: true },
   { to: "/admin/leads", label: "Leads", icon: Inbox, count: (c) => c.leads, hot: true, need: "leads" },
+  { to: "/admin/inbox", label: "WhatsApp", icon: MessageCircle, count: (c) => c.chats, hot: true, need: "inbox" }, // owner, 2026-11-19: one tap away
   { to: "/admin/tuitions", label: "Tuitions", icon: ClipboardList, need: "tuitions" },
   { to: "/admin/tutors", label: "Tutors", icon: Users, count: (c) => c.new_tutors + c.uploads, hot: true, need: "tutors" },
 ];
@@ -263,8 +265,10 @@ function Sidebar({ counts, onSearch, access }: { counts: Counts; onSearch: () =>
 
 function PhoneBars({ counts, onSearch, access }: { counts: Counts; onSearch: () => void; access: Access }) {
   const { pathname, search } = useLocation();
-  // Pages with their own sticky Save bar: the + button would sit on top of it.
-  const saveBar = pathname === "/admin/tuitions/new" || (/^\/admin\/tuitions\/\d+$/.test(pathname) && new URLSearchParams(search).get("tab") === "details");
+  // Pages with their own button at the bottom right (a save bar, the WhatsApp reply box) hide the + button.
+  // WhatsApp has its own header like the app (owner, 2026-11-19), so the admin top bar steps aside there.
+  const inbox = pathname.startsWith("/admin/inbox");
+  const saveBar = pathname === "/admin/tuitions/new" || inbox || (/^\/admin\/tuitions\/\d+$/.test(pathname) && new URLSearchParams(search).get("tab") === "details");
   const [more, setMore] = useState(false);
   useEffect(() => setMore(false), [pathname]);
   const more_ = MORE.filter((m) => allows(access, m.need));
@@ -275,7 +279,7 @@ function PhoneBars({ counts, onSearch, access }: { counts: Counts; onSearch: () 
   const moreCount = (allows(access, "tuitions") && counts.applications > 0 ? 1 : 0) + (access.owner && counts.review > 0 ? 1 : 0);
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-brand-100/70 bg-cream/90 px-4 backdrop-blur-md lg:hidden">
+      {!inbox && <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-brand-100/70 bg-cream/90 px-4 backdrop-blur-md lg:hidden">
         <ScrollRide />
         <Link to="/admin" className="relative z-10 flex items-center gap-2">
           <img src="/brand/mark.webp" alt="" width={32} height={32} className="size-8" />
@@ -284,7 +288,7 @@ function PhoneBars({ counts, onSearch, access }: { counts: Counts; onSearch: () 
         <button type="button" onClick={onSearch} className="relative z-10 ml-auto flex min-h-11 flex-1 items-center gap-2 rounded-xl bg-white px-3 text-sm text-slate-500 shadow-ring max-w-56">
           <Search size={16} aria-hidden />Search
         </button>
-      </header>
+      </header>}
 
       {more && <button type="button" aria-label="Close" onClick={() => setMore(false)} className="fixed inset-0 z-30 animate-fade bg-forest/30 lg:hidden" />}
       {more && (

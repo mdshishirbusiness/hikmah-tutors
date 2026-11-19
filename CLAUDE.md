@@ -86,6 +86,11 @@ tuition query in `admin.server.ts` (`mine()`/`inScope`). Try it in dev at `/dev/
   (`/admin/voice`), the floating player `app/components/VoiceNote.tsx` (mounted in `root.tsx`), audio at `/voice/:slot`.
   Short clips on parts of a page (`VOICE_SPOTS`, the `VoiceSpot` pill). Clips are made with ElevenLabs by
   `scripts/voice/make.mjs` from `scripts/voice/lines.mjs` (keys in `.dev.vars`, never printed; no owner name in clips).
+- WhatsApp Inbox (migration 0035, owner 2026-11-18): YCloud webhook `/api/wa/webhook` → `app/lib/wa.server.ts` (events,
+  sending, Inbox data, retention), the AI in `wa-ai.server.ts` (Haiku 5.5, phones/addresses cut out, lead upsert, handoff),
+  its words in `wa-style.ts` (draft until the owner approves), alerts and crons in `alerts.server.ts` (Web Push with no
+  payload, owner's WhatsApp template, nightly email). Pages `/admin/inbox` (switch `inbox`). Try it locally with
+  `node scripts/wa/fake.mjs --url http://localhost:5174` on `npm run dev:synthetic`.
 - Admin pieces: `app/components/Applicants.tsx` (applicant table/board/detail), `charts.tsx` (no chart library),
   `TuitionFields.tsx` (new and edit tuition), `Avatar.tsx` (private photos via `/photos/tutor/:code`).
 - Database changes: a new numbered file in `migrations/`, then `npm run db:migrate:local` (and `db:migrate` for the

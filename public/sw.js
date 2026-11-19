@@ -9,7 +9,7 @@ const SLOW_MS = 4000; // past this, a saved copy is shown while the net keeps tr
 const MAX_PAGES = 120;
 const MAX_FILES = 400;
 
-const NEVER = /^\/(api|docs|photos|voice|auth|login|logout|dev|r|admin\/(search|followups|guardian-lookup|team|tuitions\/\d+\/ai))(\/|\.data|$)/;
+const NEVER = /^\/(api|docs|photos|voice|auth|login|logout|dev|r|admin\/(search|followups|guardian-lookup|team|inbox|tuitions\/\d+\/ai))(\/|\.data|$)/;
 const FILE = /^\/(assets|fonts|brand)\/|^\/(favicon\.ico|manifest\.webmanifest)$/;
 const WARM = "/admin/quick"; // the owner's call-time page is always ready
 const LOGO = "/brand/mark.webp"; // the "No internet" screen's logo: kept from install on, so it shows with no net
@@ -95,3 +95,25 @@ a.alt{background:#fff;color:#09332a;box-shadow:inset 0 0 0 1px #cfe3d8}</style><
 <a href="/admin/quick">Quick Pad</a><a class="alt" href="/">Home</a><a class="alt" href="javascript:location.reload()">Try again</a>
 </main></body></html>`, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
+
+// Admin alerts (WhatsApp Inbox, owner 2026-11-18). The push carries no text: ask the site, signed in, what it is about.
+self.addEventListener("push", (e) => {
+  e.waitUntil((async () => {
+    let note = { title: "Hikmah", body: "New WhatsApp message", url: "/admin/inbox" };
+    try {
+      const res = await fetch("/api/push", { credentials: "include", cache: "no-store" });
+      if (res.ok) note = await res.json();
+    } catch {}
+    await self.registration.showNotification(note.title, { body: note.body, icon: LOGO, badge: LOGO, tag: note.url, renotify: true, data: { url: note.url } });
+  })());
+});
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = new URL(e.notification.data?.url ?? "/admin/inbox", location.origin).href;
+  e.waitUntil((async () => {
+    for (const c of await self.clients.matchAll({ type: "window", includeUncontrolled: true })) {
+      if (c.url === url && "focus" in c) return c.focus();
+    }
+    return self.clients.openWindow(url);
+  })());
+});

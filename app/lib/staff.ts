@@ -1,10 +1,11 @@
 // Moderator switches (owner, 2026-11-16; docs/DECISIONS.md). Shared by the server checks and the Team page.
 // Keys are stored in staff.perms: never change one that is in use, only its label.
 
-export type Perm = "leads" | "tuitions" | "tutors" | "batches" | "calls" | "docs" | "ai";
+export type Perm = "leads" | "inbox" | "tuitions" | "tutors" | "batches" | "calls" | "docs" | "ai";
 
 export const PERMS: { key: Perm; label: string; hint: string; byDefault: boolean }[] = [
   { key: "leads", label: "Leads and guardians", hint: "Quick Pad, leads, guardians. Sees guardian phones; every view is logged.", byDefault: true },
+  { key: "inbox", label: "WhatsApp Inbox", hint: "Reply to WhatsApp chats not yet taken and their own (owner, 2026-11-18). Every view is logged.", byDefault: true },
   { key: "tuitions", label: "Tuitions", hint: "New, edit, post, applicants up to Selected, placements, follow-ups.", byDefault: true },
   { key: "tutors", label: "Tutors", hint: "Profiles, flags and the notice to tutors. No NID or documents.", byDefault: true },
   { key: "batches", label: "Batch teachers", hint: "Admission batch applications.", byDefault: true },

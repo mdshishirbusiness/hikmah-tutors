@@ -83,7 +83,7 @@ export async function requireAdmin(request: Request): Promise<Viewer | null> {
 }
 
 // Pages that show guardian phones: each look by a moderator is logged (owner, 2026-11-16).
-const CONTACT_PERMS = new Set<Perm>(["leads", "tuitions"]);
+const CONTACT_PERMS = new Set<Perm>(["leads", "inbox", "tuitions"]);
 
 /**
  * Every admin page a moderator may open calls this with its switch ("any" = all staff, e.g. Today and search).

@@ -11,3 +11,12 @@ OWNER_EMAILS=
 # Opens the admin pages without signing in, on your own computer only. Never set this on Cloudflare.
 # Remove it once Google sign-in works here. A production build ignores it.
 DEV_ADMIN=1
+
+# WhatsApp Inbox (owner, 2026-11-18). Leave empty locally: `npm run dev` then uses a dev webhook secret for
+# scripts/wa/fake.mjs, marks sends as "dev" and gives a fixed AI answer. On Cloudflare set each with `wrangler secret put`.
+YCLOUD_API_KEY=
+YCLOUD_WEBHOOK_SECRET=
+ANTHROPIC_API_KEY=
+# From scripts/wa/vapid.mjs (phone alerts). Optional: WA_FROM=+8801XXXXXXXXX if the first webhook hasn't set it.
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
